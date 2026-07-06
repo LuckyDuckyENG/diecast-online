@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent: #cf2f2a;
+  --background: #f6f5f1;
+  --card-bg: #ffffff;
+  --text-primary: #1a1916;
+  --text-secondary: #3a3833;
+  --text-tertiary: #8a857c;
+  --text-muted: #9a958c;
+  --border-light: #ecebe6;
+  --border-default: #e6e4de;
+  --border-medium: #e0ddd6;
+  --input-bg: #f4f3ef;
+  --section-bg: #f5f4f0;
+}
+
+
+body {
+  background: var(--background);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-hscroll]::-webkit-scrollbar {
+  height: 8px;
+}
+
+[data-hscroll]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-hscroll]::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 99px;
+}
+
+[data-hscroll]:hover::-webkit-scrollbar-thumb {
+  background: #cfccc4;
+}
+
+/* Hide scrollbar for horizontal scrolling sections */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}

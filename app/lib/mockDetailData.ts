@@ -1,0 +1,126 @@
+import { ModelDetail } from './detailTypes';
+
+export const MOCK_MODEL_DETAIL: ModelDetail = {
+  id: '1',
+  name: 'Ferrari SF-25 No.44 Italian GP 2025',
+  manufacturer: 'Looksmart',
+  year: 2025,
+  driver: 'Lewis Hamilton',
+  team: 'Scuderia Ferrari',
+  grandPrix: 'Italian GP — Monza',
+  scale: '1:18',
+  material: 'Resin',
+  articleNumber: 'LS18F1079',
+  productionNumber: 'Limited to 300 pieces',
+  releaseDate: 'Q4 2025',
+  specialLivery: false,
+  priceRange: {
+    low: 240,
+    high: 290,
+    currency: '€',
+  },
+  images: {
+    main: '',
+    thumbnails: ['', '', '', ''],
+  },
+  priceHistory: [
+    { month: 'Jan', price: 245 },
+    { month: 'Feb', price: 250 },
+    { month: 'Mar', price: 255 },
+    { month: 'Apr', price: 260 },
+    { month: 'May', price: 265 },
+    { month: 'Jun', price: 270 },
+    { month: 'Jul', price: 275 },
+    { month: 'Aug', price: 280 },
+    { month: 'Sep', price: 285 },
+    { month: 'Oct', price: 290 },
+    { month: 'Nov', price: 280 },
+    { month: 'Dec', price: 265 },
+  ],
+  retailers: [
+    {
+      name: 'Spark Model Shop',
+      price: 265,
+      currency: '€',
+      availability: 'Pre-order',
+      url: 'https://sparkmodelshop.com',
+    },
+    {
+      name: 'Frontline Hobbies',
+      price: 270,
+      currency: '€',
+      availability: 'Pre-order',
+      url: 'https://frontlinehobbies.com',
+    },
+    {
+      name: 'Diecast Legends',
+      price: 280,
+      currency: '€',
+      availability: 'In Stock',
+      url: 'https://diecastlegends.com',
+    },
+    {
+      name: 'eBay',
+      price: 290,
+      currency: '€',
+      availability: 'In Stock',
+      url: 'https://ebay.com',
+    },
+  ],
+  rating: {
+    average: 4.2,
+    count: 127,
+  },
+  reviews: [
+    {
+      id: '1',
+      username: 'F1Collector88',
+      rating: 5,
+      date: '2025-03-15',
+      comment:
+        'Absolutely stunning detail on this piece. Looksmart has really outdone themselves with the paint finish. The red is perfect and the carbon fiber details are crisp. Worth every penny.',
+      verified: true,
+    },
+    {
+      id: '2',
+      username: 'TifosiBeast',
+      rating: 4,
+      date: '2025-03-10',
+      comment:
+        "Beautiful model but the price is quite steep. The quality is there though - resin construction feels premium and the proportions are spot on. Happy to have Lewis' first Ferrari win in my collection.",
+      verified: true,
+    },
+    {
+      id: '3',
+      username: 'ScaleModelPro',
+      rating: 4,
+      date: '2025-02-28',
+      comment:
+        'Great addition to my 1:18 collection. The Monza livery looks incredible. Only complaint is the front wing could have slightly better detail, but overall very impressed.',
+      verified: false,
+    },
+  ],
+  relatedModels: [
+    {
+      id: '2',
+      name: 'Ferrari SF-25 No.44 - Lewis Hamilton - 1:43 Scale',
+      manufacturer: 'Spark',
+      scale: '1:43',
+      price: '€79.90',
+    },
+    {
+      id: '3',
+      name: 'Ferrari SF-25 No.44 - Lewis Hamilton - 1:43 Scale',
+      manufacturer: 'Minichamps',
+      scale: '1:43',
+      price: '€89.95',
+    },
+    {
+      id: '4',
+      name: 'Ferrari SF-25 No.44 - Lewis Hamilton - 1:64 Scale',
+      manufacturer: 'Spark',
+      scale: '1:64',
+      price: '€24.95',
+    },
+  ],
+};

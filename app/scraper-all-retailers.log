@@ -1,0 +1,1783 @@
+◇ injected env (3) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+🚀 Starting Automatic Scraper with Full Catalog
+
+============================================================
+
+📋 Found 17 total models across all cars to scrape
+
+
+============================================================
+🏪 Retailer: Anthony's Diecasts
+🔗 Store URL: https://anthonysdiecasts.com.au
+============================================================
+
+📦 Fetching products from https://anthonysdiecasts.com.au...
+
+   Page 1: 250 products
+   Page 2: 250 products
+   Page 3: 250 products
+   Page 4: 250 products
+   Page 5: 250 products
+   Page 6: 250 products
+   Page 7: 250 products
+   Page 8: 250 products
+   Page 9: 250 products
+   Page 10: 250 products
+   Page 11: 250 products
+   Page 12: 250 products
+   Page 13: 250 products
+   Page 14: 250 products
+   Page 15: 250 products
+   Page 16: 250 products
+   Page 17: 250 products
+   Page 18: 250 products
+   Page 19: 250 products
+   Page 20: 250 products
+   Page 21: 250 products
+   Page 22: 250 products
+   Page 23: 250 products
+   Page 24: 250 products
+   Page 25: 250 products
+   Page 26: 250 products
+   Page 27: 250 products
+   Page 28: 250 products
+   Page 29: 250 products
+   Page 30: 250 products
+   Page 31: 250 products
+   Page 32: 250 products
+   Page 33: 250 products
+   Page 34: 250 products
+   Page 35: 250 products
+   Page 36: 250 products
+   Page 37: 250 products
+   Page 38: 250 products
+   Page 39: 250 products
+   Page 40: 250 products
+   Page 41: 250 products
+   Page 42: 250 products
+   Page 43: 250 products
+   Page 44: 250 products
+   Page 45: 250 products
+   Page 46: 250 products
+   Page 47: 250 products
+   Page 48: 250 products
+   Page 49: 250 products
+   Page 50: 250 products
+✅ Total products fetched: 12500
+
+
+🔍 Searching for SKU: 537244404 (Scale: 1:43)
+   ✅ Found: 1:43 2024 Lando Norris -- Miami GP Winner -- #4 McLaren MCL38 -- Minichamps F1
+   🔗 URL: https://anthonysdiecasts.com.au/products/1-43-2024-lando-norris-miami-gp-winner-4-mclaren-mcl38-minichamps-f1
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/537244404.jpg
+📊 Exchange rates loaded: {
+  AUD: 1,
+  AED: 0.39447342728375456,
+  AFN: 0.02251460590028569,
+  ALL: 0.01759773557969836,
+  AMD: 0.003952725576030599,
+  ANG: 0.8093319207793542,
+  AOA: 0.001542230902638013,
+  ARS: 0.0009768606418745552,
+  AWG: 0.8093319207793542,
+  AZN: 0.8546132020647454,
+  BAM: 0.8451363669784938,
+  BBD: 0.7243516147608372,
+  BDT: 0.01175887209839542,
+  BGN: 0.8451363669784938,
+  BHD: 3.852940949827003,
+  BIF: 0.00048683650798852216,
+  BMD: 1.448704278892958,
+  BND: 1.1198371308876838,
+  BOB: 0.20965560502728983,
+  BRL: 0.2804355275917711,
+  BSD: 1.448704278892958,
+  BTN: 0.015301758012857394,
+  BWP: 0.10290803705594925,
+  BYN: 0.4977600796416128,
+  BZD: 0.7243516147608372,
+  CAD: 1.0190293541595759,
+  CDF: 0.0006286335490610893,
+  CHF: 1.7915817158336407,
+  CLF: 62.24324660774306,
+  CLP: 0.0015746804807569422,
+  CNH: 0.21345414268598312,
+  CNY: 0.21332277527810892,
+  COP: 0.00042065366079891,
+  CRC: 0.0031883322954142654,
+  CUP: 0.06036265278164686,
+  CVE: 0.014990641042984046,
+  CZK: 0.06814771644498442,
+  DJF: 0.008151561593431719,
+  DKK: 0.22156285117711913,
+  DOP: 0.024317536839730848,
+  DZD: 0.0108994297734426,
+  EGP: 0.029461952275054902,
+  ERN: 0.09658024794853895,
+  ETB: 0.009169541998157454,
+  EUR: 1.6529390082035362,
+  FJD: 0.6470611453370508,
+  FKP: 1.9186014163115654,
+  FOK: 0.22156442207136148,
+  GBP: 1.9185977352872334,
+  GEL: 0.5503416796317994,
+  GGP: 1.9186014163115654,
+  GHS: 0.12868876698916928,
+  GIP: 1.9186014163115654,
+  GMD: 0.019564788709770856,
+  GNF: 0.0001654889469237296,
+  GTQ: 0.19040833257328674,
+  GYD: 0.00695750813228338,
+  HKD: 0.1848697084512263,
+  HNL: 0.05427725385753871,
+  HRK: 0.21938325662597763,
+  HTG: 0.011131067755132227,
+  HUF: 0.004646502262481851,
+  IDR: 0.00008072679445136888,
+  ILS: 0.4864302972137759,
+  IMP: 1.9186014163115654,
+  INR: 0.01530165077574932,
+  IQD: 0.0011107434895725268,
+  IRR: 0.000001054713249835201,
+  ISK: 0.011492228392042109,
+  JEP: 1.9186014163115654,
+  JMD: 0.00922578580192343,
+  JOD: 2.043305823625928,
+  JPY: 0.008916870345076017,
+  KES: 0.011220185148987621,
+  KGS: 0.01662133806159429,
+  KHR: 0.0003639457389541873,
+  KID: 1,
+  KMF: 0.0033598605523476356,
+  KRW: 0.0009355328241411536,
+  KWD: 4.7180271097837725,
+  KYD: 1.7384441272749713,
+  KZT: 0.0030229356140681223,
+  LAK: 0.00006525763846769643,
+  LBP: 0.000016186633230203,
+  LKR: 0.004319637578260332,
+  LRD: 0.007985597942168908,
+  LSL: 0.0883765328136322,
+  LYD: 0.22644040439538943,
+  MAD: 0.15430646189170463,
+  MDL: 0.08233063538585529,
+  MGA: 0.00034031289882991447,
+  MKD: 0.02679521223147848,
+  MMK: 0.0006925508291638558,
+  MNT: 0.0004022777262546053,
+  MOP: 0.17948603814006517,
+  MRU: 0.03630949560482633,
+  MUR: 0.03078485905814155,
+  MVR: 0.09397529990807335,
+  MWK: 0.0008342253851366041,
+  MXN: 0.08289778835332497,
+  MYR: 0.3566784108978095,
+  MZN: 0.022776836158063408,
+  NAD: 0.0883765328136322,
+  NGN: 0.001055406605083241,
+  NIO: 0.03947608290198476,
+  NOK: 0.14609999931333,
+  NPR: 0.009563598739743388,
+  NZD: 0.82092235552177,
+  OMR: 3.7677839401977335,
+  PAB: 1.448704278892958,
+  PEN: 0.4247112282181537,
+  PGK: 0.3307655999806833,
+  PHP: 0.0235845769225245,
+  PKR: 0.005208545581565782,
+  PLN: 0.3846898072973348,
+  PYG: 0.0002389791619861353,
+  QAR: 0.39799553528608517,
+  RON: 0.3154475617322992,
+  RSD: 0.014091886427286853,
+  RUB: 0.018458745681714888,
+  RWF: 0.00098934873288142,
+  SAR: 0.3863209917941558,
+  SBD: 0.18156537678991688,
+  SCR: 0.09819877907494,
+  SDG: 0.0032566053767564317,
+  SEK: 0.14911734461376222,
+  SGD: 1.1202925307856388,
+  SHP: 1.9186014163115654,
+  SLE: 0.05859380722051487,
+  SLL: 0.00005859362620036533,
+  SOS: 0.0025476201736065068,
+  SRD: 0.03872949892703796,
+  SSP: 0.0003080709366369134,
+  STN: 0.06746706443448736,
+  SYP: 0.012936187546156318,
+  SZL: 0.0883765328136322,
+  THB: 0.043635650867841096,
+  TJS: 0.15722916921836505,
+  TMT: 0.41504057229114427,
+  TND: 0.4914263305245043,
+  TOP: 0.6077785935517123,
+  TRY: 0.031062628284771986,
+  TTD: 0.2138812343171585,
+  TVD: 1,
+  TWD: 0.045459922123516606,
+  TZS: 0.0005517582008186928,
+  UAH: 0.032403104995133054,
+  UGX: 0.0003963499550794995,
+  USD: 1.4486958839652544,
+  UYU: 0.036116761879480166,
+  UZS: 0.00011958120035718456,
+  VES: 0.0022873039802790113,
+  VND: 0.000056092141003806597,
+  VUV: 0.012099497849060167,
+  WST: 0.5285032365538207,
+  XAF: 0.0025198954184939754,
+  XCD: 0.536556967594642,
+  XCG: 0.8093319207793542,
+  XDR: 1.9686705764464316,
+  XOF: 0.0025198954184939754,
+  XPF: 0.01385163280623484,
+  YER: 0.006090375595046444,
+  ZAR: 0.08834477147813789,
+  ZMW: 0.0805178197610215,
+  ZWG: 0.054116668502123676,
+  ZWL: 0.054116838362257794
+}
+   💰 Price refreshed: AUD $169.99 
+
+🔍 Searching for SKU: 537241904 (Scale: 1:18)
+   ✅ Found: 1:18 2024 Lando Norris -- Miami GP Winner -- #4 McLaren MCL38 -- Minichamps F1
+   🔗 URL: https://anthonysdiecasts.com.au/products/1-18-2024-lando-norris-miami-gp-winner-4-mclaren-mcl38-minichamps-f1
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/537241904.jpg
+   💰 Price refreshed: AUD $399.99 
+
+🔍 Searching for SKU: 18S999 (Scale: 1:18)
+   ✅ Found: 1:18 2024 Lewis Hamilton - British GP Winner -- #44 Mercedes-AMG W15 -- Spark F1
+   🔗 URL: https://anthonysdiecasts.com.au/products/1-18-2024-lewis-hamilton-british-gp-winner-44-mercedes-amg-w15-e-spark-f1
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/18S999.jpg
+   💰 Price refreshed: AUD $379.99 
+
+🔍 Searching for SKU: 18S986 (Scale: 1:18)
+   ✅ Found: 1:18 2024 Lando Norris -- Miami GP Winner -- #4 McLaren MCL38 -- Spark F1
+   🔗 URL: https://anthonysdiecasts.com.au/products/1-18-2024-lando-norris-miami-gp-winner-4-mclaren-mcl38-spark-f1
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/18S986.jpg
+   💰 Price refreshed: AUD $369.99 
+
+🔍 Searching for SKU: 110241244 (Scale: 1:18)
+   ✅ Found: 1:18 2024 Lewis Hamilton - British GP Winner-- #44 Mercedes W15 -- Minichamps F1
+   🔗 URL: https://anthonysdiecasts.com.au/products/1-18-2024-lewis-hamilton-british-gp-winner-44-mercedes-w15-minichamps-f1
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/110241244.jpg
+   💰 Price refreshed: AUD $349.99 
+
+🔍 Searching for SKU: S1814201 (Scale: 1:18)
+   ✅ Found: 1:18 2024 Lando Norris -- Miami GP Winner -- #4 McLaren MCL38 -- Solido F1
+   🔗 URL: https://anthonysdiecasts.com.au/products/1-18-2024-lando-norris-miami-gp-winner-mclaren-mcl38-solido-f1
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/S1814201.jpg
+   💰 Price refreshed: AUD $149.99 
+
+🔍 Searching for SKU: S9523 (Scale: 1:43)
+   ✅ Found: 1:43 2024 Lando Norris -- Miami GP Winner -- #4 McLaren MCL38 -- Spark F1
+   🔗 URL: https://anthonysdiecasts.com.au/products/1-43-2024-lando-norris-miami-gp-winner-4-mclaren-mcl38-spark-f1
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/S9523.jpg
+   💰 Price refreshed: AUD $169.99 
+
+🔍 Searching for SKU: BU16815-L-MONACO (Scale: 1:43)
+   ⚠️  Not found at Anthony's Diecasts
+
+🔍 Searching for SKU: S9533 (Scale: 1:43)
+   ✅ Found: 1:43 2024 Lewis Hamilton -- British GP Winner -- #44 Mercedes-AMG W15 -- Spark F
+   🔗 URL: https://anthonysdiecasts.com.au/products/1-43-2024-lewis-hamilton-british-gp-winner-44-mercedes-amg-w15-spark-f1
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/S9533.jpg
+   💰 Price refreshed: AUD $169.99 
+
+🔍 Searching for SKU: 410241244 (Scale: 1:43)
+   ✅ Found: 1:43 2024 Lewis Hamilton - British GP Winner - #44 Mercedes W15 -- Minichamps F1
+   🔗 URL: https://anthonysdiecasts.com.au/products/1-43-2024-lewis-hamilton-british-gp-winner-44-mercedes-w15-e-minichamps-f1
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/410241244.jpg
+   💰 Price refreshed: AUD $179.99 
+
+🔍 Searching for SKU: BBR241816C (Scale: 1:18)
+   ✅ Found: 1:18 2024 Charles LeClerc -- Monaco GP Winner -- #16 Ferrari SF-24 -- BBR F1
+   🔗 URL: https://anthonysdiecasts.com.au/products/1-18-2024-charles-leclerc-monaco-gp-winner-16-ferrari-sf-24-bbr-f1
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/BBR241816C.jpg
+   💰 Price refreshed: AUD $549.99 
+
+🔍 Searching for SKU: LSF1063 (Scale: 1:43)
+   ✅ Found: 1:43 2024 Charles LeClerc -- #16 Monaco GP Winner -- Ferrari SF-24 -- Looksmart
+   🔗 URL: https://anthonysdiecasts.com.au/products/1-43-2024-charles-leclerc-16-monaco-gp-winner-ferrari-sf-24-looksmart-f1
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/LSF1063.jpg
+   💰 Price refreshed: AUD $229.99 
+
+🔍 Searching for SKU: LS18F1063 (Scale: 1:18)
+   ✅ Found: 1:18 2024 Charles LeClerc -- Monaco GP Winner -- #16 Ferrari SF-24 -- Looksmart
+   🔗 URL: https://anthonysdiecasts.com.au/products/1-18-2024-charles-leclerc-monaco-gp-winner-16-ferrari-sf-24-looksmart-f1
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/LS18F1063.jpg
+   💰 Price refreshed: AUD $499.99 
+
+🔍 Searching for SKU: 18S666 (Scale: 1:18)
+   ✅ Found: 1:18 2024 Max Verstappen -- World Championship Winner -- Red Bull RB20 -- Spark
+   🔗 URL: https://anthonysdiecasts.com.au/products/1-18-2024-max-verstappen-world-championship-winner-red-bull-rb20-spark-f1
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/18S666.jpg
+   💰 Price refreshed: AUD $379.99 
+
+🔍 Searching for SKU: 110242201 (Scale: 1:18)
+   ✅ Found: 1:18 2024 Max Verstappen - World Champion Winner -- #1 Red Bull -- Minichamps F1
+   ⚠️  Warning: Livery name "RB20" not found in title, but continuing...
+   🔗 URL: https://anthonysdiecasts.com.au/products/1-18-2024-max-verstappen-world-champion-winner-1-red-bull-minichamps-f1
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/110242201.jpg
+   💰 Price refreshed: AUD $349.99 
+
+🔍 Searching for SKU: S9547 (Scale: 1:43)
+   ✅ Found: 1:43 2024 Max Verstappen -- World Champion -- #1 Red Bull RB20 -- Spark F1
+   🔗 URL: https://anthonysdiecasts.com.au/products/1-43-2024-max-verstappen-world-champion-1-red-bull-rb20-spark-f1
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/S9547.jpg
+   💰 Price refreshed: AUD $199.99 
+
+🔍 Searching for SKU: 410242201 (Scale: 1:43)
+   ✅ Found: 1:43 2024 Max Verstappen -- World Championship Winner -- Minichamps F1
+   ⚠️  Warning: Livery name "RB20" not found in title, but continuing...
+   🔗 URL: https://anthonysdiecasts.com.au/products/1-43-2024-max-verstappen-world-championship-winner-minichamps-f1
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/410242201.jpg
+   💰 Price refreshed: AUD $199.99 
+
+============================================================
+🏪 Retailer: Downies Collectables
+🔗 Store URL: https://www.downies.com
+============================================================
+
+📦 Fetching products from https://www.downies.com...
+
+   Page 1: 250 products
+   Page 2: 250 products
+   Page 3: 250 products
+   Page 4: 250 products
+   Page 5: 250 products
+   Page 6: 250 products
+   Page 7: 250 products
+   Page 8: 250 products
+   Page 9: 250 products
+   Page 10: 250 products
+   Page 11: 250 products
+   Page 12: 250 products
+   Page 13: 250 products
+   Page 14: 250 products
+   Page 15: 250 products
+   Page 16: 250 products
+   Page 17: 250 products
+   Page 18: 250 products
+   Page 19: 250 products
+   Page 20: 250 products
+   Page 21: 250 products
+   Page 22: 92 products
+✅ Total products fetched: 5342
+
+
+🔍 Searching for SKU: 537244404 (Scale: 1:43)
+   ⚠️  Not found at Downies Collectables
+
+🔍 Searching for SKU: 537241904 (Scale: 1:18)
+   ✅ Found: MCLAREN FORMULA 1 TEAM MCL38 - LANDO NORRIS – 2024 - 1:18 Scale Resin Model Car
+   ❌ Validation failed: Event mismatch - expected Miami GP Winner, product title: MCLAREN FORMULA 1 TEAM MCL38 - LANDO NORRIS – 2024 - 1:18 Scale Resin Model Car
+   ⚠️  Skipping this product - likely a mismatch
+
+🔍 Searching for SKU: 18S999 (Scale: 1:18)
+   ⚠️  Not found at Downies Collectables
+
+🔍 Searching for SKU: 18S986 (Scale: 1:18)
+   ⚠️  Not found at Downies Collectables
+
+🔍 Searching for SKU: 110241244 (Scale: 1:18)
+   ⚠️  Not found at Downies Collectables
+
+🔍 Searching for SKU: S1814201 (Scale: 1:18)
+   ⚠️  Not found at Downies Collectables
+
+🔍 Searching for SKU: S9523 (Scale: 1:43)
+   ⚠️  Not found at Downies Collectables
+
+🔍 Searching for SKU: BU16815-L-MONACO (Scale: 1:43)
+   ⚠️  Not found at Downies Collectables
+
+🔍 Searching for SKU: S9533 (Scale: 1:43)
+   ⚠️  Not found at Downies Collectables
+
+🔍 Searching for SKU: 410241244 (Scale: 1:43)
+   ⚠️  Not found at Downies Collectables
+
+🔍 Searching for SKU: BBR241816C (Scale: 1:18)
+   ⚠️  Not found at Downies Collectables
+
+🔍 Searching for SKU: LSF1063 (Scale: 1:43)
+   ✅ Found: Ferrari SF-24 No.16 Winner Monaco GP 2024 - Charles Leclerc - 1:43 Scale Resin Model Car
+   🔗 URL: https://www.downies.com/products/ferrari-sf-24-no-16-winner-monaco-gp-2024-charles-leclerc-1-43-scale-resin-model-car
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/LSF1063.jpg
+   💰 Price refreshed: AUD $199.00 
+
+🔍 Searching for SKU: LS18F1063 (Scale: 1:18)
+   ✅ Found: Ferrari SF-24 No.16 Winner Monaco GP 2024 - Charles Leclerc - 1:18 Scale Resin Model Car
+   🔗 URL: https://www.downies.com/products/ferrari-sf-24-no-16-winner-monaco-gp-2024-charles-leclerc-1-18-scale-resin-model-car
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/LS18F1063.jpg
+   💰 Price refreshed: AUD $429.00 
+
+🔍 Searching for SKU: 18S666 (Scale: 1:18)
+   ✅ Found: Oracle Red Bull Racing RB20 No.1 Oracle Red Bull Racing  - 2024 Formula One Drivers' Champion - Max Verstappen - 1:18 Scale Resin Model Car
+   ❌ Validation failed: Event mismatch - expected Las Vegas GP World Champion, product title: Oracle Red Bull Racing RB20 No.1 Oracle Red Bull Racing  - 2024 Formula One Drivers' Champion - Max Verstappen - 1:18 Scale Resin Model Car
+   ⚠️  Skipping this product - likely a mismatch
+
+🔍 Searching for SKU: 110242201 (Scale: 1:18)
+   ⚠️  Not found at Downies Collectables
+
+🔍 Searching for SKU: S9547 (Scale: 1:43)
+   ✅ Found: Oracle Red Bull Racing RB20 No.1 Oracle Red Bull Racing  - 2024 Formula One Drivers' Champion - Max Verstappen.  Pit board & Special base plate - 1:43 Scale Resin Model Car
+   ❌ Validation failed: Event mismatch - expected Las Vegas GP World Champion, product title: Oracle Red Bull Racing RB20 No.1 Oracle Red Bull Racing  - 2024 Formula One Drivers' Champion - Max Verstappen.  Pit board & Special base plate - 1:43 Scale Resin Model Car
+   ⚠️  Skipping this product - likely a mismatch
+
+🔍 Searching for SKU: 410242201 (Scale: 1:43)
+   ⚠️  Not found at Downies Collectables
+
+============================================================
+🏪 Retailer: Metro Hobbies
+🔗 Store URL: https://www.metrohobbies.com.au
+============================================================
+
+📦 Fetching products from https://www.metrohobbies.com.au...
+
+   Page 1: 250 products
+   Page 2: 250 products
+   Page 3: 250 products
+   Page 4: 250 products
+   Page 5: 250 products
+   Page 6: 250 products
+   Page 7: 250 products
+   Page 8: 250 products
+   Page 9: 250 products
+   Page 10: 250 products
+   Page 11: 250 products
+   Page 12: 250 products
+   Page 13: 250 products
+   Page 14: 250 products
+   Page 15: 250 products
+   Page 16: 250 products
+   Page 17: 250 products
+   Page 18: 250 products
+   Page 19: 250 products
+   Page 20: 250 products
+   Page 21: 250 products
+   Page 22: 250 products
+   Page 23: 250 products
+   Page 24: 250 products
+   Page 25: 250 products
+   Page 26: 250 products
+   Page 27: 250 products
+   Page 28: 250 products
+   Page 29: 250 products
+   Page 30: 250 products
+   Page 31: 250 products
+   Page 32: 250 products
+   Page 33: 250 products
+   Page 34: 250 products
+   Page 35: 250 products
+   Page 36: 250 products
+   Page 37: 250 products
+   Page 38: 250 products
+   Page 39: 250 products
+   Page 40: 250 products
+   Page 41: 250 products
+   Page 42: 250 products
+   Page 43: 250 products
+   Page 44: 250 products
+   Page 45: 250 products
+   Page 46: 250 products
+   Page 47: 250 products
+   Page 48: 250 products
+   Page 49: 250 products
+   Page 50: 250 products
+✅ Total products fetched: 12500
+
+
+🔍 Searching for SKU: 537244404 (Scale: 1:43)
+   ⚠️  Not found at Metro Hobbies
+
+🔍 Searching for SKU: 537241904 (Scale: 1:18)
+   ⚠️  Not found at Metro Hobbies
+
+🔍 Searching for SKU: 18S999 (Scale: 1:18)
+   ⚠️  Not found at Metro Hobbies
+
+🔍 Searching for SKU: 18S986 (Scale: 1:18)
+   ⚠️  Not found at Metro Hobbies
+
+🔍 Searching for SKU: 110241244 (Scale: 1:18)
+   ⚠️  Not found at Metro Hobbies
+
+🔍 Searching for SKU: S1814201 (Scale: 1:18)
+   ⚠️  Not found at Metro Hobbies
+
+🔍 Searching for SKU: S9523 (Scale: 1:43)
+   ⚠️  Not found at Metro Hobbies
+
+🔍 Searching for SKU: BU16815-L-MONACO (Scale: 1:43)
+   ⚠️  Not found at Metro Hobbies
+
+🔍 Searching for SKU: S9533 (Scale: 1:43)
+   ⚠️  Not found at Metro Hobbies
+
+🔍 Searching for SKU: 410241244 (Scale: 1:43)
+   ⚠️  Not found at Metro Hobbies
+
+🔍 Searching for SKU: BBR241816C (Scale: 1:18)
+   ⚠️  Not found at Metro Hobbies
+
+🔍 Searching for SKU: LSF1063 (Scale: 1:43)
+   ⚠️  Not found at Metro Hobbies
+
+🔍 Searching for SKU: LS18F1063 (Scale: 1:18)
+   ⚠️  Not found at Metro Hobbies
+
+🔍 Searching for SKU: 18S666 (Scale: 1:18)
+   ⚠️  Not found at Metro Hobbies
+
+🔍 Searching for SKU: 110242201 (Scale: 1:18)
+   ⚠️  Not found at Metro Hobbies
+
+🔍 Searching for SKU: S9547 (Scale: 1:43)
+   ⚠️  Not found at Metro Hobbies
+
+🔍 Searching for SKU: 410242201 (Scale: 1:43)
+   ⚠️  Not found at Metro Hobbies
+
+============================================================
+🏪 Retailer: Hobbyco
+🔗 Store URL: https://www.hobbyco.com.au
+============================================================
+
+📦 Fetching products from https://www.hobbyco.com.au...
+
+   Page 1: 250 products
+   Page 2: 250 products
+   Page 3: 250 products
+   Page 4: 250 products
+   Page 5: 250 products
+   Page 6: 250 products
+   Page 7: 250 products
+   Page 8: 250 products
+   Page 9: 250 products
+   Page 10: 250 products
+   Page 11: 250 products
+   Page 12: 250 products
+   Page 13: 250 products
+   Page 14: 250 products
+   Page 15: 250 products
+   Page 16: 250 products
+   Page 17: 250 products
+   Page 18: 250 products
+   Page 19: 250 products
+   Page 20: 250 products
+   Page 21: 250 products
+   Page 22: 250 products
+   Page 23: 250 products
+   Page 24: 250 products
+   Page 25: 250 products
+   Page 26: 250 products
+   Page 27: 250 products
+   Page 28: 250 products
+   Page 29: 250 products
+   Page 30: 250 products
+   Page 31: 250 products
+   Page 32: 250 products
+   Page 33: 250 products
+   Page 34: 250 products
+   Page 35: 250 products
+   Page 36: 250 products
+   Page 37: 250 products
+   Page 38: 250 products
+   Page 39: 250 products
+   Page 40: 250 products
+   Page 41: 250 products
+   Page 42: 250 products
+   Page 43: 250 products
+   Page 44: 250 products
+   Page 45: 250 products
+   Page 46: 250 products
+   Page 47: 250 products
+   Page 48: 250 products
+   Page 49: 250 products
+   Page 50: 250 products
+✅ Total products fetched: 12500
+
+
+🔍 Searching for SKU: 537244404 (Scale: 1:43)
+   ⚠️  Not found at Hobbyco
+
+🔍 Searching for SKU: 537241904 (Scale: 1:18)
+   ⚠️  Not found at Hobbyco
+
+🔍 Searching for SKU: 18S999 (Scale: 1:18)
+   ⚠️  Not found at Hobbyco
+
+🔍 Searching for SKU: 18S986 (Scale: 1:18)
+   ⚠️  Not found at Hobbyco
+
+🔍 Searching for SKU: 110241244 (Scale: 1:18)
+   ⚠️  Not found at Hobbyco
+
+🔍 Searching for SKU: S1814201 (Scale: 1:18)
+   ⚠️  Not found at Hobbyco
+
+🔍 Searching for SKU: S9523 (Scale: 1:43)
+   ⚠️  Not found at Hobbyco
+
+🔍 Searching for SKU: BU16815-L-MONACO (Scale: 1:43)
+   ⚠️  Not found at Hobbyco
+
+🔍 Searching for SKU: S9533 (Scale: 1:43)
+   ⚠️  Not found at Hobbyco
+
+🔍 Searching for SKU: 410241244 (Scale: 1:43)
+   ⚠️  Not found at Hobbyco
+
+🔍 Searching for SKU: BBR241816C (Scale: 1:18)
+   ⚠️  Not found at Hobbyco
+
+🔍 Searching for SKU: LSF1063 (Scale: 1:43)
+   ⚠️  Not found at Hobbyco
+
+🔍 Searching for SKU: LS18F1063 (Scale: 1:18)
+   ⚠️  Not found at Hobbyco
+
+🔍 Searching for SKU: 18S666 (Scale: 1:18)
+   ⚠️  Not found at Hobbyco
+
+🔍 Searching for SKU: 110242201 (Scale: 1:18)
+   ⚠️  Not found at Hobbyco
+
+🔍 Searching for SKU: S9547 (Scale: 1:43)
+   ⚠️  Not found at Hobbyco
+
+🔍 Searching for SKU: 410242201 (Scale: 1:43)
+   ⚠️  Not found at Hobbyco
+
+============================================================
+🏪 Retailer: Sherriffs Mini Cars
+🔗 Store URL: https://sherriffsminicars.com.au
+============================================================
+
+📦 Fetching products from https://sherriffsminicars.com.au...
+
+❌ Error fetching page 1: getaddrinfo ENOTFOUND sherriffsminicars.com.au
+✅ Total products fetched: 0
+
+⚠️  No products found for Sherriffs Mini Cars, skipping...
+
+
+============================================================
+🏪 Retailer: Australian Diecast Show
+🔗 Store URL: https://australiandiecastshow.com.au
+============================================================
+
+📦 Fetching products from https://australiandiecastshow.com.au...
+
+✅ Total products fetched: 0
+
+⚠️  No products found for Australian Diecast Show, skipping...
+
+
+============================================================
+🏪 Retailer: Speedgear
+🔗 Store URL: https://speedgear.com
+============================================================
+
+📦 Fetching products from https://speedgear.com...
+
+   Page 1: 250 products
+   Page 2: 250 products
+   Page 3: 250 products
+   Page 4: 250 products
+   Page 5: 250 products
+   Page 6: 156 products
+✅ Total products fetched: 1406
+
+
+🔍 Searching for SKU: 537244404 (Scale: 1:43)
+   ⚠️  Not found at Speedgear
+
+🔍 Searching for SKU: 537241904 (Scale: 1:18)
+   ⚠️  Not found at Speedgear
+
+🔍 Searching for SKU: 18S999 (Scale: 1:18)
+   ⚠️  Not found at Speedgear
+
+🔍 Searching for SKU: 18S986 (Scale: 1:18)
+   ⚠️  Not found at Speedgear
+
+🔍 Searching for SKU: 110241244 (Scale: 1:18)
+   ⚠️  Not found at Speedgear
+
+🔍 Searching for SKU: S1814201 (Scale: 1:18)
+   ⚠️  Not found at Speedgear
+
+🔍 Searching for SKU: S9523 (Scale: 1:43)
+   ⚠️  Not found at Speedgear
+
+🔍 Searching for SKU: BU16815-L-MONACO (Scale: 1:43)
+   ⚠️  Not found at Speedgear
+
+🔍 Searching for SKU: S9533 (Scale: 1:43)
+   ⚠️  Not found at Speedgear
+
+🔍 Searching for SKU: 410241244 (Scale: 1:43)
+   ⚠️  Not found at Speedgear
+
+🔍 Searching for SKU: BBR241816C (Scale: 1:18)
+   ⚠️  Not found at Speedgear
+
+🔍 Searching for SKU: LSF1063 (Scale: 1:43)
+   ⚠️  Not found at Speedgear
+
+🔍 Searching for SKU: LS18F1063 (Scale: 1:18)
+   ⚠️  Not found at Speedgear
+
+🔍 Searching for SKU: 18S666 (Scale: 1:18)
+   ⚠️  Not found at Speedgear
+
+🔍 Searching for SKU: 110242201 (Scale: 1:18)
+   ⚠️  Not found at Speedgear
+
+🔍 Searching for SKU: S9547 (Scale: 1:43)
+   ⚠️  Not found at Speedgear
+
+🔍 Searching for SKU: 410242201 (Scale: 1:43)
+   ⚠️  Not found at Speedgear
+
+============================================================
+🏪 Retailer: Kai's Kollectibles
+🔗 Store URL: https://kaiskollectibles.com
+============================================================
+
+📦 Fetching products from https://kaiskollectibles.com...
+
+   Page 1: 173 products
+✅ Total products fetched: 173
+
+
+🔍 Searching for SKU: 537244404 (Scale: 1:43)
+   ⚠️  Not found at Kai's Kollectibles
+
+🔍 Searching for SKU: 537241904 (Scale: 1:18)
+   ⚠️  Not found at Kai's Kollectibles
+
+🔍 Searching for SKU: 18S999 (Scale: 1:18)
+   ⚠️  Not found at Kai's Kollectibles
+
+🔍 Searching for SKU: 18S986 (Scale: 1:18)
+   ⚠️  Not found at Kai's Kollectibles
+
+🔍 Searching for SKU: 110241244 (Scale: 1:18)
+   ⚠️  Not found at Kai's Kollectibles
+
+🔍 Searching for SKU: S1814201 (Scale: 1:18)
+   ⚠️  Not found at Kai's Kollectibles
+
+🔍 Searching for SKU: S9523 (Scale: 1:43)
+   ⚠️  Not found at Kai's Kollectibles
+
+🔍 Searching for SKU: BU16815-L-MONACO (Scale: 1:43)
+   ⚠️  Not found at Kai's Kollectibles
+
+🔍 Searching for SKU: S9533 (Scale: 1:43)
+   ⚠️  Not found at Kai's Kollectibles
+
+🔍 Searching for SKU: 410241244 (Scale: 1:43)
+   ⚠️  Not found at Kai's Kollectibles
+
+🔍 Searching for SKU: BBR241816C (Scale: 1:18)
+   ⚠️  Not found at Kai's Kollectibles
+
+🔍 Searching for SKU: LSF1063 (Scale: 1:43)
+   ⚠️  Not found at Kai's Kollectibles
+
+🔍 Searching for SKU: LS18F1063 (Scale: 1:18)
+   ⚠️  Not found at Kai's Kollectibles
+
+🔍 Searching for SKU: 18S666 (Scale: 1:18)
+   ⚠️  Not found at Kai's Kollectibles
+
+🔍 Searching for SKU: 110242201 (Scale: 1:18)
+   ⚠️  Not found at Kai's Kollectibles
+
+🔍 Searching for SKU: S9547 (Scale: 1:43)
+   ⚠️  Not found at Kai's Kollectibles
+
+🔍 Searching for SKU: 410242201 (Scale: 1:43)
+   ⚠️  Not found at Kai's Kollectibles
+
+============================================================
+🏪 Retailer: Car Model Store
+🔗 Store URL: https://www.carmodelstore.co.uk
+============================================================
+
+📦 Fetching products from https://www.carmodelstore.co.uk...
+
+   Page 1: 250 products
+   Page 2: 91 products
+✅ Total products fetched: 341
+
+
+🔍 Searching for SKU: 537244404 (Scale: 1:43)
+   ⚠️  Not found at Car Model Store
+
+🔍 Searching for SKU: 537241904 (Scale: 1:18)
+   ⚠️  Not found at Car Model Store
+
+🔍 Searching for SKU: 18S999 (Scale: 1:18)
+   ⚠️  Not found at Car Model Store
+
+🔍 Searching for SKU: 18S986 (Scale: 1:18)
+   ⚠️  Not found at Car Model Store
+
+🔍 Searching for SKU: 110241244 (Scale: 1:18)
+   ⚠️  Not found at Car Model Store
+
+🔍 Searching for SKU: S1814201 (Scale: 1:18)
+   ⚠️  Not found at Car Model Store
+
+🔍 Searching for SKU: S9523 (Scale: 1:43)
+   ⚠️  Not found at Car Model Store
+
+🔍 Searching for SKU: BU16815-L-MONACO (Scale: 1:43)
+   ⚠️  Not found at Car Model Store
+
+🔍 Searching for SKU: S9533 (Scale: 1:43)
+   ⚠️  Not found at Car Model Store
+
+🔍 Searching for SKU: 410241244 (Scale: 1:43)
+   ⚠️  Not found at Car Model Store
+
+🔍 Searching for SKU: BBR241816C (Scale: 1:18)
+   ⚠️  Not found at Car Model Store
+
+🔍 Searching for SKU: LSF1063 (Scale: 1:43)
+   ⚠️  Not found at Car Model Store
+
+🔍 Searching for SKU: LS18F1063 (Scale: 1:18)
+   ⚠️  Not found at Car Model Store
+
+🔍 Searching for SKU: 18S666 (Scale: 1:18)
+   ✅ Found: Spark Models F1 Oracle Red Bull Racing RB20 No.1 - Oracle Red Bull Racing 2024 F1 Drivers' Champion - Max Verstappen 1/18 Scale Model
+   ❌ Validation failed: Event mismatch - expected Las Vegas GP World Champion, product title: Spark Models F1 Oracle Red Bull Racing RB20 No.1 - Oracle Red Bull Racing 2024 F1 Drivers' Champion - Max Verstappen 1/18 Scale Model
+   ⚠️  Skipping this product - likely a mismatch
+
+🔍 Searching for SKU: 110242201 (Scale: 1:18)
+   ⚠️  Not found at Car Model Store
+
+🔍 Searching for SKU: S9547 (Scale: 1:43)
+   ⚠️  Not found at Car Model Store
+
+🔍 Searching for SKU: 410242201 (Scale: 1:43)
+   ⚠️  Not found at Car Model Store
+
+============================================================
+🏪 Retailer: DrivenBy
+🔗 Store URL: https://drivenby.co
+============================================================
+
+📦 Fetching products from https://drivenby.co...
+
+   Page 1: 250 products
+   Page 2: 250 products
+   Page 3: 250 products
+   Page 4: 250 products
+   Page 5: 250 products
+   Page 6: 250 products
+   Page 7: 250 products
+   Page 8: 250 products
+   Page 9: 250 products
+   Page 10: 250 products
+   Page 11: 184 products
+✅ Total products fetched: 2684
+
+
+🔍 Searching for SKU: 537244404 (Scale: 1:43)
+   ✅ Found: Lando Norris First Win McLaren MCL38 - Miami GP 2024 1:43 Model Car - Minichamps
+   🔗 URL: https://drivenby.co/products/lando-norris-first-win-mclaren-mcl38-miami-gp-2024-model-car-minichamps
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/537244404.jpg
+   💰 Price refreshed: HKD $700.00 (~AUD $129.41) 
+
+🔍 Searching for SKU: 537241904 (Scale: 1:18)
+   ⚠️  Not found at DrivenBy
+
+🔍 Searching for SKU: 18S999 (Scale: 1:18)
+   ✅ Found: Lewis Hamilton British GP 2024 Mercedes F1 W15 (With British Flag) Model Car - Spark Model
+   ⚠️  Warning: Scale "1:18" not found in title, but SKU matched so continuing...
+   🔗 URL: https://drivenby.co/products/lewis-hamilton-british-gp-2024-mercedes-f1-w15-with-british-flag-model-car-spark-model
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/18S999.jpg
+   💰 Price refreshed: HKD $1900.00 (~AUD $351.25) 
+
+🔍 Searching for SKU: 18S986 (Scale: 1:18)
+   ✅ Found: Lando Norris Miami GP 2024 First Win McLaren MCL38 Winner Model Car - Spark Model
+   ⚠️  Warning: Scale "1:18" not found in title, but SKU matched so continuing...
+   🔗 URL: https://drivenby.co/products/lando-norris-first-win-mclaren-mcl38-winner-miami-gp-2024-model-car-spark-model
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/18S986.jpg
+   💰 Price refreshed: HKD $1880.00 (~AUD $347.56) 
+
+🔍 Searching for SKU: 110241244 (Scale: 1:18)
+   ✅ Found: Lewis Hamilton British GP Winner 2024 Mercedes F1 W15 Model Car - Minichamps
+   ⚠️  Warning: Scale "1:18" not found in title, but SKU matched so continuing...
+   🔗 URL: https://drivenby.co/products/lewis-hamilton-british-gp-winner-2024-mercedes-f1-w15-model-car-minichamps
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/110241244.jpg
+   💰 Price refreshed: HKD $1650.00 (~AUD $305.04) 
+
+🔍 Searching for SKU: S1814201 (Scale: 1:18)
+   ⚠️  Not found at DrivenBy
+
+🔍 Searching for SKU: S9523 (Scale: 1:43)
+   ✅ Found: Lando Norris Miami GP 2024 First Win McLaren MCL38 Winner Model Car - Spark Model
+   ⚠️  Warning: Scale "1:43" not found in title, but SKU matched so continuing...
+   🔗 URL: https://drivenby.co/products/lando-norris-first-win-mclaren-mcl38-winner-miami-gp-2024-model-car-spark-model
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/S9523.jpg
+   💰 Price refreshed: HKD $700.00 (~AUD $129.41) 
+
+🔍 Searching for SKU: BU16815-L-MONACO (Scale: 1:43)
+   ⚠️  Not found at DrivenBy
+
+🔍 Searching for SKU: S9533 (Scale: 1:43)
+   ✅ Found: Lewis Hamilton British GP 2024 Mercedes F1 W15 (With British Flag) Model Car - Spark Model
+   ⚠️  Warning: Scale "1:43" not found in title, but SKU matched so continuing...
+   🔗 URL: https://drivenby.co/products/lewis-hamilton-british-gp-2024-mercedes-f1-w15-with-british-flag-model-car-spark-model
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/S9533.jpg
+   💰 Price refreshed: HKD $750.00 (~AUD $138.65) 
+
+🔍 Searching for SKU: 410241244 (Scale: 1:43)
+   ✅ Found: Lewis Hamilton British GP Winner 2024 Mercedes F1 W15 Model Car - Minichamps
+   ⚠️  Warning: Scale "1:43" not found in title, but SKU matched so continuing...
+   🔗 URL: https://drivenby.co/products/lewis-hamilton-british-gp-winner-2024-mercedes-f1-w15-model-car-minichamps
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/410241244.jpg
+   💰 Price refreshed: HKD $760.00 (~AUD $140.5) 
+
+🔍 Searching for SKU: BBR241816C (Scale: 1:18)
+   ⚠️  Not found at DrivenBy
+
+🔍 Searching for SKU: LSF1063 (Scale: 1:43)
+   ✅ Found: Charles Leclerc - Scuderia Ferrari SF24 Monaco GP 2024 Winner P1 - Looksmart F1 Model Car
+   ⚠️  Warning: Scale "1:43" not found in title, but SKU matched so continuing...
+   🔗 URL: https://drivenby.co/products/scuderia-ferrari-sf-24-monaco-gp-2024-charles-leclerc-winner-p1-looksmart-f1-model-car
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/LSF1063.jpg
+   💰 Price refreshed: HKD $1020.00 (~AUD $188.57) 
+
+🔍 Searching for SKU: LS18F1063 (Scale: 1:18)
+   ✅ Found: Charles Leclerc - Scuderia Ferrari SF24 Monaco GP 2024 Winner P1 - Looksmart F1 Model Car
+   ⚠️  Warning: Scale "1:18" not found in title, but SKU matched so continuing...
+   🔗 URL: https://drivenby.co/products/scuderia-ferrari-sf-24-monaco-gp-2024-charles-leclerc-winner-p1-looksmart-f1-model-car
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/LS18F1063.jpg
+   💰 Price refreshed: HKD $2600.00 (~AUD $480.66) 
+
+🔍 Searching for SKU: 18S666 (Scale: 1:18)
+   ✅ Found: Max Verstappen Las Vegas GP 2024 F1 World Champion Red Bull Racing RB20 Model Car WC Edition - Spark Model
+   ⚠️  Warning: Scale "1:18" not found in title, but SKU matched so continuing...
+   🔗 URL: https://drivenby.co/products/max-verstappen-las-vegas-gp-2024-f1-world-champion-red-bull-racing-rb20-model-car-wc-edition-spark-model
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/18S666.jpg
+   💰 Price refreshed: HKD $1850.00 (~AUD $342.01) 
+
+🔍 Searching for SKU: 110242201 (Scale: 1:18)
+   ✅ Found: Max Verstappen Las Vegas GP 2024 F1 World Champion Red Bull Racing RB20 Model Car - Minichamps
+   ⚠️  Warning: Scale "1:18" not found in title, but SKU matched so continuing...
+   🔗 URL: https://drivenby.co/products/max-verstappen-las-vegas-gp-2024-f1-world-champion-red-bull-racing-rb20-model-car-minichamps
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/110242201.jpg
+   💰 Price refreshed: HKD $1600.00 (~AUD $295.79) 
+
+🔍 Searching for SKU: S9547 (Scale: 1:43)
+   ✅ Found: Max Verstappen Las Vegas GP 2024 F1 World Champion Red Bull Racing RB20 Model Car WC Edition - Spark Model
+   ⚠️  Warning: Scale "1:43" not found in title, but SKU matched so continuing...
+   🔗 URL: https://drivenby.co/products/max-verstappen-las-vegas-gp-2024-f1-world-champion-red-bull-racing-rb20-model-car-wc-edition-spark-model
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/S9547.jpg
+   💰 Price refreshed: HKD $799.00 (~AUD $147.71) 
+
+🔍 Searching for SKU: 410242201 (Scale: 1:43)
+   ✅ Found: Max Verstappen Las Vegas GP 2024 F1 World Champion Red Bull Racing RB20 Model Car - Minichamps
+   ⚠️  Warning: Scale "1:43" not found in title, but SKU matched so continuing...
+   🔗 URL: https://drivenby.co/products/max-verstappen-las-vegas-gp-2024-f1-world-champion-red-bull-racing-rb20-model-car-minichamps
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/410242201.jpg
+   💰 Price refreshed: HKD $700.00 (~AUD $129.41) 
+
+============================================================
+🏪 Retailer: RM Toys
+🔗 Store URL: https://www.rmtoys.co.uk
+============================================================
+
+📦 Fetching products from https://www.rmtoys.co.uk...
+
+   Page 1: 250 products
+   Page 2: 250 products
+   Page 3: 250 products
+   Page 4: 250 products
+   Page 5: 250 products
+   Page 6: 250 products
+   Page 7: 250 products
+   Page 8: 250 products
+   Page 9: 250 products
+   Page 10: 250 products
+   Page 11: 250 products
+   Page 12: 250 products
+   Page 13: 250 products
+   Page 14: 250 products
+   Page 15: 250 products
+   Page 16: 250 products
+   Page 17: 250 products
+   Page 18: 250 products
+   Page 19: 250 products
+   Page 20: 250 products
+   Page 21: 250 products
+   Page 22: 250 products
+   Page 23: 250 products
+   Page 24: 250 products
+   Page 25: 250 products
+   Page 26: 250 products
+   Page 27: 250 products
+   Page 28: 250 products
+   Page 29: 250 products
+   Page 30: 250 products
+   Page 31: 250 products
+   Page 32: 250 products
+   Page 33: 250 products
+   Page 34: 250 products
+   Page 35: 250 products
+   Page 36: 250 products
+   Page 37: 250 products
+   Page 38: 250 products
+   Page 39: 250 products
+   Page 40: 250 products
+   Page 41: 250 products
+   Page 42: 250 products
+   Page 43: 250 products
+   Page 44: 250 products
+   Page 45: 250 products
+   Page 46: 250 products
+   Page 47: 250 products
+   Page 48: 250 products
+   Page 49: 250 products
+   Page 50: 250 products
+✅ Total products fetched: 12500
+
+
+🔍 Searching for SKU: 537244404 (Scale: 1:43)
+   ⚠️  Not found at RM Toys
+
+🔍 Searching for SKU: 537241904 (Scale: 1:18)
+   ⚠️  Not found at RM Toys
+
+🔍 Searching for SKU: 18S999 (Scale: 1:18)
+   ⚠️  Not found at RM Toys
+
+🔍 Searching for SKU: 18S986 (Scale: 1:18)
+   ⚠️  Not found at RM Toys
+
+🔍 Searching for SKU: 110241244 (Scale: 1:18)
+   ⚠️  Not found at RM Toys
+
+🔍 Searching for SKU: S1814201 (Scale: 1:18)
+   ⚠️  Not found at RM Toys
+
+🔍 Searching for SKU: S9523 (Scale: 1:43)
+   ⚠️  Not found at RM Toys
+
+🔍 Searching for SKU: BU16815-L-MONACO (Scale: 1:43)
+   ⚠️  Not found at RM Toys
+
+🔍 Searching for SKU: S9533 (Scale: 1:43)
+   ⚠️  Not found at RM Toys
+
+🔍 Searching for SKU: 410241244 (Scale: 1:43)
+   ⚠️  Not found at RM Toys
+
+🔍 Searching for SKU: BBR241816C (Scale: 1:18)
+   ⚠️  Not found at RM Toys
+
+🔍 Searching for SKU: LSF1063 (Scale: 1:43)
+   ⚠️  Not found at RM Toys
+
+🔍 Searching for SKU: LS18F1063 (Scale: 1:18)
+   ⚠️  Not found at RM Toys
+
+🔍 Searching for SKU: 18S666 (Scale: 1:18)
+   ⚠️  Not found at RM Toys
+
+🔍 Searching for SKU: 110242201 (Scale: 1:18)
+   ⚠️  Not found at RM Toys
+
+🔍 Searching for SKU: S9547 (Scale: 1:43)
+   ⚠️  Not found at RM Toys
+
+🔍 Searching for SKU: 410242201 (Scale: 1:43)
+   ⚠️  Not found at RM Toys
+
+============================================================
+🏪 Retailer: Motorsport Model Shop
+🔗 Store URL: https://motorsportmodelshop.co.uk
+============================================================
+
+📦 Fetching products from https://motorsportmodelshop.co.uk...
+
+   Page 1: 250 products
+   Page 2: 250 products
+   Page 3: 250 products
+   Page 4: 250 products
+   Page 5: 250 products
+   Page 6: 250 products
+   Page 7: 250 products
+   Page 8: 61 products
+✅ Total products fetched: 1811
+
+
+🔍 Searching for SKU: 537244404 (Scale: 1:43)
+   ⚠️  Not found at Motorsport Model Shop
+
+🔍 Searching for SKU: 537241904 (Scale: 1:18)
+   ⚠️  Not found at Motorsport Model Shop
+
+🔍 Searching for SKU: 18S999 (Scale: 1:18)
+   ✅ Found: Spark Mercedes-AMG F1 W15 #44 Hamilton Winner British F1 GP 2024 1/18 18S999
+   🔗 URL: https://motorsportmodelshop.co.uk/products/spark-mercedes-amg-f1-w15-44-lewis-hamilton-winner-british-f1-gp-2024-1-18-scale
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/18S999.jpg
+   💰 Price refreshed: GBP $164.99 (~AUD $316.55) 
+
+🔍 Searching for SKU: 18S986 (Scale: 1:18)
+   ⚠️  Not found at Motorsport Model Shop
+
+🔍 Searching for SKU: 110241244 (Scale: 1:18)
+   ⚠️  Not found at Motorsport Model Shop
+
+🔍 Searching for SKU: S1814201 (Scale: 1:18)
+   ⚠️  Not found at Motorsport Model Shop
+
+🔍 Searching for SKU: S9523 (Scale: 1:43)
+   ⚠️  Not found at Motorsport Model Shop
+
+🔍 Searching for SKU: BU16815-L-MONACO (Scale: 1:43)
+   ⚠️  Not found at Motorsport Model Shop
+
+🔍 Searching for SKU: S9533 (Scale: 1:43)
+   ⚠️  Not found at Motorsport Model Shop
+
+🔍 Searching for SKU: 410241244 (Scale: 1:43)
+   ⚠️  Not found at Motorsport Model Shop
+
+🔍 Searching for SKU: BBR241816C (Scale: 1:18)
+   ⚠️  Not found at Motorsport Model Shop
+
+🔍 Searching for SKU: LSF1063 (Scale: 1:43)
+   ⚠️  Not found at Motorsport Model Shop
+
+🔍 Searching for SKU: LS18F1063 (Scale: 1:18)
+   ⚠️  Not found at Motorsport Model Shop
+
+🔍 Searching for SKU: 18S666 (Scale: 1:18)
+   ⚠️  Not found at Motorsport Model Shop
+
+🔍 Searching for SKU: 110242201 (Scale: 1:18)
+   ⚠️  Not found at Motorsport Model Shop
+
+🔍 Searching for SKU: S9547 (Scale: 1:43)
+   ✅ Found: Spark Red Bull Racing RB20 #1 Max Verstappen 2024 F1 World Champion 1/43 Scale S9547
+   🔗 URL: https://motorsportmodelshop.co.uk/products/spark-red-bull-racing-rb20-1-max-verstappen-2024-f1-world-champion-1-43-scale-s9547
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/S9547.jpg
+   💰 Price refreshed: GBP $79.99 (~AUD $153.47) 
+
+🔍 Searching for SKU: 410242201 (Scale: 1:43)
+   ⚠️  Not found at Motorsport Model Shop
+
+============================================================
+🏪 Retailer: Diecast Model Centre
+🔗 Store URL: https://diecastmodelcentre.co.uk
+============================================================
+
+📦 Fetching products from https://diecastmodelcentre.co.uk...
+
+   Page 1: 250 products
+   Page 2: 250 products
+   Page 3: 250 products
+   Page 4: 250 products
+   Page 5: 250 products
+   Page 6: 250 products
+   Page 7: 250 products
+   Page 8: 250 products
+   Page 9: 250 products
+   Page 10: 250 products
+   Page 11: 250 products
+   Page 12: 250 products
+   Page 13: 250 products
+   Page 14: 250 products
+   Page 15: 250 products
+   Page 16: 250 products
+   Page 17: 250 products
+   Page 18: 250 products
+   Page 19: 250 products
+   Page 20: 250 products
+   Page 21: 250 products
+   Page 22: 250 products
+   Page 23: 250 products
+   Page 24: 250 products
+   Page 25: 250 products
+   Page 26: 250 products
+   Page 27: 250 products
+   Page 28: 250 products
+   Page 29: 250 products
+   Page 30: 250 products
+   Page 31: 250 products
+   Page 32: 250 products
+   Page 33: 250 products
+   Page 34: 250 products
+   Page 35: 250 products
+   Page 36: 250 products
+   Page 37: 250 products
+   Page 38: 250 products
+   Page 39: 60 products
+✅ Total products fetched: 9560
+
+
+🔍 Searching for SKU: 537244404 (Scale: 1:43)
+   ⚠️  Not found at Diecast Model Centre
+
+🔍 Searching for SKU: 537241904 (Scale: 1:18)
+   ⚠️  Not found at Diecast Model Centre
+
+🔍 Searching for SKU: 18S999 (Scale: 1:18)
+   ⚠️  Not found at Diecast Model Centre
+
+🔍 Searching for SKU: 18S986 (Scale: 1:18)
+   ⚠️  Not found at Diecast Model Centre
+
+🔍 Searching for SKU: 110241244 (Scale: 1:18)
+   ⚠️  Not found at Diecast Model Centre
+
+🔍 Searching for SKU: S1814201 (Scale: 1:18)
+   ⚠️  Not found at Diecast Model Centre
+
+🔍 Searching for SKU: S9523 (Scale: 1:43)
+   ⚠️  Not found at Diecast Model Centre
+
+🔍 Searching for SKU: BU16815-L-MONACO (Scale: 1:43)
+   ⚠️  Not found at Diecast Model Centre
+
+🔍 Searching for SKU: S9533 (Scale: 1:43)
+   ⚠️  Not found at Diecast Model Centre
+
+🔍 Searching for SKU: 410241244 (Scale: 1:43)
+   ⚠️  Not found at Diecast Model Centre
+
+🔍 Searching for SKU: BBR241816C (Scale: 1:18)
+   ⚠️  Not found at Diecast Model Centre
+
+🔍 Searching for SKU: LSF1063 (Scale: 1:43)
+   ⚠️  Not found at Diecast Model Centre
+
+🔍 Searching for SKU: LS18F1063 (Scale: 1:18)
+   ⚠️  Not found at Diecast Model Centre
+
+🔍 Searching for SKU: 18S666 (Scale: 1:18)
+   ⚠️  Not found at Diecast Model Centre
+
+🔍 Searching for SKU: 110242201 (Scale: 1:18)
+   ⚠️  Not found at Diecast Model Centre
+
+🔍 Searching for SKU: S9547 (Scale: 1:43)
+   ⚠️  Not found at Diecast Model Centre
+
+🔍 Searching for SKU: 410242201 (Scale: 1:43)
+   ⚠️  Not found at Diecast Model Centre
+
+============================================================
+🏪 Retailer: Mini Model Shop
+🔗 Store URL: https://minimodelshop.com
+============================================================
+
+📦 Fetching products from https://minimodelshop.com...
+
+   Page 1: 250 products
+   Page 2: 250 products
+   Page 3: 250 products
+   Page 4: 250 products
+   Page 5: 250 products
+   Page 6: 250 products
+   Page 7: 250 products
+   Page 8: 250 products
+   Page 9: 250 products
+   Page 10: 250 products
+   Page 11: 250 products
+   Page 12: 250 products
+   Page 13: 250 products
+   Page 14: 250 products
+   Page 15: 250 products
+   Page 16: 250 products
+   Page 17: 250 products
+   Page 18: 250 products
+   Page 19: 250 products
+   Page 20: 250 products
+   Page 21: 250 products
+   Page 22: 250 products
+   Page 23: 250 products
+   Page 24: 250 products
+   Page 25: 250 products
+   Page 26: 250 products
+   Page 27: 110 products
+✅ Total products fetched: 6610
+
+
+🔍 Searching for SKU: 537244404 (Scale: 1:43)
+   ⚠️  Not found at Mini Model Shop
+
+🔍 Searching for SKU: 537241904 (Scale: 1:18)
+   ⚠️  Not found at Mini Model Shop
+
+🔍 Searching for SKU: 18S999 (Scale: 1:18)
+   ⚠️  Not found at Mini Model Shop
+
+🔍 Searching for SKU: 18S986 (Scale: 1:18)
+   ⚠️  Not found at Mini Model Shop
+
+🔍 Searching for SKU: 110241244 (Scale: 1:18)
+   ⚠️  Not found at Mini Model Shop
+
+🔍 Searching for SKU: S1814201 (Scale: 1:18)
+   ⚠️  Not found at Mini Model Shop
+
+🔍 Searching for SKU: S9523 (Scale: 1:43)
+   ⚠️  Not found at Mini Model Shop
+
+🔍 Searching for SKU: BU16815-L-MONACO (Scale: 1:43)
+   ⚠️  Not found at Mini Model Shop
+
+🔍 Searching for SKU: S9533 (Scale: 1:43)
+   ⚠️  Not found at Mini Model Shop
+
+🔍 Searching for SKU: 410241244 (Scale: 1:43)
+   ⚠️  Not found at Mini Model Shop
+
+🔍 Searching for SKU: BBR241816C (Scale: 1:18)
+   ⚠️  Not found at Mini Model Shop
+
+🔍 Searching for SKU: LSF1063 (Scale: 1:43)
+   ⚠️  Not found at Mini Model Shop
+
+🔍 Searching for SKU: LS18F1063 (Scale: 1:18)
+   ⚠️  Not found at Mini Model Shop
+
+🔍 Searching for SKU: 18S666 (Scale: 1:18)
+   ⚠️  Not found at Mini Model Shop
+
+🔍 Searching for SKU: 110242201 (Scale: 1:18)
+   ⚠️  Not found at Mini Model Shop
+
+🔍 Searching for SKU: S9547 (Scale: 1:43)
+   ⚠️  Not found at Mini Model Shop
+
+🔍 Searching for SKU: 410242201 (Scale: 1:43)
+   ⚠️  Not found at Mini Model Shop
+
+============================================================
+🏪 Retailer: Modelmatic
+🔗 Store URL: https://modelmatic.uk
+============================================================
+
+📦 Fetching products from https://modelmatic.uk...
+
+   Page 1: 250 products
+   Page 2: 250 products
+   Page 3: 250 products
+   Page 4: 250 products
+   Page 5: 250 products
+   Page 6: 250 products
+   Page 7: 250 products
+   Page 8: 250 products
+   Page 9: 250 products
+   Page 10: 250 products
+   Page 11: 250 products
+   Page 12: 250 products
+   Page 13: 250 products
+   Page 14: 250 products
+   Page 15: 250 products
+   Page 16: 250 products
+   Page 17: 250 products
+   Page 18: 250 products
+   Page 19: 250 products
+   Page 20: 250 products
+   Page 21: 250 products
+   Page 22: 250 products
+   Page 23: 250 products
+   Page 24: 250 products
+   Page 25: 250 products
+   Page 26: 250 products
+   Page 27: 250 products
+   Page 28: 250 products
+   Page 29: 250 products
+   Page 30: 250 products
+   Page 31: 250 products
+   Page 32: 250 products
+   Page 33: 250 products
+   Page 34: 250 products
+   Page 35: 250 products
+   Page 36: 250 products
+   Page 37: 250 products
+   Page 38: 250 products
+   Page 39: 250 products
+   Page 40: 250 products
+   Page 41: 250 products
+   Page 42: 250 products
+   Page 43: 250 products
+   Page 44: 250 products
+   Page 45: 250 products
+   Page 46: 250 products
+   Page 47: 250 products
+   Page 48: 250 products
+   Page 49: 250 products
+   Page 50: 250 products
+✅ Total products fetched: 12500
+
+
+🔍 Searching for SKU: 537244404 (Scale: 1:43)
+   ⚠️  Not found at Modelmatic
+
+🔍 Searching for SKU: 537241904 (Scale: 1:18)
+   ⚠️  Not found at Modelmatic
+
+🔍 Searching for SKU: 18S999 (Scale: 1:18)
+   ⚠️  Not found at Modelmatic
+
+🔍 Searching for SKU: 18S986 (Scale: 1:18)
+   ⚠️  Not found at Modelmatic
+
+🔍 Searching for SKU: 110241244 (Scale: 1:18)
+   ⚠️  Not found at Modelmatic
+
+🔍 Searching for SKU: S1814201 (Scale: 1:18)
+   ⚠️  Not found at Modelmatic
+
+🔍 Searching for SKU: S9523 (Scale: 1:43)
+   ⚠️  Not found at Modelmatic
+
+🔍 Searching for SKU: BU16815-L-MONACO (Scale: 1:43)
+   ⚠️  Not found at Modelmatic
+
+🔍 Searching for SKU: S9533 (Scale: 1:43)
+   ⚠️  Not found at Modelmatic
+
+🔍 Searching for SKU: 410241244 (Scale: 1:43)
+   ⚠️  Not found at Modelmatic
+
+🔍 Searching for SKU: BBR241816C (Scale: 1:18)
+   ⚠️  Not found at Modelmatic
+
+🔍 Searching for SKU: LSF1063 (Scale: 1:43)
+   ⚠️  Not found at Modelmatic
+
+🔍 Searching for SKU: LS18F1063 (Scale: 1:18)
+   ⚠️  Not found at Modelmatic
+
+🔍 Searching for SKU: 18S666 (Scale: 1:18)
+   ⚠️  Not found at Modelmatic
+
+🔍 Searching for SKU: 110242201 (Scale: 1:18)
+   ⚠️  Not found at Modelmatic
+
+🔍 Searching for SKU: S9547 (Scale: 1:43)
+   ⚠️  Not found at Modelmatic
+
+🔍 Searching for SKU: 410242201 (Scale: 1:43)
+   ⚠️  Not found at Modelmatic
+
+============================================================
+🏪 Retailer: AGR Models
+🔗 Store URL: https://agrmodels.uk
+============================================================
+
+📦 Fetching products from https://agrmodels.uk...
+
+   Page 1: 250 products
+   Page 2: 250 products
+   Page 3: 250 products
+   Page 4: 250 products
+   Page 5: 250 products
+   Page 6: 250 products
+   Page 7: 250 products
+   Page 8: 250 products
+   Page 9: 250 products
+   Page 10: 250 products
+   Page 11: 250 products
+   Page 12: 250 products
+   Page 13: 250 products
+   Page 14: 250 products
+   Page 15: 250 products
+   Page 16: 250 products
+   Page 17: 250 products
+   Page 18: 250 products
+   Page 19: 250 products
+   Page 20: 250 products
+   Page 21: 250 products
+   Page 22: 60 products
+✅ Total products fetched: 5310
+
+
+🔍 Searching for SKU: 537244404 (Scale: 1:43)
+   ⚠️  Not found at AGR Models
+
+🔍 Searching for SKU: 537241904 (Scale: 1:18)
+   ⚠️  Not found at AGR Models
+
+🔍 Searching for SKU: 18S999 (Scale: 1:18)
+   ⚠️  Not found at AGR Models
+
+🔍 Searching for SKU: 18S986 (Scale: 1:18)
+   ⚠️  Not found at AGR Models
+
+🔍 Searching for SKU: 110241244 (Scale: 1:18)
+   ⚠️  Not found at AGR Models
+
+🔍 Searching for SKU: S1814201 (Scale: 1:18)
+   ⚠️  Not found at AGR Models
+
+🔍 Searching for SKU: S9523 (Scale: 1:43)
+   ⚠️  Not found at AGR Models
+
+🔍 Searching for SKU: BU16815-L-MONACO (Scale: 1:43)
+   ⚠️  Not found at AGR Models
+
+🔍 Searching for SKU: S9533 (Scale: 1:43)
+   ⚠️  Not found at AGR Models
+
+🔍 Searching for SKU: 410241244 (Scale: 1:43)
+   ⚠️  Not found at AGR Models
+
+🔍 Searching for SKU: BBR241816C (Scale: 1:18)
+   ⚠️  Not found at AGR Models
+
+🔍 Searching for SKU: LSF1063 (Scale: 1:43)
+   ⚠️  Not found at AGR Models
+
+🔍 Searching for SKU: LS18F1063 (Scale: 1:18)
+   ⚠️  Not found at AGR Models
+
+🔍 Searching for SKU: 18S666 (Scale: 1:18)
+   ⚠️  Not found at AGR Models
+
+🔍 Searching for SKU: 110242201 (Scale: 1:18)
+   ⚠️  Not found at AGR Models
+
+🔍 Searching for SKU: S9547 (Scale: 1:43)
+   ⚠️  Not found at AGR Models
+
+🔍 Searching for SKU: 410242201 (Scale: 1:43)
+   ⚠️  Not found at AGR Models
+
+============================================================
+🏪 Retailer: Diecasthunter
+🔗 Store URL: https://diecasthunter.de
+============================================================
+
+📦 Fetching products from https://diecasthunter.de...
+
+   Page 1: 247 products
+✅ Total products fetched: 247
+
+
+🔍 Searching for SKU: 537244404 (Scale: 1:43)
+   ⚠️  Not found at Diecasthunter
+
+🔍 Searching for SKU: 537241904 (Scale: 1:18)
+   ⚠️  Not found at Diecasthunter
+
+🔍 Searching for SKU: 18S999 (Scale: 1:18)
+   ⚠️  Not found at Diecasthunter
+
+🔍 Searching for SKU: 18S986 (Scale: 1:18)
+   ⚠️  Not found at Diecasthunter
+
+🔍 Searching for SKU: 110241244 (Scale: 1:18)
+   ⚠️  Not found at Diecasthunter
+
+🔍 Searching for SKU: S1814201 (Scale: 1:18)
+   ⚠️  Not found at Diecasthunter
+
+🔍 Searching for SKU: S9523 (Scale: 1:43)
+   ⚠️  Not found at Diecasthunter
+
+🔍 Searching for SKU: BU16815-L-MONACO (Scale: 1:43)
+   ⚠️  Not found at Diecasthunter
+
+🔍 Searching for SKU: S9533 (Scale: 1:43)
+   ⚠️  Not found at Diecasthunter
+
+🔍 Searching for SKU: 410241244 (Scale: 1:43)
+   ⚠️  Not found at Diecasthunter
+
+🔍 Searching for SKU: BBR241816C (Scale: 1:18)
+   ⚠️  Not found at Diecasthunter
+
+🔍 Searching for SKU: LSF1063 (Scale: 1:43)
+   ⚠️  Not found at Diecasthunter
+
+🔍 Searching for SKU: LS18F1063 (Scale: 1:18)
+   ⚠️  Not found at Diecasthunter
+
+🔍 Searching for SKU: 18S666 (Scale: 1:18)
+   ⚠️  Not found at Diecasthunter
+
+🔍 Searching for SKU: 110242201 (Scale: 1:18)
+   ⚠️  Not found at Diecasthunter
+
+🔍 Searching for SKU: S9547 (Scale: 1:43)
+   ⚠️  Not found at Diecasthunter
+
+🔍 Searching for SKU: 410242201 (Scale: 1:43)
+   ⚠️  Not found at Diecasthunter
+
+============================================================
+🏪 Retailer: Auto Zach GameZone
+🔗 Store URL: https://autozach-gamezone.at
+============================================================
+
+📦 Fetching products from https://autozach-gamezone.at...
+
+   Page 1: 117 products
+✅ Total products fetched: 117
+
+
+🔍 Searching for SKU: 537244404 (Scale: 1:43)
+   ⚠️  Not found at Auto Zach GameZone
+
+🔍 Searching for SKU: 537241904 (Scale: 1:18)
+   ⚠️  Not found at Auto Zach GameZone
+
+🔍 Searching for SKU: 18S999 (Scale: 1:18)
+   ⚠️  Not found at Auto Zach GameZone
+
+🔍 Searching for SKU: 18S986 (Scale: 1:18)
+   ⚠️  Not found at Auto Zach GameZone
+
+🔍 Searching for SKU: 110241244 (Scale: 1:18)
+   ⚠️  Not found at Auto Zach GameZone
+
+🔍 Searching for SKU: S1814201 (Scale: 1:18)
+   ⚠️  Not found at Auto Zach GameZone
+
+🔍 Searching for SKU: S9523 (Scale: 1:43)
+   ⚠️  Not found at Auto Zach GameZone
+
+🔍 Searching for SKU: BU16815-L-MONACO (Scale: 1:43)
+   ⚠️  Not found at Auto Zach GameZone
+
+🔍 Searching for SKU: S9533 (Scale: 1:43)
+   ⚠️  Not found at Auto Zach GameZone
+
+🔍 Searching for SKU: 410241244 (Scale: 1:43)
+   ⚠️  Not found at Auto Zach GameZone
+
+🔍 Searching for SKU: BBR241816C (Scale: 1:18)
+   ⚠️  Not found at Auto Zach GameZone
+
+🔍 Searching for SKU: LSF1063 (Scale: 1:43)
+   ⚠️  Not found at Auto Zach GameZone
+
+🔍 Searching for SKU: LS18F1063 (Scale: 1:18)
+   ⚠️  Not found at Auto Zach GameZone
+
+🔍 Searching for SKU: 18S666 (Scale: 1:18)
+   ⚠️  Not found at Auto Zach GameZone
+
+🔍 Searching for SKU: 110242201 (Scale: 1:18)
+   ⚠️  Not found at Auto Zach GameZone
+
+🔍 Searching for SKU: S9547 (Scale: 1:43)
+   ⚠️  Not found at Auto Zach GameZone
+
+🔍 Searching for SKU: 410242201 (Scale: 1:43)
+   ⚠️  Not found at Auto Zach GameZone
+
+============================================================
+🏪 Retailer: Yuui F1 Models
+🔗 Store URL: https://yuui.nl
+============================================================
+
+📦 Fetching products from https://yuui.nl...
+
+   Page 1: 250 products
+   Page 2: 250 products
+   Page 3: 250 products
+   Page 4: 250 products
+   Page 5: 250 products
+   Page 6: 250 products
+   Page 7: 250 products
+   Page 8: 250 products
+   Page 9: 250 products
+   Page 10: 250 products
+   Page 11: 250 products
+   Page 12: 250 products
+   Page 13: 42 products
+✅ Total products fetched: 3042
+
+
+🔍 Searching for SKU: 537244404 (Scale: 1:43)
+   ✅ Found: 2024 - MCLAREN FORMULE 1 TEAM MCL38 – LANDO NORRIS – WINNAAR MIAMI GP (Minichamps 1:43)
+   🔗 URL: https://yuui.nl/products/2024-mclaren-formula-1-team-mcl38-lando-norris-winner-miami-gp-minichamps-1-43
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/537244404.jpg
+   💰 Price saved: EUR $71.23 (~AUD $117.74) (New listing)
+
+🔍 Searching for SKU: 537241904 (Scale: 1:18)
+   ✅ Found: 2024 - MCLAREN FORMULE 1 TEAM MCL38 – LANDO NORRIS – WINNAAR MIAMI GP (Minichamps 1:18)
+   🔗 URL: https://yuui.nl/products/2024-mclaren-formula-1-team-mcl38-lando-norris-winner-miami-gp-minichamps-1-18
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/537241904.jpg
+   💰 Price saved: EUR $177.54 (~AUD $293.46) (New listing)
+
+🔍 Searching for SKU: 18S999 (Scale: 1:18)
+   ⚠️  Not found at Yuui F1 Models
+
+🔍 Searching for SKU: 18S986 (Scale: 1:18)
+   ⚠️  Not found at Yuui F1 Models
+
+🔍 Searching for SKU: 110241244 (Scale: 1:18)
+   ⚠️  Not found at Yuui F1 Models
+
+🔍 Searching for SKU: S1814201 (Scale: 1:18)
+   ⚠️  Not found at Yuui F1 Models
+
+🔍 Searching for SKU: S9523 (Scale: 1:43)
+   ⚠️  Not found at Yuui F1 Models
+
+🔍 Searching for SKU: BU16815-L-MONACO (Scale: 1:43)
+   ⚠️  Not found at Yuui F1 Models
+
+🔍 Searching for SKU: S9533 (Scale: 1:43)
+   ⚠️  Not found at Yuui F1 Models
+
+🔍 Searching for SKU: 410241244 (Scale: 1:43)
+   ⚠️  Not found at Yuui F1 Models
+
+🔍 Searching for SKU: BBR241816C (Scale: 1:18)
+   ⚠️  Not found at Yuui F1 Models
+
+🔍 Searching for SKU: LSF1063 (Scale: 1:43)
+   ⚠️  Not found at Yuui F1 Models
+
+🔍 Searching for SKU: LS18F1063 (Scale: 1:18)
+   ⚠️  Not found at Yuui F1 Models
+
+🔍 Searching for SKU: 18S666 (Scale: 1:18)
+   ✅ Found: 2024 - Red Bull Racing RB20 - Max Verstappen - Las Vegas GP - Wereldkampioen (Spark 1:18)
+   🔗 URL: https://yuui.nl/products/2024-red-bull-racing-rb20-max-verstappen-las-vegas-gp-world-champion-spark-1-18
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/18S666.jpg
+   💰 Price saved: EUR $183.86 (~AUD $303.91) (New listing)
+
+🔍 Searching for SKU: 110242201 (Scale: 1:18)
+   ✅ Found: 2024 - Red Bull Racing RB20 - Max Verstappen - Las Vegas GP - Wereldkampioen (Minichamps 1:18)
+   🔗 URL: https://yuui.nl/products/2024-red-bull-racing-rb20-max-verstappen-las-vegas-gp-world-champion-minichamps-1-18
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/110242201.jpg
+   💰 Price saved: EUR $160.75 (~AUD $265.71) (New listing)
+
+🔍 Searching for SKU: S9547 (Scale: 1:43)
+   ✅ Found: 2024 - Red Bull Racing RB20 - Max Verstappen - Las Vegas GP - World Champion (Spark 1:43)
+   🔗 URL: https://yuui.nl/products/2024-red-bull-racing-rb20-max-verstappen-las-vegas-gp-world-champion-spark-1-43
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/S9547.jpg
+   💰 Price saved: EUR $89.99 (~AUD $148.75) (New listing)
+
+🔍 Searching for SKU: 410242201 (Scale: 1:43)
+   ✅ Found: 2024 - Red Bull Racing RB20 - Max Verstappen - Las Vegas GP - Wereldkampioen (Minichamps 1:43)
+   🔗 URL: https://yuui.nl/products/2024-red-bull-racing-rb20-max-verstappen-las-vegas-gp-world-champion-minichamps-1-43
+   ℹ️  Model already has image: https://lkpuepevvzeulhiiyynf.supabase.co/storage/v1/object/public/model-images/models/410242201.jpg
+   💰 Price saved: EUR $70.22 (~AUD $116.07) (New listing)
+
+============================================================
+✨ Scraping Complete!
+============================================================
