@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const { createClient } = require(''@supabase/supabase-js''); require(''dotenv'').config({ path: ''.env.local'' }); const s = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY); (async () => { const { data: car1 } = await s.from(''cars'').select(''id'').eq(''event_name'', ''Qatar GP Winner'').single(); if (car1) { await s.from(''models'').delete().eq(''car_id'', car1.id); await s.from(''car_drivers'').delete().eq(''car_id'', car1.id); await s.from(''cars'').delete().eq(''id'', car1.id); console.log(''✅ Deleted Qatar GP Winner''); } const { data: car2 } = await s.from(''cars'').select(''id'').ilike(''event_name'', ''%Deadpool%'').single(); if (car2) { await s.from(''models'').delete().eq(''car_id'', car2.id); await s.from(''car_drivers'').delete().eq(''car_id'', car2.id); await s.from(''cars'').delete().eq(''id'', car2.id); console.log(''✅ Deleted Alpine Deadpool Edition''); } })();\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
