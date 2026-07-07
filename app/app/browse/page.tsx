@@ -77,7 +77,7 @@ export default function BrowsePage() {
               team: car.team?.name,
               price: undefined, // Don't show price on browse (shows on master page)
               imageUrl: variantWithImage?.image_url || null,
-              releaseDate: null,
+              releaseDate: undefined,
               scale: variants?.[0]?.scale || '1:18',
               specialLivery: false,
               variantCount: variants?.length || 0,
