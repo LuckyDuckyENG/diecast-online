@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -21,7 +21,7 @@ const INITIAL_FILTERS: FilterOptions = {
   specialLivery: null,
 };
 
-export default function BrowsePage() {
+function BrowsePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [filters, setFilters] = useState<FilterOptions>(INITIAL_FILTERS);
@@ -280,5 +280,13 @@ export default function BrowsePage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function BrowsePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BrowsePageContent />
+    </Suspense>
   );
 }
