@@ -65,9 +65,9 @@ export default function Home() {
           carsWithModels.push({
             ...car,
             models,
-            team_name: car.team?.name || '',
+            team_name: (car.team as any)?.name || '',
             driver_name: driverName,
-            year: car.season?.year || ''
+            year: (car.season as any)?.year || ''
           });
         }
       }
