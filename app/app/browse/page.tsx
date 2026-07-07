@@ -9,8 +9,8 @@ import ActiveFilters from '../components/ActiveFilters';
 import BrowseGrid from '../components/BrowseGrid';
 import Breadcrumb from '../components/Breadcrumb';
 import { FilterOptions, SortOption, Model } from '@/lib/types';
-import { supabase } from '../../../lib/supabase';
-import { ModelWithDetails } from '../../../lib/database.types';
+import { supabase } from '@/lib/supabase';
+import { ModelWithDetails } from '@/lib-root/database.types';
 
 const INITIAL_FILTERS: FilterOptions = {
   years: [],

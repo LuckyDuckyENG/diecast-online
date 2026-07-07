@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import Breadcrumb from '../../components/Breadcrumb';
-import { supabase } from '../../../../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 // Helper to get manufacturer logo filename
 function getManufacturerLogo(name: string): string {

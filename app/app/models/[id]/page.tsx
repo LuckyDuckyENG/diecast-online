@@ -11,7 +11,7 @@ import PriceHistory from '../../components/PriceHistory';
 import WhereToBuy from '../../components/WhereToBuy';
 import CollectorReviews from '../../components/CollectorReviews';
 import RelatedModels from '../../components/RelatedModels';
-import { supabase } from '../../../../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export default function ModelDetailPage() {
   // Get id from URL params
