@@ -60,7 +60,7 @@ export default function Home() {
 
         if (models && models.length > 0) {
           // Get driver name from car_drivers
-          const driverName = car.car_drivers?.[0]?.driver?.name || '';
+          const driverName = (car.car_drivers as any)?.[0]?.driver?.name || '';
 
           carsWithModels.push({
             ...car,
