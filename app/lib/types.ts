@@ -19,6 +19,9 @@ export interface Model {
   releaseDate?: string;
   scale?: string;
   specialLivery?: boolean;
+  liveryName?: string;
+  teamPrimaryColor?: string;
+  teamTextColor?: string;
 }
 
 export type SortOption = 'newest' | 'price-low' | 'price-high' | 'popular';

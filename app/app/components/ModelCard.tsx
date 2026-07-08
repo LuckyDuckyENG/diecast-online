@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import TeamColorFallback from './TeamColorFallback';
 
 interface ModelCardProps {
   id: string;
@@ -10,6 +11,9 @@ interface ModelCardProps {
   price?: string;
   imageUrl?: string;
   releaseDate?: string;
+  liveryName?: string;
+  teamPrimaryColor?: string;
+  teamTextColor?: string;
 }
 
 export default function ModelCard({
@@ -22,6 +26,9 @@ export default function ModelCard({
   price,
   imageUrl,
   releaseDate,
+  liveryName,
+  teamPrimaryColor,
+  teamTextColor,
 }: ModelCardProps) {
   return (
     <Link
@@ -35,6 +42,13 @@ export default function ModelCard({
             src={imageUrl}
             alt={name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : team && liveryName && teamPrimaryColor && teamTextColor ? (
+          <TeamColorFallback
+            teamName={team}
+            liveryName={liveryName}
+            primaryColor={teamPrimaryColor}
+            textColor={teamTextColor}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)] text-sm">

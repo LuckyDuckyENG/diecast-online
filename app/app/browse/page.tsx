@@ -42,7 +42,7 @@ function BrowsePageContent() {
             id,
             livery_name,
             event_name,
-            team:teams(name),
+            team:teams(name, primary_color, text_color),
             season:seasons(year),
             car_drivers(
               driver:drivers(name, number)
@@ -81,6 +81,9 @@ function BrowsePageContent() {
               scale: variants?.[0]?.scale || '1:18',
               specialLivery: false,
               variantCount: variants?.length || 0,
+              liveryName: car.livery_name,
+              teamPrimaryColor: car.team?.primary_color,
+              teamTextColor: car.team?.text_color,
             };
           })
         );
