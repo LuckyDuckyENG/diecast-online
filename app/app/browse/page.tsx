@@ -18,7 +18,6 @@ const INITIAL_FILTERS: FilterOptions = {
   drivers: [],
   scales: [],
   manufacturers: [],
-  specialLivery: null,
 };
 
 function BrowsePageContent() {
@@ -79,7 +78,6 @@ function BrowsePageContent() {
               imageUrl: variantWithImage?.image_url || null,
               releaseDate: undefined,
               scale: variants?.[0]?.scale || '1:18',
-              specialLivery: false,
               variantCount: variants?.length || 0,
               liveryName: car.livery_name,
               teamPrimaryColor: car.team?.primary_color,
@@ -110,11 +108,6 @@ function BrowsePageContent() {
       drivers: searchParams.getAll('driver'),
       scales: searchParams.getAll('scale'),
       manufacturers: searchParams.getAll('manufacturer'),
-      specialLivery: searchParams.get('specialLivery') === 'true'
-        ? true
-        : searchParams.get('specialLivery') === 'false'
-        ? false
-        : null,
     };
 
     const urlSort = searchParams.get('sort') as SortOption;
@@ -133,10 +126,6 @@ function BrowsePageContent() {
     newFilters.scales.forEach((scale) => params.append('scale', scale));
     newFilters.manufacturers.forEach((manufacturer) => params.append('manufacturer', manufacturer));
 
-    if (newFilters.specialLivery !== null) {
-      params.set('specialLivery', String(newFilters.specialLivery));
-    }
-
     if (newSort !== 'newest') {
       params.set('sort', newSort);
     }
@@ -153,15 +142,11 @@ function BrowsePageContent() {
   const handleRemoveFilter = (key: keyof FilterOptions, value: string) => {
     let newFilters = { ...filters };
 
-    if (key === 'specialLivery') {
-      newFilters.specialLivery = null;
-    } else {
-      const currentValues = newFilters[key] as string[];
-      newFilters = {
-        ...newFilters,
-        [key]: currentValues.filter((v) => v !== value),
-      };
-    }
+    const currentValues = newFilters[key] as string[];
+    newFilters = {
+      ...newFilters,
+      [key]: currentValues.filter((v) => v !== value),
+    };
 
     setFilters(newFilters);
     updateURL(newFilters, sortBy);
@@ -205,10 +190,6 @@ function BrowsePageContent() {
 
     if (filters.manufacturers.length > 0) {
       results = results.filter((model) => filters.manufacturers.includes(model.manufacturer));
-    }
-
-    if (filters.specialLivery !== null) {
-      results = results.filter((model) => model.specialLivery === filters.specialLivery);
     }
 
     // Apply sorting

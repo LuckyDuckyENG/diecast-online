@@ -98,8 +98,7 @@ export default function FilterSidebar({ filters, onFilterChange, onClearAll }: F
     filters.teams.length > 0 ||
     filters.drivers.length > 0 ||
     filters.scales.length > 0 ||
-    filters.manufacturers.length > 0 ||
-    filters.specialLivery !== null;
+    filters.manufacturers.length > 0;
 
   return (
     <aside className="w-[250px] flex-none">
@@ -200,32 +199,6 @@ export default function FilterSidebar({ filters, onFilterChange, onClearAll }: F
               </span>
             </label>
           ))}
-        </FilterSection>
-
-        {/* Special Livery */}
-        <FilterSection title="Special Livery">
-          <div className="flex gap-2">
-            <button
-              onClick={() => onFilterChange({ ...filters, specialLivery: filters.specialLivery === true ? null : true })}
-              className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
-                filters.specialLivery === true
-                  ? 'bg-[var(--accent)] text-white'
-                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:bg-[var(--border-default)]'
-              }`}
-            >
-              Yes
-            </button>
-            <button
-              onClick={() => onFilterChange({ ...filters, specialLivery: filters.specialLivery === false ? null : false })}
-              className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
-                filters.specialLivery === false
-                  ? 'bg-[var(--accent)] text-white'
-                  : 'bg-[var(--input-bg)] text-[var(--text-secondary)] hover:bg-[var(--border-default)]'
-              }`}
-            >
-              No
-            </button>
-          </div>
         </FilterSection>
       </div>
     </aside>

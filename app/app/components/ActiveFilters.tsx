@@ -20,12 +20,6 @@ export default function ActiveFilters({ filters, onRemoveFilter, onClearAll }: A
     activeFilters.push({ key: 'manufacturers', value: manufacturer, label: manufacturer })
   );
 
-  if (filters.specialLivery === true) {
-    activeFilters.push({ key: 'specialLivery', value: 'true', label: 'Special Livery' });
-  } else if (filters.specialLivery === false) {
-    activeFilters.push({ key: 'specialLivery', value: 'false', label: 'No Special Livery' });
-  }
-
   if (activeFilters.length === 0) return null;
 
   return (

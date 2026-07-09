@@ -4,7 +4,6 @@ export interface FilterOptions {
   drivers: string[];
   scales: string[];
   manufacturers: string[];
-  specialLivery: boolean | null;
 }
 
 export interface Model {
@@ -18,7 +17,6 @@ export interface Model {
   imageUrl?: string;
   releaseDate?: string;
   scale?: string;
-  specialLivery?: boolean;
   liveryName?: string;
   teamPrimaryColor?: string;
   teamTextColor?: string;
