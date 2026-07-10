@@ -10,7 +10,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Red Bull Racing',
     price: '€84.95',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '2',
@@ -21,7 +20,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Ferrari',
     price: '€129.00',
     scale: '1:43',
-    specialLivery: true,
   },
   {
     id: '3',
@@ -32,7 +30,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Mercedes-AMG Petronas',
     price: '€89.95',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '4',
@@ -43,7 +40,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'McLaren',
     price: '€94.95',
     scale: '1:43',
-    specialLivery: true,
   },
   {
     id: '5',
@@ -54,7 +50,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Aston Martin',
     price: '€79.90',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '6',
@@ -65,7 +60,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'McLaren',
     price: '€89.95',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '7',
@@ -76,7 +70,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Ferrari',
     price: '€449.00',
     scale: '1:18',
-    specialLivery: false,
   },
   {
     id: '8',
@@ -87,7 +80,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Mercedes-AMG Petronas',
     price: '€79.90',
     scale: '1:43',
-    specialLivery: true,
   },
   {
     id: '9',
@@ -98,7 +90,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Red Bull Racing',
     price: '€84.95',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '10',
@@ -109,7 +100,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Williams',
     price: '€94.50',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '11',
@@ -120,7 +110,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Ferrari',
     price: '€119.00',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '12',
@@ -131,7 +120,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Alpine',
     price: '€79.90',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '13',
@@ -142,7 +130,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Benetton',
     price: '€89.95',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '14',
@@ -153,7 +140,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Red Bull Racing',
     price: '€84.95',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '15',
@@ -164,7 +150,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Mercedes-AMG Petronas',
     price: '€89.95',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '16',
@@ -175,7 +160,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'McLaren',
     price: '€84.95',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '17',
@@ -186,7 +170,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Aston Martin',
     price: '€79.90',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '18',
@@ -197,7 +180,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Haas',
     price: '€74.95',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '19',
@@ -208,7 +190,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Ferrari',
     price: '€399.00',
     scale: '1:18',
-    specialLivery: false,
   },
   {
     id: '20',
@@ -219,7 +200,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Williams',
     price: '€79.90',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '21',
@@ -230,7 +210,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Lotus',
     price: '€79.90',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '22',
@@ -241,7 +220,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Red Bull Racing',
     price: '€94.95',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '23',
@@ -252,7 +230,6 @@ export const MOCK_MODELS: Model[] = [
     team: 'Mercedes-AMG Petronas',
     price: '€79.90',
     scale: '1:43',
-    specialLivery: false,
   },
   {
     id: '24',
@@ -263,6 +240,5 @@ export const MOCK_MODELS: Model[] = [
     team: 'McLaren',
     price: '€89.95',
     scale: '1:43',
-    specialLivery: false,
   },
 ];
