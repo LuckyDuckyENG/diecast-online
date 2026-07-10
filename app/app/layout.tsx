@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Hanken_Grotesk, Archivo } from "next/font/google";
+import { Hanken_Grotesk, Archivo, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 const hankenGrotesk = Hanken_Grotesk({
@@ -12,6 +12,12 @@ const archivo = Archivo({
   variable: "--font-archivo",
   subsets: ["latin"],
   weight: ["500", "600", "700", "800", "900"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains",
+  subsets: ["latin"],
+  weight: ["500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -27,7 +33,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${hankenGrotesk.variable} ${archivo.variable}`}
+      className={`${hankenGrotesk.variable} ${archivo.variable} ${jetbrainsMono.variable}`}
     >
       <body className="min-h-screen font-sans">{children}</body>
     </html>
