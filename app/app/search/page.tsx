@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -8,7 +8,7 @@ import ModelCard from '../components/ModelCard';
 import { supabase } from '@/lib/supabase';
 import { Model } from '@/lib/types';
 
-export default function SearchPage() {
+function SearchResults() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
   const [results, setResults] = useState<Model[]>([]);
@@ -161,5 +161,23 @@ export default function SearchPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col bg-[var(--bg-secondary)]">
+        <Navbar />
+        <main className="flex-1 max-w-7xl mx-auto px-6 py-8 w-full">
+          <div className="flex items-center justify-center py-20">
+            <div className="text-[var(--text-tertiary)]">Loading...</div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    }>
+      <SearchResults />
+    </Suspense>
   );
 }
