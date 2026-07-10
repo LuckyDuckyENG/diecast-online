@@ -13,7 +13,6 @@ export const MOCK_MODEL_DETAIL: ModelDetail = {
   articleNumber: 'LS18F1079',
   productionNumber: 'Limited to 300 pieces',
   releaseDate: 'Q4 2025',
-  specialLivery: false,
   priceRange: {
     low: 240,
     high: 290,

@@ -20,7 +20,6 @@ export function getModelDetails(id: string): ModelDetail | null {
     articleNumber: `${baseModel.manufacturer.substring(0, 2).toUpperCase()}${baseModel.year}${baseModel.id.padStart(4, '0')}`,
     productionNumber: baseModel.scale === '1:18' ? 'Limited to 300 pieces' : 'Limited to 1000 pieces',
     releaseDate: baseModel.releaseDate || getReleaseDateByYear(baseModel.year),
-    specialLivery: baseModel.specialLivery || false,
     priceRange: extractPriceRange(baseModel.price),
     images: {
       main: baseModel.imageUrl || '',

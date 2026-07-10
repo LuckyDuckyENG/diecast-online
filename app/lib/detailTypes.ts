@@ -11,7 +11,6 @@ export interface ModelDetail {
   articleNumber: string;
   productionNumber: string;
   releaseDate: string;
-  specialLivery: boolean;
   priceRange: {
     low: number;
     high: number;
