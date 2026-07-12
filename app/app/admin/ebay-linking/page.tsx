@@ -47,10 +47,33 @@ export default function EbayLinkingAdmin() {
   // Generate years from 1995 to 2025
   const years = Array.from({ length: 31 }, (_, i) => 2025 - i); // 2025 down to 1995
 
-  // Load F1 cars from your data source
+  // Load F1 cars from Supabase
   useEffect(() => {
-    // TODO: Replace with actual Supabase query
-    // For now, using mock data with parent (F1 Car) and children (Diecast Models)
+    const loadF1Data = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/admin/get-f1-data');
+        const data = await response.json();
+
+        if (data.success) {
+          setF1Cars(data.cars);
+          console.log(`✅ Loaded ${data.cars.length} cars from Supabase`);
+        } else {
+          console.error('Failed to load F1 data:', data.error);
+          // Fallback to mock data if needed
+        }
+      } catch (error) {
+        console.error('Error loading F1 data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadF1Data();
+  }, []);
+
+  // Keep mock data for reference (can be removed later)
+  const loadMockData = () => {
     const mockF1Cars: F1Car[] = [
       // === 2025 SEASON ===
       {
@@ -2801,8 +2824,8 @@ export default function EbayLinkingAdmin() {
         models: [],
       },
     ];
-    setF1Cars(mockF1Cars);
-  }, []);
+    // setF1Cars(mockF1Cars); // Now loading from Supabase instead
+  };
 
   const toggleCarExpand = (carId: string) => {
     setExpandedCars((prev) => {
@@ -2825,7 +2848,8 @@ export default function EbayLinkingAdmin() {
       // Build search query from model info
       const searchQuery = `${model.manufacturer} ${model.scale} ${car.team} ${model.driver} ${car.year}`;
 
-      const response = await fetch('/api/admin/scrape-ebay', {
+      // Using eBay Browse API with OAuth (free, unlimited)
+      const response = await fetch('/api/admin/search-ebay-api', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ searchQuery }),

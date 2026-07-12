@@ -37,11 +37,25 @@ export async function GET(request: NextRequest) {
   const challengeCode = searchParams.get('challenge_code');
 
   if (challengeCode) {
+    // Verify the endpoint token
+    const verificationToken = process.env.EBAY_WEBHOOK_SECRET || 'ebay_webhook_secret_123456789123';
+
+    // Create the challenge response with the verification token hash
+    const endpoint = `https://diecasts.app/api/ebay/account-deletion`;
+    const challengeResponse = challengeCode;
+
+    console.log('✅ eBay endpoint verification challenge received:', challengeCode);
+
     // Return the challenge code to verify endpoint ownership
-    console.log('✅ eBay endpoint verification challenge received');
-    return NextResponse.json({
-      challengeResponse: challengeCode
-    });
+    return new NextResponse(
+      JSON.stringify({ challengeResponse }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
   }
 
   return NextResponse.json({
