@@ -3,6 +3,18 @@
 import { useState, useEffect } from 'react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
+import { DndContext, DragEndEvent, useDraggable, useDroppable, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+
+interface RetailerPrice {
+  retailerId: string;
+  retailerName: string;
+  productUrl: string;
+  price: string;
+  currency: string;
+  priceAud: number;
+  inStock: boolean;
+  recordedAt: string;
+}
 
 interface DiecastModel {
   id: string;
@@ -12,10 +24,18 @@ interface DiecastModel {
   driver: string;
   eventName: string; // e.g., "Bahrain GP 2024"
   sku?: string;
+  discoveredFrom?: string | null; // Retailer name
+  price?: string | null; // Price from retailer
   ebayLinked?: boolean;
   ebayUrl?: string;
   ebayPrice?: string;
   lastUpdated?: string;
+  retailerPrices?: RetailerPrice[]; // All retailer prices from price_history table
+}
+
+interface DriverGroup {
+  driver: string;
+  models: DiecastModel[];
 }
 
 interface F1Car {
@@ -23,8 +43,7 @@ interface F1Car {
   year: number;
   team: string;
   chassis: string; // e.g., "W15", "RB20", "SF-24"
-  drivers: string[]; // e.g., ["Lewis Hamilton", "George Russell"]
-  models: DiecastModel[]; // The actual diecast models for this car
+  driverGroups: DriverGroup[]; // Models grouped by driver
 }
 
 interface EbaySearchResult {
@@ -32,17 +51,151 @@ interface EbaySearchResult {
   price: string;
   url: string;
   image: string;
+  score?: number; // AI confidence score 0-100
+  aiReason?: string; // AI reasoning for the score
+}
+
+interface RetailerSearchResult {
+  retailerId: number;
+  retailerName: string;
+  title: string;
+  price: string;
+  url: string;
+  image: string;
+  inStock: boolean;
+}
+
+// Droppable Model Card Component
+function DroppableModelCard({ modelId, children }: { modelId: string; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: modelId,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`transition-all ${
+        isOver ? 'ring-2 ring-orange-500 bg-orange-500/10' : ''
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
+// Droppable Create New Model Zone
+function DroppableCreateModelZone({ carId }: { carId: string }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `create-new-${carId}`,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`mx-6 my-4 p-6 border-2 border-dashed rounded-lg transition-all ${
+        isOver
+          ? 'border-green-500 bg-green-500/10'
+          : 'border-gray-600 bg-gray-800/30'
+      }`}
+    >
+      <div className="text-center">
+        <div className="text-2xl mb-2">➕</div>
+        <div className="text-sm font-semibold text-[var(--text-primary)]">
+          Create New Model
+        </div>
+        <div className="text-xs text-gray-400 mt-1">
+          Drag an inventory item here to create a new model
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Draggable Inventory Item Component
+function DraggableInventoryItem({ item }: { item: any }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: item.id,
+  });
+
+  const style = {
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    opacity: isDragging ? 0.8 : 1,
+    cursor: isDragging ? 'grabbing' : 'grab',
+    zIndex: isDragging ? 9999 : 'auto',
+    pointerEvents: isDragging ? ('auto' as const) : undefined,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className="bg-[var(--bg-secondary)] p-3 rounded-lg border border-[var(--border-color)] hover:border-orange-500 transition-colors"
+    >
+      <img
+        src={item.image_url || '/placeholder.png'}
+        alt={item.title}
+        className="w-full h-32 object-cover rounded mb-2"
+      />
+      <div className="text-xs text-[var(--text-primary)] mb-1 line-clamp-2">
+        {item.title}
+      </div>
+      <div className="text-xs font-semibold text-green-400 mb-2">
+        {item.price}
+      </div>
+      <div className="text-xs text-gray-400 mb-2">
+        🤖 Score: {item.ai_score}
+      </div>
+      <div className="text-xs text-gray-500 mb-3 line-clamp-2">
+        {item.ai_reason}
+      </div>
+      <div className="flex gap-2">
+        <button className="flex-1 px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700">
+          🗑️ Delete
+        </button>
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 px-2 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600 text-center"
+        >
+          View
+        </a>
+      </div>
+    </div>
+  );
 }
 
 export default function EbayLinkingAdmin() {
   const [f1Cars, setF1Cars] = useState<F1Car[]>([]);
   const [searchResults, setSearchResults] = useState<EbaySearchResult[]>([]);
+  const [retailerResults, setRetailerResults] = useState<RetailerSearchResult[]>([]);
   const [selectedModel, setSelectedModel] = useState<DiecastModel | null>(null);
   const [expandedCars, setExpandedCars] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [loadingRetailers, setLoadingRetailers] = useState(false);
   const [filter, setFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [inventorySidebarOpen, setInventorySidebarOpen] = useState(false);
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [inventoryCount, setInventoryCount] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [createModelModalOpen, setCreateModelModalOpen] = useState(false);
+  const [newModelData, setNewModelData] = useState({
+    manufacturer: '',
+    scale: '',
+    driver: '',
+    eventName: '',
+    sku: '',
+    inventoryItemId: '',
+    carId: '',
+    title: '',
+    price: '',
+    url: '',
+    imageUrl: '',
+  });
 
   // Generate years from 1995 to 2025
   const years = Array.from({ length: 31 }, (_, i) => 2025 - i); // 2025 down to 1995
@@ -71,6 +224,42 @@ export default function EbayLinkingAdmin() {
 
     loadF1Data();
   }, []);
+
+  // Load inventory count
+  useEffect(() => {
+    const loadInventoryCount = async () => {
+      try {
+        const response = await fetch('/api/admin/get-inventory-count');
+        const data = await response.json();
+        if (data.success) {
+          setInventoryCount(data.count);
+        }
+      } catch (error) {
+        console.error('Error loading inventory count:', error);
+      }
+    };
+
+    loadInventoryCount();
+  }, []);
+
+  // Load inventory items when sidebar opens
+  useEffect(() => {
+    const loadInventoryItems = async () => {
+      if (!inventorySidebarOpen) return;
+
+      try {
+        const response = await fetch('/api/admin/get-inventory');
+        const data = await response.json();
+        if (data.success) {
+          setInventoryItems(data.items);
+        }
+      } catch (error) {
+        console.error('Error loading inventory items:', error);
+      }
+    };
+
+    loadInventoryItems();
+  }, [inventorySidebarOpen]);
 
   // Keep mock data for reference (can be removed later)
   const loadMockData = () => {
@@ -2845,14 +3034,40 @@ export default function EbayLinkingAdmin() {
     setSearchResults([]);
 
     try {
-      // Build search query from model info
-      const searchQuery = `${model.manufacturer} ${model.scale} ${car.team} ${model.driver} ${car.year}`;
+      // Build weighted search query with most important keywords first
+      // Priority: Manufacturer + Scale (required) > Event/Race > Driver/Team > Year > SKU
+      const queryParts = [
+        model.manufacturer,        // e.g., "Minichamps"
+        model.scale,              // e.g., "1:43"
+        car.team,                 // e.g., "McLaren"
+        model.driver,             // e.g., "Lando Norris"
+        model.eventName,          // e.g., "Miami GP 2024" (CRITICAL - this was missing!)
+        car.year,                 // e.g., "2024"
+        model.sku,                // e.g., "537244404" (exact match filter)
+      ].filter(Boolean); // Remove undefined/null values
 
-      // Using eBay Browse API with OAuth (free, unlimited)
+      const searchQuery = queryParts.join(' ');
+
+      console.log('🔍 eBay search query:', searchQuery);
+
+      // Prepare model info for AI filtering
+      const modelInfo = {
+        manufacturer: model.manufacturer,
+        scale: model.scale,
+        team: car.team,
+        driver: model.driver,
+        eventName: model.eventName || '',
+        year: car.year?.toString() || '',
+        sku: model.sku || '',
+      };
+
+      console.log('🤖 Model info for AI filtering:', modelInfo);
+
+      // Using eBay Browse API with OAuth + Claude Haiku 4.5 AI filtering
       const response = await fetch('/api/admin/search-ebay-api', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ searchQuery }),
+        body: JSON.stringify({ searchQuery, modelInfo }),
       });
 
       if (!response.ok) {
@@ -2926,6 +3141,46 @@ export default function EbayLinkingAdmin() {
     }
   };
 
+  const addToInventory = async (model: DiecastModel, listing: EbaySearchResult, car: F1Car) => {
+    try {
+      console.log('📦 Adding to inventory:', listing.title);
+
+      // Only include searchedModelId if it's a valid diecast_models ID (starts with 'model-')
+      // Otherwise pass null since it's an optional field
+      const searchedModelId = model.id && model.id.startsWith('model-') ? model.id : null;
+
+      const response = await fetch('/api/admin/add-to-inventory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: listing.title,
+          price: listing.price,
+          url: listing.url,
+          imageUrl: listing.image,
+          sourceType: 'ebay',
+          sourceName: 'eBay',
+          retailerId: null,
+          aiScore: listing.score || 0,
+          aiReason: listing.aiReason || 'No reason provided',
+          searchedModelId,
+          searchQuery: `${model.manufacturer} ${model.scale} ${car.team} ${model.driver} ${model.eventName}`,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add to inventory');
+      }
+
+      console.log('✅ Added to inventory');
+      alert('✅ Added to inventory for later review!');
+    } catch (error: any) {
+      console.error('Error adding to inventory:', error);
+      alert(`❌ Failed to add: ${error.message}`);
+    }
+  };
+
   const removeEbayLink = async (carId: string, model: DiecastModel) => {
     if (!confirm('Remove eBay link for this model?')) return;
 
@@ -2961,6 +3216,268 @@ export default function EbayLinkingAdmin() {
     }
   };
 
+  // Parse eBay title to extract model data
+  const parseTitle = (title: string) => {
+    const parsed = {
+      manufacturer: '',
+      scale: '',
+      driver: '',
+      eventName: '',
+      sku: '',
+    };
+
+    // Common manufacturers
+    const manufacturers = ['Minichamps', 'Spark', 'Bburago', 'Hot Wheels', 'Mattel', 'Tarmac Works', 'IXO', 'AutoArt'];
+    for (const mfr of manufacturers) {
+      if (title.toLowerCase().includes(mfr.toLowerCase())) {
+        parsed.manufacturer = mfr;
+        break;
+      }
+    }
+
+    // Scale patterns (1:43, 1/43, 1-43)
+    const scaleMatch = title.match(/1[:\/-](\d+)/);
+    if (scaleMatch) {
+      parsed.scale = `1:${scaleMatch[1]}`;
+    }
+
+    // SKU patterns (numbers, often at end)
+    const skuMatch = title.match(/\b(\d{6,})\b/);
+    if (skuMatch) {
+      parsed.sku = skuMatch[1];
+    }
+
+    // Event/GP names
+    const events = ['Monaco', 'Miami', 'Singapore', 'Abu Dhabi', 'Bahrain', 'Saudi', 'Jeddah', 'Imola', 'Barcelona', 'Silverstone', 'Monza', 'Spa', 'Suzuka', 'Austin', 'Mexico', 'Brazil', 'Las Vegas', 'Qatar'];
+    for (const event of events) {
+      if (title.toLowerCase().includes(event.toLowerCase())) {
+        parsed.eventName = title.includes('GP') ? `${event} GP` : event;
+        break;
+      }
+    }
+
+    // Common drivers
+    const drivers = ['Max Verstappen', 'Lewis Hamilton', 'Charles Leclerc', 'Lando Norris', 'Oscar Piastri', 'Carlos Sainz', 'George Russell', 'Fernando Alonso', 'Sergio Perez', 'Pierre Gasly'];
+    for (const driver of drivers) {
+      if (title.toLowerCase().includes(driver.toLowerCase())) {
+        parsed.driver = driver;
+        break;
+      }
+    }
+
+    return parsed;
+  };
+
+  // Handle drag start
+  const handleDragStart = () => {
+    setIsDragging(true);
+  };
+
+  // Handle drag and drop
+  const handleDragEnd = async (event: DragEndEvent) => {
+    setIsDragging(false);
+
+    const { active, over } = event;
+
+    if (!over) return;
+
+    console.log('📦 Drag ended:', { active: active.id, over: over.id });
+
+    const inventoryItemId = active.id as string;
+    const dropZoneId = over.id as string;
+
+    // Find the inventory item
+    const item = inventoryItems.find(i => i.id === inventoryItemId);
+    if (!item) return;
+
+    // Check if dropped on "Create New Model" zone
+    if (dropZoneId.startsWith('create-new-')) {
+      const carId = dropZoneId.replace('create-new-', '');
+      console.log(`➕ Creating new model for car: ${carId}`);
+
+      // Find the car
+      const car = f1Cars.find(c => c.id === carId);
+      if (!car) return;
+
+      // Parse the eBay title to extract model data
+      const parsedData = parseTitle(item.title);
+
+      // Pre-fill the form with parsed data
+      setNewModelData({
+        manufacturer: parsedData.manufacturer,
+        scale: parsedData.scale,
+        driver: parsedData.driver,
+        eventName: parsedData.eventName,
+        sku: parsedData.sku,
+        inventoryItemId: item.id,
+        carId: carId,
+        title: item.title,
+        price: item.price || '',
+        url: item.url,
+        imageUrl: item.image_url || '',
+      });
+
+      // Open the modal
+      setCreateModelModalOpen(true);
+      return;
+    }
+
+    // Otherwise, it's a regular model link
+    const modelId = dropZoneId;
+
+    try {
+      console.log(`🔗 Linking inventory item to model: ${modelId}`);
+
+      const response = await fetch('/api/admin/link-inventory-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inventoryItemId,
+          modelId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to link item');
+      }
+
+      console.log('✅ Successfully linked item to model');
+
+      // Remove from inventory UI
+      setInventoryItems(prev => prev.filter(i => i.id !== inventoryItemId));
+      setInventoryCount(prev => prev - 1);
+
+      alert(`✅ Linked "${item.title}" to model!`);
+
+    } catch (error: any) {
+      console.error('Error linking inventory item:', error);
+      alert(`❌ Failed to link: ${error.message}`);
+    }
+  };
+
+  // Retailer search functions
+  const searchRetailers = async (model: DiecastModel, car: F1Car) => {
+    setLoadingRetailers(true);
+    setSelectedModel(model);
+    setRetailerResults([]);
+
+    try {
+      console.log('🔍 Searching existing retailer links for model:', model.id);
+
+      const response = await fetch('/api/admin/search-retailers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modelId: model.id }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to search retailers');
+      }
+
+      const data = await response.json();
+      setRetailerResults(data.results || []);
+
+      // Log detailed search summary
+      console.log(`✅ Search complete: Found ${data.results?.length || 0} results from ${data.count || 0} total listings`);
+
+      // Group results by retailer for summary
+      const resultsByRetailer = (data.results || []).reduce((acc: any, result: any) => {
+        acc[result.retailerName] = (acc[result.retailerName] || 0) + 1;
+        return acc;
+      }, {});
+
+      console.log('📊 Results by retailer:', resultsByRetailer);
+    } catch (error) {
+      console.error('Error searching retailers:', error);
+      alert('Failed to search retailers. Check console for details.');
+    } finally {
+      setLoadingRetailers(false);
+    }
+  };
+
+  const refreshRetailers = async (model: DiecastModel, car: F1Car) => {
+    if (!model.sku) {
+      alert('⚠️ This model has no SKU - cannot search retailers.');
+      return;
+    }
+
+    const confirmed = confirm(
+      `🔄 This will search all 24 retailers for SKU "${model.sku}".\n\n` +
+      `⏱️  This will take 1-3 minutes to avoid rate limiting.\n\n` +
+      `Continue?`
+    );
+
+    if (!confirmed) return;
+
+    setLoadingRetailers(true);
+    setSelectedModel(model);
+    setRetailerResults([]);
+
+    try {
+      console.log('🔄 Refreshing retailers from live stores for SKU:', model.sku);
+
+      const response = await fetch('/api/admin/refresh-retailers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modelId: model.id, sku: model.sku }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to refresh retailers');
+      }
+
+      const data = await response.json();
+      setRetailerResults(data.results || []);
+
+      console.log(`✅ Refresh complete: Found ${data.count} results, saved ${data.saved} to database`);
+
+      if (data.count > 0) {
+        alert(`✅ Found ${data.count} retailer(s) and saved ${data.saved} to database!`);
+      } else {
+        alert('⚠️ No retailers found with this SKU. Try searching manually on retailer websites.');
+      }
+    } catch (error: any) {
+      console.error('Error refreshing retailers:', error);
+      alert(`❌ Failed to refresh: ${error.message}`);
+    } finally {
+      setLoadingRetailers(false);
+    }
+  };
+
+  const saveRetailerLink = async (model: DiecastModel, result: RetailerSearchResult) => {
+    try {
+      console.log('💾 Saving retailer link to database...');
+
+      const response = await fetch('/api/admin/save-retailer-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          modelId: model.id,
+          retailerId: result.retailerId,
+          retailerName: result.retailerName,
+          productUrl: result.url,
+          price: result.price,
+          title: result.title,
+          imageUrl: result.image,
+          inStock: result.inStock,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save retailer link');
+      }
+
+      alert(`✅ Linked to ${result.retailerName}!`);
+      setRetailerResults([]);
+      setSelectedModel(null);
+    } catch (error: any) {
+      console.error('Error saving retailer link:', error);
+      alert(`❌ Failed to save: ${error.message}`);
+    }
+  };
+
   const filteredCars = f1Cars.filter((car) => {
     const matchesYear = selectedYear === null || car.year === selectedYear;
 
@@ -2980,11 +3497,81 @@ export default function EbayLinkingAdmin() {
     return matchesYear && matchesSearch;
   });
 
-  return (
-    <div className="min-h-screen flex flex-col bg-[var(--bg-secondary)]">
-      <Navbar />
+  // Configure drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px movement before drag starts
+      },
+    })
+  );
 
-      <main className="flex-1 max-w-7xl mx-auto px-6 py-8 w-full">
+  return (
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className="min-h-screen flex flex-col bg-[var(--bg-secondary)]">
+        <Navbar />
+
+        <div className="flex-1 flex relative">
+        {/* Collapsible Inventory Sidebar */}
+        <div
+          className={`fixed right-0 top-16 h-[calc(100vh-4rem)] bg-[var(--bg-primary)] border-l border-[var(--border-color)] transition-transform duration-300 z-50 ${
+            inventorySidebarOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+          style={{
+            width: '350px',
+            pointerEvents: isDragging ? 'none' : 'auto',
+            overflow: isDragging ? 'visible' : 'hidden'
+          }}
+        >
+          <div className="p-4 border-b border-[var(--border-color)] flex items-center justify-between">
+            <h2 className="text-lg font-bold text-[var(--text-primary)]">
+              📦 Listing Inventory
+            </h2>
+            <button
+              onClick={() => setInventorySidebarOpen(false)}
+              className="px-2 py-1 text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+          <div
+            className="p-4 h-[calc(100%-60px)]"
+            style={{
+              overflowY: isDragging ? 'visible' : 'auto'
+            }}
+          >
+            <p className="text-sm text-gray-400 mb-4">
+              {inventoryCount} items pending review
+            </p>
+
+            {inventoryItems.length === 0 && inventorySidebarOpen && (
+              <p className="text-sm text-gray-500 text-center py-8">
+                No items in inventory
+              </p>
+            )}
+
+            <div className="space-y-3">
+              {inventoryItems.map((item) => (
+                <DraggableInventoryItem key={item.id} item={item} />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar Toggle Button (Arrow) */}
+        {!inventorySidebarOpen && (
+          <button
+            onClick={() => setInventorySidebarOpen(true)}
+            className="fixed right-0 top-1/2 -translate-y-1/2 bg-orange-600 text-white px-2 py-4 rounded-l-lg hover:bg-orange-700 z-40 flex flex-col items-center gap-1"
+            title="Open Inventory"
+          >
+            <span className="text-xs font-bold">{inventoryCount}</span>
+            <span className="text-xl">📦</span>
+            <span className="text-xs">◀</span>
+          </button>
+        )}
+
+        <main className="flex-1 max-w-7xl mx-auto px-6 py-8 w-full">
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">
@@ -3090,8 +3677,10 @@ export default function EbayLinkingAdmin() {
         <div className="space-y-4">
           {filteredCars.map((car) => {
             const isExpanded = expandedCars.has(car.id);
-            const linkedCount = car.models.filter((m) => m.ebayLinked).length;
-            const totalModels = car.models.length;
+            const allModels = car.driverGroups.flatMap((dg) => dg.models);
+            const linkedCount = allModels.filter((m) => m.ebayLinked).length;
+            const totalModels = allModels.length;
+            const drivers = car.driverGroups.map((dg) => dg.driver);
 
             return (
               <div
@@ -3108,7 +3697,7 @@ export default function EbayLinkingAdmin() {
                       📦 {car.year} {car.team} - {car.chassis}
                     </h3>
                     <div className="flex gap-3 text-sm text-[var(--text-secondary)]">
-                      <span>Drivers: {car.drivers.join(', ')}</span>
+                      <span>Drivers: {drivers.join(', ')}</span>
                       <span>•</span>
                       <span>
                         {totalModels} model{totalModels !== 1 ? 's' : ''}
@@ -3129,18 +3718,34 @@ export default function EbayLinkingAdmin() {
                   </div>
                 </button>
 
-                {/* Expanded Models List */}
+                {/* Create New Model Drop Zone - Always visible when expanded */}
+                {isExpanded && (
+                  <DroppableCreateModelZone carId={car.id} />
+                )}
+
+                {/* Expanded Models List - Grouped by Driver */}
                 {isExpanded && (
                   <div className="border-t border-[var(--border-color)] bg-[var(--bg-secondary)]">
-                    {car.models.length === 0 ? (
+                    {car.driverGroups.length === 0 || allModels.length === 0 ? (
                       <div className="p-6 text-center text-[var(--text-secondary)]">
                         ⚠️ No diecast models documented for this chassis yet.
                       </div>
                     ) : (
-                      <div className="p-6 space-y-4">
-                        {car.models.map((model) => (
+                      <div className="p-6 space-y-6">
+                        {car.driverGroups.map((driverGroup) => (
+                          <div key={`${car.id}-${driverGroup.driver}`}>
+                            {/* Driver Section Header */}
+                            <div className="mb-3 pb-2 border-b border-[var(--border-color)]">
+                              <h4 className="text-sm font-semibold text-[var(--text-primary)]">
+                                👤 {driverGroup.driver} ({driverGroup.models.length} model{driverGroup.models.length !== 1 ? 's' : ''})
+                              </h4>
+                            </div>
+
+                            {/* Models for this driver */}
+                            <div className="space-y-4">
+                              {driverGroup.models.map((model) => (
+                          <DroppableModelCard key={model.id} modelId={model.id}>
                           <div
-                            key={model.id}
                             className="bg-[var(--bg-primary)] rounded-lg p-4 border border-[var(--border-color)]"
                           >
                             {/* Model Info */}
@@ -3156,9 +3761,36 @@ export default function EbayLinkingAdmin() {
                                   <span>•</span>
                                   <span>{model.eventName}</span>
                                 </div>
+                                {model.sku && (
+                                  <div className="mt-1 text-xs text-[var(--text-muted)] font-mono">
+                                    SKU: {model.sku}
+                                  </div>
+                                )}
+                                {model.discoveredFrom && (
+                                  <div className="mt-1 text-xs text-green-400">
+                                    🇦🇺 {model.discoveredFrom}
+                                    {model.price && <span className="ml-2 text-[var(--text-secondary)]">${model.price}</span>}
+                                  </div>
+                                )}
                               </div>
 
                               <div className="flex gap-2">
+                                <button
+                                  onClick={() => searchRetailers(model, car)}
+                                  disabled={loadingRetailers}
+                                  className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50"
+                                  title="Show existing retailer links from database"
+                                >
+                                  🏪 Search Retailers
+                                </button>
+                                <button
+                                  onClick={() => refreshRetailers(model, car)}
+                                  disabled={loadingRetailers}
+                                  className="px-3 py-1.5 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 disabled:opacity-50"
+                                  title="Search live stores for this SKU (10-30 seconds)"
+                                >
+                                  🔄 Refresh
+                                </button>
                                 {!model.ebayLinked ? (
                                   <button
                                     onClick={() => searchEbay(model, car)}
@@ -3178,44 +3810,85 @@ export default function EbayLinkingAdmin() {
                               </div>
                             </div>
 
-                            {/* eBay Status */}
-                            {model.ebayLinked ? (
-                              <div className="bg-green-900/20 border border-green-700/30 rounded-lg p-3">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="text-green-400 font-semibold text-sm">
-                                    ✓ eBay Linked
-                                  </span>
-                                </div>
-                                <div className="text-xs text-[var(--text-secondary)] space-y-1">
-                                  <div>
-                                    Price:{' '}
-                                    <span className="text-[var(--text-primary)]">
-                                      {model.ebayPrice}
+                            {/* Linking Status Box */}
+                            <div className="bg-gray-800/20 border border-gray-700/30 rounded-lg p-3 space-y-3">
+                              {/* eBay Status */}
+                              {model.ebayLinked ? (
+                                <div>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-green-400 font-semibold text-sm">
+                                      ✓ eBay Linked
                                     </span>
                                   </div>
-                                  <div>
-                                    Last updated:{' '}
-                                    <span className="text-[var(--text-primary)]">
-                                      {model.lastUpdated}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <a
-                                      href={model.ebayUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-blue-400 hover:underline"
-                                    >
-                                      View on eBay →
-                                    </a>
+                                  <div className="text-xs text-[var(--text-secondary)] space-y-1">
+                                    <div>
+                                      Price:{' '}
+                                      <span className="text-[var(--text-primary)]">
+                                        {model.ebayPrice}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <a
+                                        href={model.ebayUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-400 hover:underline"
+                                      >
+                                        View on eBay →
+                                      </a>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            ) : (
-                              <div className="bg-gray-800/20 border border-gray-700/30 rounded-lg p-3">
-                                <span className="text-gray-400 text-sm">🛑 Not linked</span>
-                              </div>
-                            )}
+                              ) : (
+                                <div>
+                                  <span className="text-gray-400 text-sm">🛑 eBay: Not linked</span>
+                                </div>
+                              )}
+
+                              {/* Retailer Status */}
+                              {model.retailerPrices && model.retailerPrices.length > 0 ? (
+                                <div className="border-t border-gray-700/30 pt-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-green-400 font-semibold text-sm">
+                                      ✓ {model.retailerPrices.length} Retailer{model.retailerPrices.length !== 1 ? 's' : ''}
+                                    </span>
+                                  </div>
+                                  <div className="text-xs space-y-2">
+                                    {model.retailerPrices.map((retailer, idx) => (
+                                      <div key={idx} className="flex items-center justify-between bg-[var(--bg-secondary)] p-2 rounded border border-gray-700/30">
+                                        <div>
+                                          <div className="text-[var(--text-primary)] font-medium">
+                                            {retailer.retailerName}
+                                          </div>
+                                          <div className="text-[var(--text-secondary)]">
+                                            {retailer.currency} ${retailer.price} (~AUD ${retailer.priceAud?.toFixed(2)})
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          {retailer.inStock ? (
+                                            <span className="text-green-400 text-xs">✅ In Stock</span>
+                                          ) : (
+                                            <span className="text-gray-400 text-xs">❌ Out of Stock</span>
+                                          )}
+                                          <a
+                                            href={retailer.productUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                                          >
+                                            View
+                                          </a>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="border-t border-gray-700/30 pt-3">
+                                  <span className="text-gray-400 text-sm">🛑 Retailer: Not linked</span>
+                                </div>
+                              )}
+                            </div>
 
                             {/* Search Results */}
                             {selectedModel?.id === model.id && searchResults.length > 0 && (
@@ -3241,12 +3914,99 @@ export default function EbayLinkingAdmin() {
                                         <div className="text-xs font-semibold text-green-400">
                                           {result.price}
                                         </div>
+                                        {result.score !== undefined && (
+                                          <div className="text-xs text-gray-400 mt-1">
+                                            🤖 Score: {result.score} {result.aiReason && `• ${result.aiReason}`}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* High confidence (90+): Direct "Select" button */}
+                                      {result.score !== undefined && result.score >= 90 && (
+                                        <button
+                                          onClick={() => saveEbayLink(car.id, model, result)}
+                                          className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                                        >
+                                          ✓ Link Now
+                                        </button>
+                                      )}
+
+                                      {/* Medium confidence (50-89): "Add to Inventory" button */}
+                                      {result.score !== undefined && result.score >= 50 && result.score < 90 && (
+                                        <>
+                                          <button
+                                            onClick={() => addToInventory(model, result, car)}
+                                            className="px-2 py-1 bg-orange-600 text-white text-xs rounded hover:bg-orange-700"
+                                          >
+                                            📦 Review Later
+                                          </button>
+                                          <button
+                                            onClick={() => saveEbayLink(car.id, model, result)}
+                                            className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                                          >
+                                            ✓ Link Anyway
+                                          </button>
+                                        </>
+                                      )}
+
+                                      {/* Fallback for no score */}
+                                      {result.score === undefined && (
+                                        <button
+                                          onClick={() => saveEbayLink(car.id, model, result)}
+                                          className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                                        >
+                                          Select
+                                        </button>
+                                      )}
+
+                                      <a
+                                        href={result.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-2 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600"
+                                      >
+                                        View
+                                      </a>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Retailer Search Results */}
+                            {selectedModel?.id === model.id && retailerResults.length > 0 && (
+                              <div className="mt-3 border-t border-[var(--border-color)] pt-3">
+                                <h5 className="text-xs font-semibold text-[var(--text-primary)] mb-2">
+                                  🇦🇺 Australian Retailer Results
+                                </h5>
+                                <div className="space-y-2">
+                                  {retailerResults.slice(0, 10).map((result, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="flex items-center gap-3 bg-[var(--bg-secondary)] p-2 rounded-lg border border-[var(--border-color)]"
+                                    >
+                                      <img
+                                        src={result.image || '/placeholder.png'}
+                                        alt={result.title}
+                                        className="w-12 h-12 object-cover rounded"
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-xs text-[var(--text-primary)] mb-1 truncate">
+                                          {result.title}
+                                        </div>
+                                        <div className="text-xs font-semibold text-green-400">
+                                          ${result.price} AUD
+                                        </div>
+                                        <div className="text-xs text-[var(--text-secondary)]">
+                                          {result.retailerName}
+                                          {result.inStock ? ' • ✅ In Stock' : ' • ❌ Out of Stock'}
+                                        </div>
                                       </div>
                                       <button
-                                        onClick={() => saveEbayLink(car.id, model, result)}
+                                        onClick={() => saveRetailerLink(model, result)}
                                         className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
                                       >
-                                        Select
+                                        Link
                                       </button>
                                       <a
                                         href={result.url}
@@ -3267,10 +4027,57 @@ export default function EbayLinkingAdmin() {
                               <div className="mt-3 border-t border-[var(--border-color)] pt-3">
                                 <div className="text-center py-4 text-[var(--text-secondary)]">
                                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto mb-2"></div>
-                                  <span className="text-xs">Scraping eBay...</span>
+                                  <span className="text-xs">Searching eBay...</span>
                                 </div>
                               </div>
                             )}
+
+                            {/* Retailer Loading State */}
+                            {selectedModel?.id === model.id && loadingRetailers && (
+                              <div className="mt-3 border-t border-[var(--border-color)] pt-3">
+                                <div className="text-center py-4 text-[var(--text-secondary)]">
+                                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500 mx-auto mb-2"></div>
+                                  <span className="text-xs">Searching existing retailer links...</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* No Retailer Results */}
+                            {selectedModel?.id === model.id && !loadingRetailers && retailerResults.length === 0 && (
+                              <div className="mt-3 border-t border-[var(--border-color)] pt-3">
+                                <div className="text-center py-4">
+                                  <p className="text-xs text-[var(--text-secondary)] mb-3">
+                                    No existing retailer links found in database.
+                                  </p>
+                                  <p className="text-xs text-[var(--text-muted)] mb-3">
+                                    💡 Tip: Run the scraper to automatically find retailer links, or add them manually below.
+                                  </p>
+                                  <button
+                                    onClick={() => {
+                                      const url = prompt('Enter retailer product URL:');
+                                      if (!url) return;
+
+                                      const price = prompt('Enter price (AUD):');
+                                      if (!price) return;
+
+                                      const retailerName = prompt('Enter retailer name:');
+                                      if (!retailerName) return;
+
+                                      // Find retailer ID from the retailers list
+                                      // For now, we'll need to load retailers first
+                                      alert('Manual entry feature coming soon! For now, please use the scraper.');
+                                    }}
+                                    className="px-4 py-2 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700"
+                                  >
+                                    ➕ Add Manual Link
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          </DroppableModelCard>
+                        ))}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -3288,8 +4095,220 @@ export default function EbayLinkingAdmin() {
           </div>
         )}
       </main>
+      </div>
 
       <Footer />
-    </div>
+      </div>
+
+      {/* Create New Model Modal */}
+      {createModelModalOpen && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100]">
+          <div className="bg-white rounded-lg border border-gray-300 p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-[var(--text-primary)]">
+                ➕ Create New Model
+              </h2>
+              <button
+                onClick={() => setCreateModelModalOpen(false)}
+                className="text-gray-400 hover:text-white text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Source listing preview */}
+            <div className="bg-[var(--bg-secondary)] p-4 rounded-lg mb-6">
+              <div className="text-sm text-gray-400 mb-2">Source Listing:</div>
+              <div className="flex gap-4">
+                {newModelData.imageUrl && (
+                  <img
+                    src={newModelData.imageUrl}
+                    alt="Model"
+                    className="w-24 h-24 object-cover rounded"
+                  />
+                )}
+                <div className="flex-1">
+                  <div className="text-sm text-[var(--text-primary)] mb-1">
+                    {newModelData.title}
+                  </div>
+                  <div className="text-sm text-green-400">{newModelData.price}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+
+                try {
+                  console.log('Creating model:', newModelData);
+
+                  const response = await fetch('/api/admin/create-model', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      manufacturer: newModelData.manufacturer,
+                      scale: newModelData.scale,
+                      driver: newModelData.driver,
+                      eventName: newModelData.eventName,
+                      sku: newModelData.sku,
+                      carId: newModelData.carId,
+                      inventoryItemId: newModelData.inventoryItemId,
+                      ebayUrl: newModelData.url,
+                      ebayPrice: newModelData.price,
+                      ebayImageUrl: newModelData.imageUrl,
+                    }),
+                  });
+
+                  const data = await response.json();
+
+                  if (!response.ok) {
+                    throw new Error(data.error || 'Failed to create model');
+                  }
+
+                  console.log('✅ Model created successfully:', data.model);
+
+                  // Remove from inventory UI
+                  setInventoryItems(prev => prev.filter(i => i.id !== newModelData.inventoryItemId));
+                  setInventoryCount(prev => prev - 1);
+
+                  // Close modal
+                  setCreateModelModalOpen(false);
+
+                  // Reload the page data to show the new model
+                  alert(`✅ Model created successfully!\n\n${newModelData.manufacturer} ${newModelData.scale} - ${newModelData.driver}`);
+
+                  // Reload F1 data
+                  const f1Response = await fetch('/api/admin/get-f1-data');
+                  const f1Data = await f1Response.json();
+                  if (f1Data.success) {
+                    setF1Cars(f1Data.cars);
+                  }
+
+                } catch (error: any) {
+                  console.error('Error creating model:', error);
+                  alert(`❌ Failed to create model: ${error.message}`);
+                }
+              }}
+            >
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Manufacturer *
+                    </label>
+                    <select
+                      required
+                      value={newModelData.manufacturer}
+                      onChange={(e) =>
+                        setNewModelData({ ...newModelData, manufacturer: e.target.value })
+                      }
+                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select manufacturer...</option>
+                      <option value="Minichamps">Minichamps</option>
+                      <option value="Spark">Spark</option>
+                      <option value="Bburago">Bburago</option>
+                      <option value="Hot Wheels">Hot Wheels</option>
+                      <option value="Mattel">Mattel</option>
+                      <option value="Tarmac Works">Tarmac Works</option>
+                      <option value="IXO">IXO</option>
+                      <option value="AutoArt">AutoArt</option>
+                      <option value="Amalgam">Amalgam</option>
+                      <option value="Looksmart">Looksmart</option>
+                      <option value="TSM">TSM</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Scale *
+                    </label>
+                    <select
+                      required
+                      value={newModelData.scale}
+                      onChange={(e) =>
+                        setNewModelData({ ...newModelData, scale: e.target.value })
+                      }
+                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select scale...</option>
+                      <option value="1:12">1:12</option>
+                      <option value="1:18">1:18</option>
+                      <option value="1:43">1:43</option>
+                      <option value="1:64">1:64</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                    Driver *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newModelData.driver}
+                    onChange={(e) =>
+                      setNewModelData({ ...newModelData, driver: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="e.g., Lando Norris"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                    Event / Race
+                  </label>
+                  <input
+                    type="text"
+                    value={newModelData.eventName}
+                    onChange={(e) =>
+                      setNewModelData({ ...newModelData, eventName: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="e.g., Miami GP, Monaco GP"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                    SKU / Model Number
+                  </label>
+                  <input
+                    type="text"
+                    value={newModelData.sku}
+                    onChange={(e) =>
+                      setNewModelData({ ...newModelData, sku: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="e.g., 537244404"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setCreateModelModalOpen(false)}
+                  className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  Create Model
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </DndContext>
   );
 }
