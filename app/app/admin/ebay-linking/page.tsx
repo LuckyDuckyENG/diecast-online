@@ -285,7 +285,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'SF-25',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2025-mclaren',
@@ -293,7 +292,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MCL39',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2025-astonmartin',
@@ -301,7 +299,6 @@ export default function EbayLinkingAdmin() {
         team: 'Aston Martin',
         chassis: 'AMR25',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2025-alpine',
@@ -309,7 +306,6 @@ export default function EbayLinkingAdmin() {
         team: 'Alpine',
         chassis: 'A525',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2025-haas',
@@ -317,7 +313,6 @@ export default function EbayLinkingAdmin() {
         team: 'Haas',
         chassis: 'VF-25',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2025-rb',
@@ -325,7 +320,6 @@ export default function EbayLinkingAdmin() {
         team: 'RB',
         chassis: 'VCARB 02',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2025-sauber',
@@ -333,7 +327,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C45',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2025-williams',
@@ -341,7 +334,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW47',
         driverGroups: [],
-        models: [],
       },
 
       // === 2024 SEASON ===
@@ -390,7 +382,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB20',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2024-ferrari',
@@ -398,7 +389,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'SF-24',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2024-mclaren',
@@ -406,7 +396,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MCL38',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2024-astonmartin',
@@ -414,7 +403,6 @@ export default function EbayLinkingAdmin() {
         team: 'Aston Martin',
         chassis: 'AMR24',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2024-alpine',
@@ -422,7 +410,6 @@ export default function EbayLinkingAdmin() {
         team: 'Alpine',
         chassis: 'A524',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2024-haas',
@@ -430,7 +417,6 @@ export default function EbayLinkingAdmin() {
         team: 'Haas',
         chassis: 'VF-24',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2024-rb',
@@ -438,7 +424,6 @@ export default function EbayLinkingAdmin() {
         team: 'RB',
         chassis: 'VCARB 01',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2024-sauber',
@@ -446,7 +431,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C44',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2024-williams',
@@ -454,7 +438,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW46',
         driverGroups: [],
-        models: [],
       },
 
       // === 2023 SEASON ===
@@ -464,7 +447,6 @@ export default function EbayLinkingAdmin() {
         team: 'Mercedes-AMG Petronas',
         chassis: 'W14',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2023-redbull',
@@ -472,7 +454,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB19',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2023-ferrari',
@@ -480,7 +461,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'SF-23',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2023-mclaren',
@@ -488,7 +468,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MCL60',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2023-astonmartin',
@@ -496,7 +475,6 @@ export default function EbayLinkingAdmin() {
         team: 'Aston Martin',
         chassis: 'AMR23',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2023-alpine',
@@ -504,7 +482,6 @@ export default function EbayLinkingAdmin() {
         team: 'Alpine',
         chassis: 'A523',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2023-haas',
@@ -512,7 +489,6 @@ export default function EbayLinkingAdmin() {
         team: 'Haas',
         chassis: 'VF-23',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2023-alphatauri',
@@ -520,7 +496,6 @@ export default function EbayLinkingAdmin() {
         team: 'AlphaTauri',
         chassis: 'AT04',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2023-alfaromeo',
@@ -528,7 +503,6 @@ export default function EbayLinkingAdmin() {
         team: 'Alfa Romeo',
         chassis: 'C43',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2023-williams',
@@ -536,7 +510,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW45',
         driverGroups: [],
-        models: [],
       },
 
       // === 2022 SEASON ===
@@ -546,7 +519,6 @@ export default function EbayLinkingAdmin() {
         team: 'Mercedes-AMG Petronas',
         chassis: 'W13',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2022-redbull',
@@ -554,7 +526,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB18',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2022-ferrari',
@@ -562,7 +533,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F1-75',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2022-mclaren',
@@ -570,7 +540,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MCL36',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2022-astonmartin',
@@ -578,7 +547,6 @@ export default function EbayLinkingAdmin() {
         team: 'Aston Martin',
         chassis: 'AMR22',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2022-alpine',
@@ -586,7 +554,6 @@ export default function EbayLinkingAdmin() {
         team: 'Alpine',
         chassis: 'A522',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2022-haas',
@@ -594,7 +561,6 @@ export default function EbayLinkingAdmin() {
         team: 'Haas',
         chassis: 'VF-22',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2022-alphatauri',
@@ -602,7 +568,6 @@ export default function EbayLinkingAdmin() {
         team: 'AlphaTauri',
         chassis: 'AT03',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2022-alfaromeo',
@@ -610,7 +575,6 @@ export default function EbayLinkingAdmin() {
         team: 'Alfa Romeo',
         chassis: 'C42',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2022-williams',
@@ -618,7 +582,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW44',
         driverGroups: [],
-        models: [],
       },
 
       // === 2021 SEASON ===
@@ -628,7 +591,6 @@ export default function EbayLinkingAdmin() {
         team: 'Mercedes-AMG Petronas',
         chassis: 'W12',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2021-redbull',
@@ -636,7 +598,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB16B',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2021-ferrari',
@@ -644,7 +605,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'SF21',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2021-mclaren',
@@ -652,7 +612,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MCL35M',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2021-astonmartin',
@@ -660,7 +619,6 @@ export default function EbayLinkingAdmin() {
         team: 'Aston Martin',
         chassis: 'AMR21',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2021-alpine',
@@ -668,7 +626,6 @@ export default function EbayLinkingAdmin() {
         team: 'Alpine',
         chassis: 'A521',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2021-alphatauri',
@@ -676,7 +633,6 @@ export default function EbayLinkingAdmin() {
         team: 'AlphaTauri',
         chassis: 'AT02',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2021-alfaromeo',
@@ -684,7 +640,6 @@ export default function EbayLinkingAdmin() {
         team: 'Alfa Romeo',
         chassis: 'C41',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2021-haas',
@@ -692,7 +647,6 @@ export default function EbayLinkingAdmin() {
         team: 'Haas',
         chassis: 'VF-21',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2021-williams',
@@ -700,7 +654,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW43B',
         driverGroups: [],
-        models: [],
       },
 
       // === 2020 SEASON ===
@@ -710,7 +663,6 @@ export default function EbayLinkingAdmin() {
         team: 'Mercedes-AMG Petronas',
         chassis: 'W11',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2020-redbull',
@@ -718,7 +670,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB16',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2020-ferrari',
@@ -726,7 +677,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'SF1000',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2020-mclaren',
@@ -734,7 +684,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MCL35',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2020-renault',
@@ -742,7 +691,6 @@ export default function EbayLinkingAdmin() {
         team: 'Renault',
         chassis: 'R.S.20',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2020-racingpoint',
@@ -750,7 +698,6 @@ export default function EbayLinkingAdmin() {
         team: 'Racing Point',
         chassis: 'RP20',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2020-alphatauri',
@@ -758,7 +705,6 @@ export default function EbayLinkingAdmin() {
         team: 'AlphaTauri',
         chassis: 'AT01',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2020-alfaromeo',
@@ -766,7 +712,6 @@ export default function EbayLinkingAdmin() {
         team: 'Alfa Romeo',
         chassis: 'C39',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2020-haas',
@@ -774,7 +719,6 @@ export default function EbayLinkingAdmin() {
         team: 'Haas',
         chassis: 'VF-20',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2020-williams',
@@ -782,7 +726,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW43',
         driverGroups: [],
-        models: [],
       },
 
       // === 2019 SEASON ===
@@ -792,7 +735,6 @@ export default function EbayLinkingAdmin() {
         team: 'Mercedes-AMG Petronas',
         chassis: 'W10',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2019-ferrari',
@@ -800,7 +742,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'SF90',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2019-redbull',
@@ -808,7 +749,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB15',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2019-mclaren',
@@ -816,7 +756,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MCL34',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2019-renault',
@@ -824,7 +763,6 @@ export default function EbayLinkingAdmin() {
         team: 'Renault',
         chassis: 'R.S.19',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2019-tororosso',
@@ -832,7 +770,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toro Rosso',
         chassis: 'STR14',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2019-racingpoint',
@@ -840,7 +777,6 @@ export default function EbayLinkingAdmin() {
         team: 'Racing Point',
         chassis: 'RP19',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2019-alfaromeo',
@@ -848,7 +784,6 @@ export default function EbayLinkingAdmin() {
         team: 'Alfa Romeo',
         chassis: 'C38',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2019-haas',
@@ -856,7 +791,6 @@ export default function EbayLinkingAdmin() {
         team: 'Haas',
         chassis: 'VF-19',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2019-williams',
@@ -864,7 +798,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW42',
         driverGroups: [],
-        models: [],
       },
 
       // === 2018 SEASON ===
@@ -874,7 +807,6 @@ export default function EbayLinkingAdmin() {
         team: 'Mercedes-AMG Petronas',
         chassis: 'W09',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2018-ferrari',
@@ -882,7 +814,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'SF71H',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2018-redbull',
@@ -890,7 +821,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB14',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2018-renault',
@@ -898,7 +828,6 @@ export default function EbayLinkingAdmin() {
         team: 'Renault',
         chassis: 'R.S.18',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2018-haas',
@@ -906,7 +835,6 @@ export default function EbayLinkingAdmin() {
         team: 'Haas',
         chassis: 'VF-18',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2018-mclaren',
@@ -914,7 +842,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MCL33',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2018-forceindia',
@@ -922,7 +849,6 @@ export default function EbayLinkingAdmin() {
         team: 'Force India',
         chassis: 'VJM11',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2018-sauber',
@@ -930,7 +856,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C37',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2018-tororosso',
@@ -938,7 +863,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toro Rosso',
         chassis: 'STR13',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2018-williams',
@@ -946,7 +870,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW41',
         driverGroups: [],
-        models: [],
       },
 
       // === 2017 SEASON ===
@@ -956,7 +879,6 @@ export default function EbayLinkingAdmin() {
         team: 'Mercedes-AMG Petronas',
         chassis: 'W08',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2017-ferrari',
@@ -964,7 +886,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'SF70H',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2017-redbull',
@@ -972,7 +893,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB13',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2017-forceindia',
@@ -980,7 +900,6 @@ export default function EbayLinkingAdmin() {
         team: 'Force India',
         chassis: 'VJM10',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2017-williams',
@@ -988,7 +907,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW40',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2017-mclaren',
@@ -996,7 +914,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MCL32',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2017-tororosso',
@@ -1004,7 +921,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toro Rosso',
         chassis: 'STR12',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2017-haas',
@@ -1012,7 +928,6 @@ export default function EbayLinkingAdmin() {
         team: 'Haas',
         chassis: 'VF-17',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2017-renault',
@@ -1020,7 +935,6 @@ export default function EbayLinkingAdmin() {
         team: 'Renault',
         chassis: 'R.S.17',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2017-sauber',
@@ -1028,7 +942,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C36',
         driverGroups: [],
-        models: [],
       },
 
       // === 2016 SEASON ===
@@ -1038,7 +951,6 @@ export default function EbayLinkingAdmin() {
         team: 'Mercedes-AMG Petronas',
         chassis: 'W07',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2016-ferrari',
@@ -1046,7 +958,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'SF16-H',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2016-redbull',
@@ -1054,7 +965,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB12',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2016-williams',
@@ -1062,7 +972,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW38',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2016-forceindia',
@@ -1070,7 +979,6 @@ export default function EbayLinkingAdmin() {
         team: 'Force India',
         chassis: 'VJM09',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2016-mclaren',
@@ -1078,7 +986,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4-31',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2016-tororosso',
@@ -1086,7 +993,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toro Rosso',
         chassis: 'STR11',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2016-haas',
@@ -1094,7 +1000,6 @@ export default function EbayLinkingAdmin() {
         team: 'Haas',
         chassis: 'VF-16',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2016-renault',
@@ -1102,7 +1007,6 @@ export default function EbayLinkingAdmin() {
         team: 'Renault',
         chassis: 'R.S.16',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2016-sauber',
@@ -1110,7 +1014,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C35',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2016-manor',
@@ -1118,7 +1021,6 @@ export default function EbayLinkingAdmin() {
         team: 'Manor',
         chassis: 'MRT05',
         driverGroups: [],
-        models: [],
       },
 
       // === 2015 SEASON ===
@@ -1128,7 +1030,6 @@ export default function EbayLinkingAdmin() {
         team: 'Mercedes-AMG Petronas',
         chassis: 'W06',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2015-ferrari',
@@ -1136,7 +1037,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'SF15-T',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2015-williams',
@@ -1144,7 +1044,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW37',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2015-redbull',
@@ -1152,7 +1051,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB11',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2015-forceindia',
@@ -1160,7 +1058,6 @@ export default function EbayLinkingAdmin() {
         team: 'Force India',
         chassis: 'VJM08',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2015-lotus',
@@ -1168,7 +1065,6 @@ export default function EbayLinkingAdmin() {
         team: 'Lotus',
         chassis: 'E23',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2015-tororosso',
@@ -1176,7 +1072,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toro Rosso',
         chassis: 'STR10',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2015-sauber',
@@ -1184,7 +1079,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C34',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2015-mclaren',
@@ -1192,7 +1086,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4-30',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2015-manor',
@@ -1200,7 +1093,6 @@ export default function EbayLinkingAdmin() {
         team: 'Manor',
         chassis: 'MR03B',
         driverGroups: [],
-        models: [],
       },
 
       // === 2014 SEASON ===
@@ -1210,7 +1102,6 @@ export default function EbayLinkingAdmin() {
         team: 'Mercedes-AMG Petronas',
         chassis: 'W05',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2014-redbull',
@@ -1218,7 +1109,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB10',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2014-ferrari',
@@ -1226,7 +1116,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F14 T',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2014-williams',
@@ -1234,7 +1123,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW36',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2014-mclaren',
@@ -1242,7 +1130,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4-29',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2014-forceindia',
@@ -1250,7 +1137,6 @@ export default function EbayLinkingAdmin() {
         team: 'Force India',
         chassis: 'VJM07',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2014-tororosso',
@@ -1258,7 +1144,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toro Rosso',
         chassis: 'STR9',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2014-lotus',
@@ -1266,7 +1151,6 @@ export default function EbayLinkingAdmin() {
         team: 'Lotus',
         chassis: 'E22',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2014-sauber',
@@ -1274,7 +1158,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C33',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2014-marussia',
@@ -1282,7 +1165,6 @@ export default function EbayLinkingAdmin() {
         team: 'Marussia',
         chassis: 'MR03',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2014-caterham',
@@ -1290,7 +1172,6 @@ export default function EbayLinkingAdmin() {
         team: 'Caterham',
         chassis: 'CT05',
         driverGroups: [],
-        models: [],
       },
 
       // === 2013 SEASON ===
@@ -1300,7 +1181,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB9',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2013-ferrari',
@@ -1308,7 +1188,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F138',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2013-mercedes',
@@ -1316,7 +1195,6 @@ export default function EbayLinkingAdmin() {
         team: 'Mercedes-AMG Petronas',
         chassis: 'W04',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2013-lotus',
@@ -1324,7 +1202,6 @@ export default function EbayLinkingAdmin() {
         team: 'Lotus',
         chassis: 'E21',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2013-mclaren',
@@ -1332,7 +1209,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4-28',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2013-forceindia',
@@ -1340,7 +1216,6 @@ export default function EbayLinkingAdmin() {
         team: 'Force India',
         chassis: 'VJM06',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2013-sauber',
@@ -1348,7 +1223,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C32',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2013-tororosso',
@@ -1356,7 +1230,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toro Rosso',
         chassis: 'STR8',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2013-williams',
@@ -1364,7 +1237,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW35',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2013-marussia',
@@ -1372,7 +1244,6 @@ export default function EbayLinkingAdmin() {
         team: 'Marussia',
         chassis: 'MR02',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2013-caterham',
@@ -1380,7 +1251,6 @@ export default function EbayLinkingAdmin() {
         team: 'Caterham',
         chassis: 'CT03',
         driverGroups: [],
-        models: [],
       },
 
       // === 2012 SEASON ===
@@ -1390,7 +1260,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB8',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2012-mclaren',
@@ -1398,7 +1267,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4-27',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2012-ferrari',
@@ -1406,7 +1274,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F2012',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2012-lotus',
@@ -1414,7 +1281,6 @@ export default function EbayLinkingAdmin() {
         team: 'Lotus',
         chassis: 'E20',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2012-mercedes',
@@ -1422,7 +1288,6 @@ export default function EbayLinkingAdmin() {
         team: 'Mercedes',
         chassis: 'W03',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2012-sauber',
@@ -1430,7 +1295,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C31',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2012-forceindia',
@@ -1438,7 +1302,6 @@ export default function EbayLinkingAdmin() {
         team: 'Force India',
         chassis: 'VJM05',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2012-williams',
@@ -1446,7 +1309,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW34',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2012-tororosso',
@@ -1454,7 +1316,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toro Rosso',
         chassis: 'STR7',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2012-caterham',
@@ -1462,7 +1323,6 @@ export default function EbayLinkingAdmin() {
         team: 'Caterham',
         chassis: 'CT01',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2012-marussia',
@@ -1470,7 +1330,6 @@ export default function EbayLinkingAdmin() {
         team: 'Marussia',
         chassis: 'MR01',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2012-hrt',
@@ -1478,7 +1337,6 @@ export default function EbayLinkingAdmin() {
         team: 'HRT',
         chassis: 'F112',
         driverGroups: [],
-        models: [],
       },
 
       // === 2011 SEASON ===
@@ -1488,7 +1346,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB7',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2011-mclaren',
@@ -1496,7 +1353,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4-26',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2011-ferrari',
@@ -1504,7 +1360,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: '150° Italia',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2011-mercedes',
@@ -1512,7 +1367,6 @@ export default function EbayLinkingAdmin() {
         team: 'Mercedes',
         chassis: 'W02',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2011-renault',
@@ -1520,7 +1374,6 @@ export default function EbayLinkingAdmin() {
         team: 'Renault',
         chassis: 'R31',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2011-sauber',
@@ -1528,7 +1381,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C30',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2011-forceindia',
@@ -1536,7 +1388,6 @@ export default function EbayLinkingAdmin() {
         team: 'Force India',
         chassis: 'VJM04',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2011-tororosso',
@@ -1544,7 +1395,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toro Rosso',
         chassis: 'STR6',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2011-williams',
@@ -1552,7 +1402,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW33',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2011-hrt',
@@ -1560,7 +1409,6 @@ export default function EbayLinkingAdmin() {
         team: 'HRT',
         chassis: 'F111',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2011-lotus',
@@ -1568,7 +1416,6 @@ export default function EbayLinkingAdmin() {
         team: 'Team Lotus',
         chassis: 'T128',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2011-virgin',
@@ -1576,7 +1423,6 @@ export default function EbayLinkingAdmin() {
         team: 'Virgin Racing',
         chassis: 'MVR-02',
         driverGroups: [],
-        models: [],
       },
 
       // === 2010 SEASON ===
@@ -1586,7 +1432,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB6',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2010-mclaren',
@@ -1594,7 +1439,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4-25',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2010-ferrari',
@@ -1602,7 +1446,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F10',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2010-mercedes',
@@ -1610,7 +1453,6 @@ export default function EbayLinkingAdmin() {
         team: 'Mercedes',
         chassis: 'W01',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2010-renault',
@@ -1618,7 +1460,6 @@ export default function EbayLinkingAdmin() {
         team: 'Renault',
         chassis: 'R30',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2010-williams',
@@ -1626,7 +1467,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW32',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2010-forceindia',
@@ -1634,7 +1474,6 @@ export default function EbayLinkingAdmin() {
         team: 'Force India',
         chassis: 'VJM03',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2010-sauber',
@@ -1642,7 +1481,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C29',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2010-tororosso',
@@ -1650,7 +1488,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toro Rosso',
         chassis: 'STR5',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2010-lotus',
@@ -1658,7 +1495,6 @@ export default function EbayLinkingAdmin() {
         team: 'Lotus Racing',
         chassis: 'T127',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2010-hrt',
@@ -1666,7 +1502,6 @@ export default function EbayLinkingAdmin() {
         team: 'HRT',
         chassis: 'F110',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2010-virgin',
@@ -1674,7 +1509,6 @@ export default function EbayLinkingAdmin() {
         team: 'Virgin Racing',
         chassis: 'VR-01',
         driverGroups: [],
-        models: [],
       },
 
       // === 2009 SEASON ===
@@ -1684,7 +1518,6 @@ export default function EbayLinkingAdmin() {
         team: 'Brawn GP',
         chassis: 'BGP 001',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2009-redbull',
@@ -1692,7 +1525,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB5',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2009-mclaren',
@@ -1700,7 +1532,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4-24',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2009-ferrari',
@@ -1708,7 +1539,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F60',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2009-toyota',
@@ -1716,7 +1546,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toyota',
         chassis: 'TF109',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2009-bmw',
@@ -1724,7 +1553,6 @@ export default function EbayLinkingAdmin() {
         team: 'BMW Sauber',
         chassis: 'F1.09',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2009-williams',
@@ -1732,7 +1560,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW31',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2009-renault',
@@ -1740,7 +1567,6 @@ export default function EbayLinkingAdmin() {
         team: 'Renault',
         chassis: 'R29',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2009-tororosso',
@@ -1748,7 +1574,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toro Rosso',
         chassis: 'STR4',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2009-forceindia',
@@ -1756,7 +1581,6 @@ export default function EbayLinkingAdmin() {
         team: 'Force India',
         chassis: 'VJM02',
         driverGroups: [],
-        models: [],
       },
 
       // === 2008 SEASON ===
@@ -1766,7 +1590,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4-23',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2008-ferrari',
@@ -1774,7 +1597,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F2008',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2008-bmw',
@@ -1782,7 +1604,6 @@ export default function EbayLinkingAdmin() {
         team: 'BMW Sauber',
         chassis: 'F1.08',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2008-renault',
@@ -1790,7 +1611,6 @@ export default function EbayLinkingAdmin() {
         team: 'Renault',
         chassis: 'R28',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2008-toyota',
@@ -1798,7 +1618,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toyota',
         chassis: 'TF108',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2008-tororosso',
@@ -1806,7 +1625,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toro Rosso',
         chassis: 'STR3',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2008-redbull',
@@ -1814,7 +1632,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB4',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2008-williams',
@@ -1822,7 +1639,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW30',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2008-honda',
@@ -1830,7 +1646,6 @@ export default function EbayLinkingAdmin() {
         team: 'Honda',
         chassis: 'RA108',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2008-forceindia',
@@ -1838,7 +1653,6 @@ export default function EbayLinkingAdmin() {
         team: 'Force India',
         chassis: 'VJM01',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2008-superaguri',
@@ -1846,7 +1660,6 @@ export default function EbayLinkingAdmin() {
         team: 'Super Aguri',
         chassis: 'SA08',
         driverGroups: [],
-        models: [],
       },
 
       // === 2007 SEASON ===
@@ -1856,7 +1669,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F2007',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2007-mclaren',
@@ -1864,7 +1676,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4-22',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2007-bmw',
@@ -1872,7 +1683,6 @@ export default function EbayLinkingAdmin() {
         team: 'BMW Sauber',
         chassis: 'F1.07',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2007-renault',
@@ -1880,7 +1690,6 @@ export default function EbayLinkingAdmin() {
         team: 'Renault',
         chassis: 'R27',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2007-williams',
@@ -1888,7 +1697,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW29',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2007-toyota',
@@ -1896,7 +1704,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toyota',
         chassis: 'TF107',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2007-redbull',
@@ -1904,7 +1711,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB3',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2007-tororosso',
@@ -1912,7 +1718,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toro Rosso',
         chassis: 'STR2',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2007-honda',
@@ -1920,7 +1725,6 @@ export default function EbayLinkingAdmin() {
         team: 'Honda',
         chassis: 'RA107',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2007-superaguri',
@@ -1928,7 +1732,6 @@ export default function EbayLinkingAdmin() {
         team: 'Super Aguri',
         chassis: 'SA07',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2007-spyker',
@@ -1936,7 +1739,6 @@ export default function EbayLinkingAdmin() {
         team: 'Spyker',
         chassis: 'F8-VII',
         driverGroups: [],
-        models: [],
       },
 
       // === 2006 SEASON ===
@@ -1946,7 +1748,6 @@ export default function EbayLinkingAdmin() {
         team: 'Renault',
         chassis: 'R26',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2006-ferrari',
@@ -1954,7 +1755,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: '248 F1',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2006-mclaren',
@@ -1962,7 +1762,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4-21',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2006-honda',
@@ -1970,7 +1769,6 @@ export default function EbayLinkingAdmin() {
         team: 'Honda',
         chassis: 'RA106',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2006-bmw',
@@ -1978,7 +1776,6 @@ export default function EbayLinkingAdmin() {
         team: 'BMW Sauber',
         chassis: 'F1.06',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2006-toyota',
@@ -1986,7 +1783,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toyota',
         chassis: 'TF106',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2006-williams',
@@ -1994,7 +1790,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW28',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2006-redbull',
@@ -2002,7 +1797,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB2',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2006-tororosso',
@@ -2010,7 +1804,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toro Rosso',
         chassis: 'STR1',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2006-midland',
@@ -2018,7 +1811,6 @@ export default function EbayLinkingAdmin() {
         team: 'Midland F1',
         chassis: 'M16',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2006-superaguri',
@@ -2026,7 +1818,6 @@ export default function EbayLinkingAdmin() {
         team: 'Super Aguri',
         chassis: 'SA05',
         driverGroups: [],
-        models: [],
       },
 
       // === 2005 SEASON ===
@@ -2036,7 +1827,6 @@ export default function EbayLinkingAdmin() {
         team: 'Renault',
         chassis: 'R25',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2005-mclaren',
@@ -2044,7 +1834,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4-20',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2005-ferrari',
@@ -2052,7 +1841,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F2005',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2005-toyota',
@@ -2060,7 +1848,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toyota',
         chassis: 'TF105',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2005-williams',
@@ -2068,7 +1855,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW27',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2005-bmw',
@@ -2076,7 +1862,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C24',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2005-redbull',
@@ -2084,7 +1869,6 @@ export default function EbayLinkingAdmin() {
         team: 'Red Bull Racing',
         chassis: 'RB1',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2005-barchetta',
@@ -2092,7 +1876,6 @@ export default function EbayLinkingAdmin() {
         team: 'BAR',
         chassis: '007',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2005-jordan',
@@ -2100,7 +1883,6 @@ export default function EbayLinkingAdmin() {
         team: 'Jordan',
         chassis: 'EJ15',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2005-minardi',
@@ -2108,7 +1890,6 @@ export default function EbayLinkingAdmin() {
         team: 'Minardi',
         chassis: 'PS05',
         driverGroups: [],
-        models: [],
       },
 
       // === 2004 SEASON ===
@@ -2118,7 +1899,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F2004',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2004-bar',
@@ -2126,7 +1906,6 @@ export default function EbayLinkingAdmin() {
         team: 'BAR',
         chassis: '006',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2004-renault',
@@ -2134,7 +1913,6 @@ export default function EbayLinkingAdmin() {
         team: 'Renault',
         chassis: 'R24',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2004-williams',
@@ -2142,7 +1920,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW26',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2004-mclaren',
@@ -2150,7 +1927,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4-19',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2004-sauber',
@@ -2158,7 +1934,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C23',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2004-jaguar',
@@ -2166,7 +1941,6 @@ export default function EbayLinkingAdmin() {
         team: 'Jaguar',
         chassis: 'R5',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2004-toyota',
@@ -2174,7 +1948,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toyota',
         chassis: 'TF104',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2004-jordan',
@@ -2182,7 +1955,6 @@ export default function EbayLinkingAdmin() {
         team: 'Jordan',
         chassis: 'EJ14',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2004-minardi',
@@ -2190,7 +1962,6 @@ export default function EbayLinkingAdmin() {
         team: 'Minardi',
         chassis: 'PS04',
         driverGroups: [],
-        models: [],
       },
 
       // === 2003 SEASON ===
@@ -2200,7 +1971,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F2003-GA',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2003-williams',
@@ -2208,7 +1978,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW25',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2003-mclaren',
@@ -2216,7 +1985,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4-17D',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2003-renault',
@@ -2224,7 +1992,6 @@ export default function EbayLinkingAdmin() {
         team: 'Renault',
         chassis: 'R23',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2003-sauber',
@@ -2232,7 +1999,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C22',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2003-jaguar',
@@ -2240,7 +2006,6 @@ export default function EbayLinkingAdmin() {
         team: 'Jaguar',
         chassis: 'R4',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2003-toyota',
@@ -2248,7 +2013,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toyota',
         chassis: 'TF103',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2003-jordan',
@@ -2256,7 +2020,6 @@ export default function EbayLinkingAdmin() {
         team: 'Jordan',
         chassis: 'EJ13',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2003-bar',
@@ -2264,7 +2027,6 @@ export default function EbayLinkingAdmin() {
         team: 'BAR',
         chassis: '005',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2003-minardi',
@@ -2272,7 +2034,6 @@ export default function EbayLinkingAdmin() {
         team: 'Minardi',
         chassis: 'PS03',
         driverGroups: [],
-        models: [],
       },
 
       // === 2002 SEASON ===
@@ -2282,7 +2043,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F2002',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2002-williams',
@@ -2290,7 +2050,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW24',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2002-mclaren',
@@ -2298,7 +2057,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4-17',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2002-renault',
@@ -2306,7 +2064,6 @@ export default function EbayLinkingAdmin() {
         team: 'Renault',
         chassis: 'R202',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2002-sauber',
@@ -2314,7 +2071,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C21',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2002-jordan',
@@ -2322,7 +2078,6 @@ export default function EbayLinkingAdmin() {
         team: 'Jordan',
         chassis: 'EJ12',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2002-bar',
@@ -2330,7 +2085,6 @@ export default function EbayLinkingAdmin() {
         team: 'BAR',
         chassis: '004',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2002-jaguar',
@@ -2338,7 +2092,6 @@ export default function EbayLinkingAdmin() {
         team: 'Jaguar',
         chassis: 'R3',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2002-toyota',
@@ -2346,7 +2099,6 @@ export default function EbayLinkingAdmin() {
         team: 'Toyota',
         chassis: 'TF102',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2002-minardi',
@@ -2354,7 +2106,6 @@ export default function EbayLinkingAdmin() {
         team: 'Minardi',
         chassis: 'PS02',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2002-arrows',
@@ -2362,7 +2113,6 @@ export default function EbayLinkingAdmin() {
         team: 'Arrows',
         chassis: 'A23',
         driverGroups: [],
-        models: [],
       },
 
       // === 2001 SEASON ===
@@ -2372,7 +2122,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F2001',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2001-mclaren',
@@ -2380,7 +2129,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4-16',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2001-williams',
@@ -2388,7 +2136,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW23',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2001-sauber',
@@ -2396,7 +2143,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C20',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2001-jordan',
@@ -2404,7 +2150,6 @@ export default function EbayLinkingAdmin() {
         team: 'Jordan',
         chassis: 'EJ11',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2001-bar',
@@ -2412,7 +2157,6 @@ export default function EbayLinkingAdmin() {
         team: 'BAR',
         chassis: '003',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2001-benetton',
@@ -2420,7 +2164,6 @@ export default function EbayLinkingAdmin() {
         team: 'Benetton',
         chassis: 'B201',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2001-jaguar',
@@ -2428,7 +2171,6 @@ export default function EbayLinkingAdmin() {
         team: 'Jaguar',
         chassis: 'R2',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2001-prost',
@@ -2436,7 +2178,6 @@ export default function EbayLinkingAdmin() {
         team: 'Prost',
         chassis: 'AP04',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2001-arrows',
@@ -2444,7 +2185,6 @@ export default function EbayLinkingAdmin() {
         team: 'Arrows',
         chassis: 'A22',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2001-minardi',
@@ -2452,7 +2192,6 @@ export default function EbayLinkingAdmin() {
         team: 'Minardi',
         chassis: 'PS01',
         driverGroups: [],
-        models: [],
       },
 
       // === 2000 SEASON ===
@@ -2462,7 +2201,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F1-2000',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2000-mclaren',
@@ -2470,7 +2208,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4-15',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2000-williams',
@@ -2478,7 +2215,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW22',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2000-benetton',
@@ -2486,7 +2222,6 @@ export default function EbayLinkingAdmin() {
         team: 'Benetton',
         chassis: 'B200',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2000-jordan',
@@ -2494,7 +2229,6 @@ export default function EbayLinkingAdmin() {
         team: 'Jordan',
         chassis: 'EJ10',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2000-bar',
@@ -2502,7 +2236,6 @@ export default function EbayLinkingAdmin() {
         team: 'BAR',
         chassis: '002',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2000-arrows',
@@ -2510,7 +2243,6 @@ export default function EbayLinkingAdmin() {
         team: 'Arrows',
         chassis: 'A21',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2000-sauber',
@@ -2518,7 +2250,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C19',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2000-jaguar',
@@ -2526,7 +2257,6 @@ export default function EbayLinkingAdmin() {
         team: 'Jaguar',
         chassis: 'R1',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2000-minardi',
@@ -2534,7 +2264,6 @@ export default function EbayLinkingAdmin() {
         team: 'Minardi',
         chassis: 'M02',
         driverGroups: [],
-        models: [],
       },
       {
         id: '2000-prost',
@@ -2542,7 +2271,6 @@ export default function EbayLinkingAdmin() {
         team: 'Prost',
         chassis: 'AP03',
         driverGroups: [],
-        models: [],
       },
 
       // === 1999 SEASON ===
@@ -2552,7 +2280,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F399',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1999-mclaren',
@@ -2560,7 +2287,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4/14',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1999-jordan',
@@ -2568,7 +2294,6 @@ export default function EbayLinkingAdmin() {
         team: 'Jordan',
         chassis: '199',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1999-williams',
@@ -2576,7 +2301,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW21',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1999-benetton',
@@ -2584,7 +2308,6 @@ export default function EbayLinkingAdmin() {
         team: 'Benetton',
         chassis: 'B199',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1999-stewart',
@@ -2592,7 +2315,6 @@ export default function EbayLinkingAdmin() {
         team: 'Stewart',
         chassis: 'SF3',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1999-prost',
@@ -2600,7 +2322,6 @@ export default function EbayLinkingAdmin() {
         team: 'Prost',
         chassis: 'AP02',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1999-sauber',
@@ -2608,7 +2329,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C18',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1999-arrows',
@@ -2616,7 +2336,6 @@ export default function EbayLinkingAdmin() {
         team: 'Arrows',
         chassis: 'A20',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1999-minardi',
@@ -2624,7 +2343,6 @@ export default function EbayLinkingAdmin() {
         team: 'Minardi',
         chassis: 'M01',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1999-bar',
@@ -2632,7 +2350,6 @@ export default function EbayLinkingAdmin() {
         team: 'BAR',
         chassis: '01',
         driverGroups: [],
-        models: [],
       },
 
       // === 1998 SEASON ===
@@ -2642,7 +2359,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4/13',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1998-ferrari',
@@ -2650,7 +2366,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F300',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1998-williams',
@@ -2658,7 +2373,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW20',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1998-jordan',
@@ -2666,7 +2380,6 @@ export default function EbayLinkingAdmin() {
         team: 'Jordan',
         chassis: '198',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1998-benetton',
@@ -2674,7 +2387,6 @@ export default function EbayLinkingAdmin() {
         team: 'Benetton',
         chassis: 'B198',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1998-sauber',
@@ -2682,7 +2394,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C17',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1998-arrows',
@@ -2690,7 +2401,6 @@ export default function EbayLinkingAdmin() {
         team: 'Arrows',
         chassis: 'A19',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1998-stewart',
@@ -2698,7 +2408,6 @@ export default function EbayLinkingAdmin() {
         team: 'Stewart',
         chassis: 'SF02',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1998-prost',
@@ -2706,7 +2415,6 @@ export default function EbayLinkingAdmin() {
         team: 'Prost',
         chassis: 'AP01',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1998-tyrrell',
@@ -2714,7 +2422,6 @@ export default function EbayLinkingAdmin() {
         team: 'Tyrrell',
         chassis: '026',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1998-minardi',
@@ -2722,7 +2429,6 @@ export default function EbayLinkingAdmin() {
         team: 'Minardi',
         chassis: 'M198',
         driverGroups: [],
-        models: [],
       },
 
       // === 1997 SEASON ===
@@ -2732,7 +2438,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW19',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1997-ferrari',
@@ -2740,7 +2445,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F310B',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1997-benetton',
@@ -2748,7 +2452,6 @@ export default function EbayLinkingAdmin() {
         team: 'Benetton',
         chassis: 'B197',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1997-mclaren',
@@ -2756,7 +2459,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4/12',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1997-jordan',
@@ -2764,7 +2466,6 @@ export default function EbayLinkingAdmin() {
         team: 'Jordan',
         chassis: '197',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1997-prost',
@@ -2772,7 +2473,6 @@ export default function EbayLinkingAdmin() {
         team: 'Prost',
         chassis: 'JS45',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1997-sauber',
@@ -2780,7 +2480,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C16',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1997-arrows',
@@ -2788,7 +2487,6 @@ export default function EbayLinkingAdmin() {
         team: 'Arrows',
         chassis: 'A18',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1997-stewart',
@@ -2796,7 +2494,6 @@ export default function EbayLinkingAdmin() {
         team: 'Stewart',
         chassis: 'SF01',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1997-tyrrell',
@@ -2804,7 +2501,6 @@ export default function EbayLinkingAdmin() {
         team: 'Tyrrell',
         chassis: '025',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1997-minardi',
@@ -2812,7 +2508,6 @@ export default function EbayLinkingAdmin() {
         team: 'Minardi',
         chassis: 'M197',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1997-lola',
@@ -2820,7 +2515,6 @@ export default function EbayLinkingAdmin() {
         team: 'Lola',
         chassis: 'T97/30',
         driverGroups: [],
-        models: [],
       },
 
       // === 1996 SEASON ===
@@ -2830,7 +2524,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW18',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1996-ferrari',
@@ -2838,7 +2531,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: 'F310',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1996-benetton',
@@ -2846,7 +2538,6 @@ export default function EbayLinkingAdmin() {
         team: 'Benetton',
         chassis: 'B196',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1996-mclaren',
@@ -2854,7 +2545,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4/11',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1996-jordan',
@@ -2862,7 +2552,6 @@ export default function EbayLinkingAdmin() {
         team: 'Jordan',
         chassis: '196',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1996-ligier',
@@ -2870,7 +2559,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ligier',
         chassis: 'JS43',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1996-sauber',
@@ -2878,7 +2566,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C15',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1996-tyrrell',
@@ -2886,7 +2573,6 @@ export default function EbayLinkingAdmin() {
         team: 'Tyrrell',
         chassis: '024',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1996-footwork',
@@ -2894,7 +2580,6 @@ export default function EbayLinkingAdmin() {
         team: 'Footwork',
         chassis: 'FA17',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1996-minardi',
@@ -2902,7 +2587,6 @@ export default function EbayLinkingAdmin() {
         team: 'Minardi',
         chassis: 'M195B',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1996-forti',
@@ -2910,7 +2594,6 @@ export default function EbayLinkingAdmin() {
         team: 'Forti',
         chassis: 'FG03',
         driverGroups: [],
-        models: [],
       },
 
       // === 1995 SEASON ===
@@ -2920,7 +2603,6 @@ export default function EbayLinkingAdmin() {
         team: 'Benetton',
         chassis: 'B195',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1995-williams',
@@ -2928,7 +2610,6 @@ export default function EbayLinkingAdmin() {
         team: 'Williams',
         chassis: 'FW17',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1995-ferrari',
@@ -2936,7 +2617,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ferrari',
         chassis: '412 T2',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1995-mclaren',
@@ -2944,7 +2624,6 @@ export default function EbayLinkingAdmin() {
         team: 'McLaren',
         chassis: 'MP4/10',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1995-ligier',
@@ -2952,7 +2631,6 @@ export default function EbayLinkingAdmin() {
         team: 'Ligier',
         chassis: 'JS41',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1995-jordan',
@@ -2960,7 +2638,6 @@ export default function EbayLinkingAdmin() {
         team: 'Jordan',
         chassis: '195',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1995-sauber',
@@ -2968,7 +2645,6 @@ export default function EbayLinkingAdmin() {
         team: 'Sauber',
         chassis: 'C14',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1995-footwork',
@@ -2976,7 +2652,6 @@ export default function EbayLinkingAdmin() {
         team: 'Footwork',
         chassis: 'FA16',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1995-tyrrell',
@@ -2984,7 +2659,6 @@ export default function EbayLinkingAdmin() {
         team: 'Tyrrell',
         chassis: '023',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1995-minardi',
@@ -2992,7 +2666,6 @@ export default function EbayLinkingAdmin() {
         team: 'Minardi',
         chassis: 'M195',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1995-forti',
@@ -3000,7 +2673,6 @@ export default function EbayLinkingAdmin() {
         team: 'Forti',
         chassis: 'FG01',
         driverGroups: [],
-        models: [],
       },
       {
         id: '1995-pacific',
@@ -3008,7 +2680,6 @@ export default function EbayLinkingAdmin() {
         team: 'Pacific',
         chassis: 'PR02',
         driverGroups: [],
-        models: [],
       },
     ];
     // setF1Cars(mockF1Cars); // Now loading from Supabase instead
