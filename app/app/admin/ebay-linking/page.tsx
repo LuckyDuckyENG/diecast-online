@@ -2914,10 +2914,29 @@ export default function EbayLinkingAdmin() {
           `No car found for ${addModelForm.year} ${addModelForm.team}.\n\nWould you like to create it?`
         );
         if (createIt) {
-          // TODO: Create car logic
-          alert('Car creation coming in next step!');
+          // Create the car
+          const createResponse = await fetch('/api/admin/create-car', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              year: addModelForm.year,
+              team: addModelForm.team,
+              chassis: null,
+            }),
+          });
+
+          const createData = await createResponse.json();
+
+          if (createData.success && createData.car) {
+            setSearchedCar(createData.car);
+            alert(`✅ Created: ${createData.message}`);
+          } else {
+            alert(`❌ Failed to create car: ${createData.error}`);
+            setSearchedCar(null);
+          }
+        } else {
+          setSearchedCar(null);
         }
-        setSearchedCar(null);
       }
     } catch (error) {
       console.error('Error searching for car:', error);
