@@ -2753,17 +2753,20 @@ export default function EbayLinkingAdmin() {
           car.id === carId
             ? {
                 ...car,
-                models: car.models.map((m) =>
-                  m.id === model.id
-                    ? {
-                        ...m,
-                        ebayLinked: true,
-                        ebayUrl: listing.url,
-                        ebayPrice: listing.price,
-                        lastUpdated: 'just now',
-                      }
-                    : m
-                ),
+                driverGroups: car.driverGroups.map((dg) => ({
+                  ...dg,
+                  models: dg.models.map((m) =>
+                    m.id === model.id
+                      ? {
+                          ...m,
+                          ebayLinked: true,
+                          ebayUrl: listing.url,
+                          ebayPrice: listing.price,
+                          lastUpdated: 'just now',
+                        }
+                      : m
+                  ),
+                })),
               }
             : car
         )
@@ -2830,17 +2833,20 @@ export default function EbayLinkingAdmin() {
           car.id === carId
             ? {
                 ...car,
-                models: car.models.map((m) =>
-                  m.id === model.id
-                    ? {
-                        ...m,
-                        ebayLinked: false,
-                        ebayUrl: undefined,
-                        ebayPrice: undefined,
-                        lastUpdated: undefined,
-                      }
-                    : m
-                ),
+                driverGroups: car.driverGroups.map((dg) => ({
+                  ...dg,
+                  models: dg.models.map((m) =>
+                    m.id === model.id
+                      ? {
+                          ...m,
+                          ebayLinked: false,
+                          ebayUrl: undefined,
+                          ebayPrice: undefined,
+                          lastUpdated: undefined,
+                        }
+                      : m
+                  ),
+                })),
               }
             : car
         )
@@ -3122,13 +3128,14 @@ export default function EbayLinkingAdmin() {
       searchTerm === '' ||
       car.team.toLowerCase().includes(searchTerm.toLowerCase()) ||
       car.chassis.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      car.drivers.some((d) => d.toLowerCase().includes(searchTerm.toLowerCase()));
+      car.driverGroups.some((dg) => dg.driver.toLowerCase().includes(searchTerm.toLowerCase()));
 
     // Filter by eBay linking status
+    const allModels = car.driverGroups.flatMap(dg => dg.models);
     if (filter === 'linked') {
-      return matchesYear && matchesSearch && car.models.some((m) => m.ebayLinked);
+      return matchesYear && matchesSearch && allModels.some((m) => m.ebayLinked);
     } else if (filter === 'unlinked') {
-      return matchesYear && matchesSearch && car.models.some((m) => !m.ebayLinked);
+      return matchesYear && matchesSearch && allModels.some((m) => !m.ebayLinked);
     }
 
     return matchesYear && matchesSearch;
@@ -3220,8 +3227,8 @@ export default function EbayLinkingAdmin() {
           </div>
           <button
             onClick={async () => {
-              const carsWithModels = f1Cars.filter(car => car.models.length > 0);
-              const totalModels = carsWithModels.reduce((sum, car) => sum + car.models.length, 0);
+              const carsWithModels = f1Cars.filter(car => car.driverGroups.flatMap(dg => dg.models).length > 0);
+              const totalModels = carsWithModels.reduce((sum, car) => sum + car.driverGroups.flatMap(dg => dg.models).length, 0);
 
               if (confirm(`Import ${carsWithModels.length} cars with ${totalModels} models to Supabase?`)) {
                 try {
@@ -3450,7 +3457,6 @@ export default function EbayLinkingAdmin() {
                             {/* Linking Status Box */}
                             <div className="bg-gray-800/20 border border-gray-700/30 rounded-lg p-3 space-y-3">
                               {/* eBay Status */}
-                              {console.log('Model eBay data:', { id: model.id, ebayLinked: model.ebayLinked, ebayUrl: model.ebayUrl, ebayPrice: model.ebayPrice })}
                               {model.ebayLinked ? (
                                 <div>
                                   <div className="flex items-center gap-2 mb-1">

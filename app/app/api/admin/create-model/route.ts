@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find the first car that matches our criteria
-    const matchingCar = matchingCars?.find((car) => {
+    const matchingCar = matchingCars?.find((car: any) => {
       const carYear = car.season?.year?.toString();
       const carTeam = car.team?.name?.toLowerCase().replace(/[^a-z0-9]/g, '');
       const carChassis = car.livery_name?.toLowerCase().replace(/[^a-z0-9]/g, '');
