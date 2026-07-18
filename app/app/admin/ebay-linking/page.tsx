@@ -197,6 +197,22 @@ export default function EbayLinkingAdmin() {
     imageUrl: '',
   });
 
+  // Add Model modal state
+  const [addModelModalOpen, setAddModelModalOpen] = useState(false);
+  const [addModelForm, setAddModelForm] = useState({
+    manufacturer: '',
+    scale: '',
+    sku: '',
+    year: '2024',
+    team: '',
+    driver: '',
+    eventName: '',
+    price: '',
+    imageUrl: '',
+  });
+  const [searchedCar, setSearchedCar] = useState<any>(null);
+  const [searchingCar, setSearchingCar] = useState(false);
+
   // Generate years from 1995 to 2025
   const years = Array.from({ length: 31 }, (_, i) => 2025 - i); // 2025 down to 1995
 
@@ -2870,6 +2886,108 @@ export default function EbayLinkingAdmin() {
     }
   };
 
+  const searchForCar = async () => {
+    if (!addModelForm.year || !addModelForm.team) {
+      alert('Please enter year and team');
+      return;
+    }
+
+    setSearchingCar(true);
+    try {
+      const response = await fetch('/api/admin/search-car', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          year: addModelForm.year,
+          team: addModelForm.team,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.car) {
+        setSearchedCar(data.car);
+        alert(`✅ Found: ${data.car.year} ${data.car.team?.name} ${data.car.livery_name}`);
+      } else {
+        // Car not found - offer to create
+        const createIt = confirm(
+          `No car found for ${addModelForm.year} ${addModelForm.team}.\n\nWould you like to create it?`
+        );
+        if (createIt) {
+          // TODO: Create car logic
+          alert('Car creation coming in next step!');
+        }
+        setSearchedCar(null);
+      }
+    } catch (error) {
+      console.error('Error searching for car:', error);
+      alert('Failed to search for car');
+      setSearchedCar(null);
+    } finally {
+      setSearchingCar(false);
+    }
+  };
+
+  const createModelFromForm = async () => {
+    if (!searchedCar) {
+      alert('Please search for a car first');
+      return;
+    }
+
+    if (!addModelForm.manufacturer || !addModelForm.scale) {
+      alert('Please fill in manufacturer and scale');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/create-model', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          carId: searchedCar.id,
+          manufacturer: addModelForm.manufacturer,
+          scale: addModelForm.scale,
+          sku: addModelForm.sku,
+          driver: addModelForm.driver,
+          eventName: addModelForm.eventName,
+          price: addModelForm.price,
+          imageUrl: addModelForm.imageUrl,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('✅ Model created successfully!');
+        // Reset form
+        setAddModelForm({
+          manufacturer: '',
+          scale: '',
+          sku: '',
+          year: '2024',
+          team: '',
+          driver: '',
+          eventName: '',
+          price: '',
+          imageUrl: '',
+        });
+        setSearchedCar(null);
+        setAddModelModalOpen(false);
+        // Refresh data
+        const refreshResponse = await fetch('/api/admin/get-f1-data');
+        const refreshData = await refreshResponse.json();
+        if (refreshData.success) {
+          setF1Cars(refreshData.cars);
+        }
+      } else {
+        alert(`❌ Error: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating model:', error);
+      alert('Failed to create model');
+    }
+  };
+
   const deleteModel = async (carId: string, model: DiecastModel, returnToInventory: boolean = false) => {
     const action = returnToInventory ? 'move back to inventory' : 'delete permanently';
     if (!confirm(`Are you sure you want to ${action} "${model.name}"?`)) return;
@@ -3281,33 +3399,41 @@ export default function EbayLinkingAdmin() {
               Manually curate eBay listings for your models. Free tier: 13 searches/month.
             </p>
           </div>
-          <button
-            onClick={async () => {
-              const carsWithModels = f1Cars.filter(car => car.driverGroups.flatMap(dg => dg.models).length > 0);
-              const totalModels = carsWithModels.reduce((sum, car) => sum + car.driverGroups.flatMap(dg => dg.models).length, 0);
+          <div className="flex gap-3">
+            <button
+              onClick={() => setAddModelModalOpen(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              ➕ Add Model
+            </button>
+            <button
+              onClick={async () => {
+                const carsWithModels = f1Cars.filter(car => car.driverGroups.flatMap(dg => dg.models).length > 0);
+                const totalModels = carsWithModels.reduce((sum, car) => sum + car.driverGroups.flatMap(dg => dg.models).length, 0);
 
-              if (confirm(`Import ${carsWithModels.length} cars with ${totalModels} models to Supabase?`)) {
-                try {
-                  const response = await fetch('/api/admin/import-f1-data', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cars: carsWithModels }),
-                  });
-                  const data = await response.json();
-                  if (data.success) {
-                    alert(`✅ Success! Imported ${data.carsImported} cars and ${data.modelsImported} models`);
-                  } else {
-                    alert(`❌ Error: ${data.error}`);
+                if (confirm(`Import ${carsWithModels.length} cars with ${totalModels} models to Supabase?`)) {
+                  try {
+                    const response = await fetch('/api/admin/import-f1-data', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ cars: carsWithModels }),
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                      alert(`✅ Success! Imported ${data.carsImported} cars and ${data.modelsImported} models`);
+                    } else {
+                      alert(`❌ Error: ${data.error}`);
+                    }
+                  } catch (error) {
+                    alert(`❌ Failed to import: ${error}`);
                   }
-                } catch (error) {
-                  alert(`❌ Failed to import: ${error}`);
                 }
-              }
-            }}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            📤 Import to Supabase
-          </button>
+              }}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              📤 Import to Supabase
+            </button>
+          </div>
         </div>
 
         {/* Year Selector - Season Boxes */}
@@ -4021,6 +4147,221 @@ export default function EbayLinkingAdmin() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Model Modal */}
+      {addModelModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-[var(--surface)] rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] p-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-[var(--text-primary)]">
+                  ➕ Add New Model
+                </h2>
+                <button
+                  onClick={() => {
+                    setAddModelModalOpen(false);
+                    setSearchedCar(null);
+                  }}
+                  className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Product Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
+                  Product Information
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                      Manufacturer *
+                    </label>
+                    <select
+                      value={addModelForm.manufacturer}
+                      onChange={(e) => setAddModelForm({ ...addModelForm, manufacturer: e.target.value })}
+                      className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded-lg text-[var(--text-primary)]"
+                    >
+                      <option value="">Select...</option>
+                      <option value="Minichamps">Minichamps</option>
+                      <option value="Spark">Spark</option>
+                      <option value="Bburago">Bburago</option>
+                      <option value="Looksmart">Looksmart</option>
+                      <option value="BBR">BBR</option>
+                      <option value="Amalgam">Amalgam</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                      Scale *
+                    </label>
+                    <select
+                      value={addModelForm.scale}
+                      onChange={(e) => setAddModelForm({ ...addModelForm, scale: e.target.value })}
+                      className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded-lg text-[var(--text-primary)]"
+                    >
+                      <option value="">Select...</option>
+                      <option value="1:43">1:43</option>
+                      <option value="1:18">1:18</option>
+                      <option value="1:8">1:8</option>
+                    </select>
+                  </div>
+
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                      SKU
+                    </label>
+                    <input
+                      type="text"
+                      value={addModelForm.sku}
+                      onChange={(e) => setAddModelForm({ ...addModelForm, sku: e.target.value })}
+                      placeholder="e.g., 410240144"
+                      className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded-lg text-[var(--text-primary)]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Car Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
+                  Car Information
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                      Year *
+                    </label>
+                    <select
+                      value={addModelForm.year}
+                      onChange={(e) => setAddModelForm({ ...addModelForm, year: e.target.value })}
+                      className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded-lg text-[var(--text-primary)]"
+                    >
+                      {years.map(year => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                      Team *
+                    </label>
+                    <input
+                      type="text"
+                      value={addModelForm.team}
+                      onChange={(e) => setAddModelForm({ ...addModelForm, team: e.target.value })}
+                      placeholder="e.g., Mercedes"
+                      className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded-lg text-[var(--text-primary)]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                      Driver
+                    </label>
+                    <input
+                      type="text"
+                      value={addModelForm.driver}
+                      onChange={(e) => setAddModelForm({ ...addModelForm, driver: e.target.value })}
+                      placeholder="e.g., Lewis Hamilton"
+                      className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded-lg text-[var(--text-primary)]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                      Event
+                    </label>
+                    <input
+                      type="text"
+                      value={addModelForm.eventName}
+                      onChange={(e) => setAddModelForm({ ...addModelForm, eventName: e.target.value })}
+                      placeholder="e.g., British GP Winner"
+                      className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded-lg text-[var(--text-primary)]"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={searchForCar}
+                  disabled={searchingCar || !addModelForm.year || !addModelForm.team}
+                  className="mt-4 w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                >
+                  {searchingCar ? '🔍 Searching...' : '🔍 Search for Car'}
+                </button>
+
+                {searchedCar && (
+                  <div className="mt-4 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
+                    <p className="text-green-400 font-semibold mb-2">✅ Car Found:</p>
+                    <p className="text-[var(--text-primary)]">
+                      {searchedCar.season?.year} {searchedCar.team?.name} {searchedCar.livery_name}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Optional Fields */}
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
+                  Optional
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                      Price
+                    </label>
+                    <input
+                      type="text"
+                      value={addModelForm.price}
+                      onChange={(e) => setAddModelForm({ ...addModelForm, price: e.target.value })}
+                      placeholder="e.g., $89.99"
+                      className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded-lg text-[var(--text-primary)]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                      Image URL
+                    </label>
+                    <input
+                      type="text"
+                      value={addModelForm.imageUrl}
+                      onChange={(e) => setAddModelForm({ ...addModelForm, imageUrl: e.target.value })}
+                      placeholder="https://..."
+                      className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded-lg text-[var(--text-primary)]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t border-[var(--border)]">
+                <button
+                  onClick={() => {
+                    setAddModelModalOpen(false);
+                    setSearchedCar(null);
+                  }}
+                  className="flex-1 px-4 py-2 bg-[var(--surface-hover)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--border)] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={createModelFromForm}
+                  disabled={!searchedCar || !addModelForm.manufacturer || !addModelForm.scale}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  💾 Create Model
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -52,6 +52,8 @@ export async function GET(request: NextRequest) {
       throw new Error(`Failed to fetch cars: ${carsError.message}`);
     }
 
+    console.log(`📊 Fetched ${cars?.length || 0} cars from database`);
+
     // Fetch all models with manufacturer data
     const { data: models, error: modelsError } = await supabase
       .from('models')
