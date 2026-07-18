@@ -270,23 +270,21 @@ export default function EbayLinkingAdmin() {
         year: 2025,
         team: 'Mercedes-AMG Petronas',
         chassis: 'W16',
-        drivers: ['Andrea Kimi Antonelli', 'George Russell'],
-        models: [], // Empty - to be filled later
+        driverGroups: [], // Empty - to be filled later
       },
       {
         id: '2025-redbull',
         year: 2025,
         team: 'Red Bull Racing',
         chassis: 'RB21',
-        drivers: ['Max Verstappen', 'Liam Lawson'],
-        models: [],
+        driverGroups: [],
       },
       {
         id: '2025-ferrari',
         year: 2025,
         team: 'Ferrari',
         chassis: 'SF-25',
-        drivers: ['Charles Leclerc', 'Lewis Hamilton'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -294,7 +292,7 @@ export default function EbayLinkingAdmin() {
         year: 2025,
         team: 'McLaren',
         chassis: 'MCL39',
-        drivers: ['Lando Norris', 'Oscar Piastri'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -302,7 +300,7 @@ export default function EbayLinkingAdmin() {
         year: 2025,
         team: 'Aston Martin',
         chassis: 'AMR25',
-        drivers: ['Fernando Alonso', 'Lance Stroll'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -310,7 +308,7 @@ export default function EbayLinkingAdmin() {
         year: 2025,
         team: 'Alpine',
         chassis: 'A525',
-        drivers: ['Pierre Gasly', 'Jack Doohan'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -318,7 +316,7 @@ export default function EbayLinkingAdmin() {
         year: 2025,
         team: 'Haas',
         chassis: 'VF-25',
-        drivers: ['Esteban Ocon', 'Oliver Bearman'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -326,7 +324,7 @@ export default function EbayLinkingAdmin() {
         year: 2025,
         team: 'RB',
         chassis: 'VCARB 02',
-        drivers: ['Yuki Tsunoda', 'Isack Hadjar'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -334,7 +332,7 @@ export default function EbayLinkingAdmin() {
         year: 2025,
         team: 'Sauber',
         chassis: 'C45',
-        drivers: ['Nico Hulkenberg', 'Gabriel Bortoleto'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -342,7 +340,7 @@ export default function EbayLinkingAdmin() {
         year: 2025,
         team: 'Williams',
         chassis: 'FW47',
-        drivers: ['Carlos Sainz', 'Alex Albon'],
+        driverGroups: [],
         models: [],
       },
 
@@ -352,7 +350,7 @@ export default function EbayLinkingAdmin() {
         year: 2024,
         team: 'Mercedes-AMG Petronas',
         chassis: 'W15',
-        drivers: ['Lewis Hamilton', 'George Russell'],
+        driverGroups: [],
         models: [
           {
             id: 'model-w15-ham-bahrain',
@@ -391,7 +389,7 @@ export default function EbayLinkingAdmin() {
         year: 2024,
         team: 'Red Bull Racing',
         chassis: 'RB20',
-        drivers: ['Max Verstappen', 'Sergio Perez'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -399,7 +397,7 @@ export default function EbayLinkingAdmin() {
         year: 2024,
         team: 'Ferrari',
         chassis: 'SF-24',
-        drivers: ['Charles Leclerc', 'Carlos Sainz'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -407,7 +405,7 @@ export default function EbayLinkingAdmin() {
         year: 2024,
         team: 'McLaren',
         chassis: 'MCL38',
-        drivers: ['Lando Norris', 'Oscar Piastri'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -415,7 +413,7 @@ export default function EbayLinkingAdmin() {
         year: 2024,
         team: 'Aston Martin',
         chassis: 'AMR24',
-        drivers: ['Fernando Alonso', 'Lance Stroll'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -423,7 +421,7 @@ export default function EbayLinkingAdmin() {
         year: 2024,
         team: 'Alpine',
         chassis: 'A524',
-        drivers: ['Pierre Gasly', 'Esteban Ocon'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -431,7 +429,7 @@ export default function EbayLinkingAdmin() {
         year: 2024,
         team: 'Haas',
         chassis: 'VF-24',
-        drivers: ['Kevin Magnussen', 'Nico Hulkenberg'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -439,7 +437,7 @@ export default function EbayLinkingAdmin() {
         year: 2024,
         team: 'RB',
         chassis: 'VCARB 01',
-        drivers: ['Yuki Tsunoda', 'Daniel Ricciardo'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -447,7 +445,7 @@ export default function EbayLinkingAdmin() {
         year: 2024,
         team: 'Sauber',
         chassis: 'C44',
-        drivers: ['Valtteri Bottas', 'Zhou Guanyu'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -455,7 +453,7 @@ export default function EbayLinkingAdmin() {
         year: 2024,
         team: 'Williams',
         chassis: 'FW46',
-        drivers: ['Alex Albon', 'Logan Sargeant'],
+        driverGroups: [],
         models: [],
       },
 
@@ -465,7 +463,7 @@ export default function EbayLinkingAdmin() {
         year: 2023,
         team: 'Mercedes-AMG Petronas',
         chassis: 'W14',
-        drivers: ['Lewis Hamilton', 'George Russell'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -473,7 +471,7 @@ export default function EbayLinkingAdmin() {
         year: 2023,
         team: 'Red Bull Racing',
         chassis: 'RB19',
-        drivers: ['Max Verstappen', 'Sergio Perez'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -481,7 +479,7 @@ export default function EbayLinkingAdmin() {
         year: 2023,
         team: 'Ferrari',
         chassis: 'SF-23',
-        drivers: ['Charles Leclerc', 'Carlos Sainz'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -489,7 +487,7 @@ export default function EbayLinkingAdmin() {
         year: 2023,
         team: 'McLaren',
         chassis: 'MCL60',
-        drivers: ['Lando Norris', 'Oscar Piastri'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -497,7 +495,7 @@ export default function EbayLinkingAdmin() {
         year: 2023,
         team: 'Aston Martin',
         chassis: 'AMR23',
-        drivers: ['Fernando Alonso', 'Lance Stroll'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -505,7 +503,7 @@ export default function EbayLinkingAdmin() {
         year: 2023,
         team: 'Alpine',
         chassis: 'A523',
-        drivers: ['Pierre Gasly', 'Esteban Ocon'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -513,7 +511,7 @@ export default function EbayLinkingAdmin() {
         year: 2023,
         team: 'Haas',
         chassis: 'VF-23',
-        drivers: ['Kevin Magnussen', 'Nico Hulkenberg'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -521,7 +519,7 @@ export default function EbayLinkingAdmin() {
         year: 2023,
         team: 'AlphaTauri',
         chassis: 'AT04',
-        drivers: ['Yuki Tsunoda', 'Nyck de Vries'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -529,7 +527,7 @@ export default function EbayLinkingAdmin() {
         year: 2023,
         team: 'Alfa Romeo',
         chassis: 'C43',
-        drivers: ['Valtteri Bottas', 'Zhou Guanyu'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -537,7 +535,7 @@ export default function EbayLinkingAdmin() {
         year: 2023,
         team: 'Williams',
         chassis: 'FW45',
-        drivers: ['Alex Albon', 'Logan Sargeant'],
+        driverGroups: [],
         models: [],
       },
 
@@ -547,7 +545,7 @@ export default function EbayLinkingAdmin() {
         year: 2022,
         team: 'Mercedes-AMG Petronas',
         chassis: 'W13',
-        drivers: ['Lewis Hamilton', 'George Russell'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -555,7 +553,7 @@ export default function EbayLinkingAdmin() {
         year: 2022,
         team: 'Red Bull Racing',
         chassis: 'RB18',
-        drivers: ['Max Verstappen', 'Sergio Perez'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -563,7 +561,7 @@ export default function EbayLinkingAdmin() {
         year: 2022,
         team: 'Ferrari',
         chassis: 'F1-75',
-        drivers: ['Charles Leclerc', 'Carlos Sainz'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -571,7 +569,7 @@ export default function EbayLinkingAdmin() {
         year: 2022,
         team: 'McLaren',
         chassis: 'MCL36',
-        drivers: ['Lando Norris', 'Daniel Ricciardo'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -579,7 +577,7 @@ export default function EbayLinkingAdmin() {
         year: 2022,
         team: 'Aston Martin',
         chassis: 'AMR22',
-        drivers: ['Sebastian Vettel', 'Lance Stroll'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -587,7 +585,7 @@ export default function EbayLinkingAdmin() {
         year: 2022,
         team: 'Alpine',
         chassis: 'A522',
-        drivers: ['Fernando Alonso', 'Esteban Ocon'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -595,7 +593,7 @@ export default function EbayLinkingAdmin() {
         year: 2022,
         team: 'Haas',
         chassis: 'VF-22',
-        drivers: ['Kevin Magnussen', 'Mick Schumacher'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -603,7 +601,7 @@ export default function EbayLinkingAdmin() {
         year: 2022,
         team: 'AlphaTauri',
         chassis: 'AT03',
-        drivers: ['Pierre Gasly', 'Yuki Tsunoda'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -611,7 +609,7 @@ export default function EbayLinkingAdmin() {
         year: 2022,
         team: 'Alfa Romeo',
         chassis: 'C42',
-        drivers: ['Valtteri Bottas', 'Zhou Guanyu'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -619,7 +617,7 @@ export default function EbayLinkingAdmin() {
         year: 2022,
         team: 'Williams',
         chassis: 'FW44',
-        drivers: ['Alex Albon', 'Nicholas Latifi'],
+        driverGroups: [],
         models: [],
       },
 
@@ -629,7 +627,7 @@ export default function EbayLinkingAdmin() {
         year: 2021,
         team: 'Mercedes-AMG Petronas',
         chassis: 'W12',
-        drivers: ['Lewis Hamilton', 'Valtteri Bottas'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -637,7 +635,7 @@ export default function EbayLinkingAdmin() {
         year: 2021,
         team: 'Red Bull Racing',
         chassis: 'RB16B',
-        drivers: ['Max Verstappen', 'Sergio Perez'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -645,7 +643,7 @@ export default function EbayLinkingAdmin() {
         year: 2021,
         team: 'Ferrari',
         chassis: 'SF21',
-        drivers: ['Charles Leclerc', 'Carlos Sainz'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -653,7 +651,7 @@ export default function EbayLinkingAdmin() {
         year: 2021,
         team: 'McLaren',
         chassis: 'MCL35M',
-        drivers: ['Lando Norris', 'Daniel Ricciardo'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -661,7 +659,7 @@ export default function EbayLinkingAdmin() {
         year: 2021,
         team: 'Aston Martin',
         chassis: 'AMR21',
-        drivers: ['Sebastian Vettel', 'Lance Stroll'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -669,7 +667,7 @@ export default function EbayLinkingAdmin() {
         year: 2021,
         team: 'Alpine',
         chassis: 'A521',
-        drivers: ['Fernando Alonso', 'Esteban Ocon'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -677,7 +675,7 @@ export default function EbayLinkingAdmin() {
         year: 2021,
         team: 'AlphaTauri',
         chassis: 'AT02',
-        drivers: ['Pierre Gasly', 'Yuki Tsunoda'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -685,7 +683,7 @@ export default function EbayLinkingAdmin() {
         year: 2021,
         team: 'Alfa Romeo',
         chassis: 'C41',
-        drivers: ['Kimi Raikkonen', 'Antonio Giovinazzi'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -693,7 +691,7 @@ export default function EbayLinkingAdmin() {
         year: 2021,
         team: 'Haas',
         chassis: 'VF-21',
-        drivers: ['Mick Schumacher', 'Nikita Mazepin'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -701,7 +699,7 @@ export default function EbayLinkingAdmin() {
         year: 2021,
         team: 'Williams',
         chassis: 'FW43B',
-        drivers: ['George Russell', 'Nicholas Latifi'],
+        driverGroups: [],
         models: [],
       },
 
@@ -711,7 +709,7 @@ export default function EbayLinkingAdmin() {
         year: 2020,
         team: 'Mercedes-AMG Petronas',
         chassis: 'W11',
-        drivers: ['Lewis Hamilton', 'Valtteri Bottas'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -719,7 +717,7 @@ export default function EbayLinkingAdmin() {
         year: 2020,
         team: 'Red Bull Racing',
         chassis: 'RB16',
-        drivers: ['Max Verstappen', 'Alexander Albon'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -727,7 +725,7 @@ export default function EbayLinkingAdmin() {
         year: 2020,
         team: 'Ferrari',
         chassis: 'SF1000',
-        drivers: ['Sebastian Vettel', 'Charles Leclerc'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -735,7 +733,7 @@ export default function EbayLinkingAdmin() {
         year: 2020,
         team: 'McLaren',
         chassis: 'MCL35',
-        drivers: ['Carlos Sainz', 'Lando Norris'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -743,7 +741,7 @@ export default function EbayLinkingAdmin() {
         year: 2020,
         team: 'Renault',
         chassis: 'R.S.20',
-        drivers: ['Daniel Ricciardo', 'Esteban Ocon'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -751,7 +749,7 @@ export default function EbayLinkingAdmin() {
         year: 2020,
         team: 'Racing Point',
         chassis: 'RP20',
-        drivers: ['Sergio Perez', 'Lance Stroll'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -759,7 +757,7 @@ export default function EbayLinkingAdmin() {
         year: 2020,
         team: 'AlphaTauri',
         chassis: 'AT01',
-        drivers: ['Pierre Gasly', 'Daniil Kvyat'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -767,7 +765,7 @@ export default function EbayLinkingAdmin() {
         year: 2020,
         team: 'Alfa Romeo',
         chassis: 'C39',
-        drivers: ['Kimi Raikkonen', 'Antonio Giovinazzi'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -775,7 +773,7 @@ export default function EbayLinkingAdmin() {
         year: 2020,
         team: 'Haas',
         chassis: 'VF-20',
-        drivers: ['Romain Grosjean', 'Kevin Magnussen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -783,7 +781,7 @@ export default function EbayLinkingAdmin() {
         year: 2020,
         team: 'Williams',
         chassis: 'FW43',
-        drivers: ['George Russell', 'Nicholas Latifi'],
+        driverGroups: [],
         models: [],
       },
 
@@ -793,7 +791,7 @@ export default function EbayLinkingAdmin() {
         year: 2019,
         team: 'Mercedes-AMG Petronas',
         chassis: 'W10',
-        drivers: ['Lewis Hamilton', 'Valtteri Bottas'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -801,7 +799,7 @@ export default function EbayLinkingAdmin() {
         year: 2019,
         team: 'Ferrari',
         chassis: 'SF90',
-        drivers: ['Sebastian Vettel', 'Charles Leclerc'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -809,7 +807,7 @@ export default function EbayLinkingAdmin() {
         year: 2019,
         team: 'Red Bull Racing',
         chassis: 'RB15',
-        drivers: ['Max Verstappen', 'Pierre Gasly', 'Alexander Albon'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -817,7 +815,7 @@ export default function EbayLinkingAdmin() {
         year: 2019,
         team: 'McLaren',
         chassis: 'MCL34',
-        drivers: ['Carlos Sainz', 'Lando Norris'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -825,7 +823,7 @@ export default function EbayLinkingAdmin() {
         year: 2019,
         team: 'Renault',
         chassis: 'R.S.19',
-        drivers: ['Daniel Ricciardo', 'Nico Hulkenberg'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -833,7 +831,7 @@ export default function EbayLinkingAdmin() {
         year: 2019,
         team: 'Toro Rosso',
         chassis: 'STR14',
-        drivers: ['Daniil Kvyat', 'Alexander Albon', 'Pierre Gasly'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -841,7 +839,7 @@ export default function EbayLinkingAdmin() {
         year: 2019,
         team: 'Racing Point',
         chassis: 'RP19',
-        drivers: ['Sergio Perez', 'Lance Stroll'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -849,7 +847,7 @@ export default function EbayLinkingAdmin() {
         year: 2019,
         team: 'Alfa Romeo',
         chassis: 'C38',
-        drivers: ['Kimi Raikkonen', 'Antonio Giovinazzi'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -857,7 +855,7 @@ export default function EbayLinkingAdmin() {
         year: 2019,
         team: 'Haas',
         chassis: 'VF-19',
-        drivers: ['Romain Grosjean', 'Kevin Magnussen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -865,7 +863,7 @@ export default function EbayLinkingAdmin() {
         year: 2019,
         team: 'Williams',
         chassis: 'FW42',
-        drivers: ['George Russell', 'Robert Kubica'],
+        driverGroups: [],
         models: [],
       },
 
@@ -875,7 +873,7 @@ export default function EbayLinkingAdmin() {
         year: 2018,
         team: 'Mercedes-AMG Petronas',
         chassis: 'W09',
-        drivers: ['Lewis Hamilton', 'Valtteri Bottas'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -883,7 +881,7 @@ export default function EbayLinkingAdmin() {
         year: 2018,
         team: 'Ferrari',
         chassis: 'SF71H',
-        drivers: ['Sebastian Vettel', 'Kimi Raikkonen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -891,7 +889,7 @@ export default function EbayLinkingAdmin() {
         year: 2018,
         team: 'Red Bull Racing',
         chassis: 'RB14',
-        drivers: ['Daniel Ricciardo', 'Max Verstappen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -899,7 +897,7 @@ export default function EbayLinkingAdmin() {
         year: 2018,
         team: 'Renault',
         chassis: 'R.S.18',
-        drivers: ['Nico Hulkenberg', 'Carlos Sainz'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -907,7 +905,7 @@ export default function EbayLinkingAdmin() {
         year: 2018,
         team: 'Haas',
         chassis: 'VF-18',
-        drivers: ['Romain Grosjean', 'Kevin Magnussen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -915,7 +913,7 @@ export default function EbayLinkingAdmin() {
         year: 2018,
         team: 'McLaren',
         chassis: 'MCL33',
-        drivers: ['Fernando Alonso', 'Stoffel Vandoorne'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -923,7 +921,7 @@ export default function EbayLinkingAdmin() {
         year: 2018,
         team: 'Force India',
         chassis: 'VJM11',
-        drivers: ['Esteban Ocon', 'Sergio Perez'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -931,7 +929,7 @@ export default function EbayLinkingAdmin() {
         year: 2018,
         team: 'Sauber',
         chassis: 'C37',
-        drivers: ['Marcus Ericsson', 'Charles Leclerc'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -939,7 +937,7 @@ export default function EbayLinkingAdmin() {
         year: 2018,
         team: 'Toro Rosso',
         chassis: 'STR13',
-        drivers: ['Brendon Hartley', 'Pierre Gasly'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -947,7 +945,7 @@ export default function EbayLinkingAdmin() {
         year: 2018,
         team: 'Williams',
         chassis: 'FW41',
-        drivers: ['Lance Stroll', 'Sergey Sirotkin'],
+        driverGroups: [],
         models: [],
       },
 
@@ -957,7 +955,7 @@ export default function EbayLinkingAdmin() {
         year: 2017,
         team: 'Mercedes-AMG Petronas',
         chassis: 'W08',
-        drivers: ['Lewis Hamilton', 'Valtteri Bottas'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -965,7 +963,7 @@ export default function EbayLinkingAdmin() {
         year: 2017,
         team: 'Ferrari',
         chassis: 'SF70H',
-        drivers: ['Sebastian Vettel', 'Kimi Raikkonen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -973,7 +971,7 @@ export default function EbayLinkingAdmin() {
         year: 2017,
         team: 'Red Bull Racing',
         chassis: 'RB13',
-        drivers: ['Daniel Ricciardo', 'Max Verstappen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -981,7 +979,7 @@ export default function EbayLinkingAdmin() {
         year: 2017,
         team: 'Force India',
         chassis: 'VJM10',
-        drivers: ['Sergio Perez', 'Esteban Ocon'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -989,7 +987,7 @@ export default function EbayLinkingAdmin() {
         year: 2017,
         team: 'Williams',
         chassis: 'FW40',
-        drivers: ['Felipe Massa', 'Lance Stroll'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -997,7 +995,7 @@ export default function EbayLinkingAdmin() {
         year: 2017,
         team: 'McLaren',
         chassis: 'MCL32',
-        drivers: ['Fernando Alonso', 'Stoffel Vandoorne'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1005,7 +1003,7 @@ export default function EbayLinkingAdmin() {
         year: 2017,
         team: 'Toro Rosso',
         chassis: 'STR12',
-        drivers: ['Carlos Sainz', 'Daniil Kvyat', 'Pierre Gasly'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1013,7 +1011,7 @@ export default function EbayLinkingAdmin() {
         year: 2017,
         team: 'Haas',
         chassis: 'VF-17',
-        drivers: ['Romain Grosjean', 'Kevin Magnussen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1021,7 +1019,7 @@ export default function EbayLinkingAdmin() {
         year: 2017,
         team: 'Renault',
         chassis: 'R.S.17',
-        drivers: ['Nico Hulkenberg', 'Jolyon Palmer', 'Carlos Sainz'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1029,7 +1027,7 @@ export default function EbayLinkingAdmin() {
         year: 2017,
         team: 'Sauber',
         chassis: 'C36',
-        drivers: ['Marcus Ericsson', 'Pascal Wehrlein'],
+        driverGroups: [],
         models: [],
       },
 
@@ -1039,7 +1037,7 @@ export default function EbayLinkingAdmin() {
         year: 2016,
         team: 'Mercedes-AMG Petronas',
         chassis: 'W07',
-        drivers: ['Lewis Hamilton', 'Nico Rosberg'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1047,7 +1045,7 @@ export default function EbayLinkingAdmin() {
         year: 2016,
         team: 'Ferrari',
         chassis: 'SF16-H',
-        drivers: ['Sebastian Vettel', 'Kimi Raikkonen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1055,7 +1053,7 @@ export default function EbayLinkingAdmin() {
         year: 2016,
         team: 'Red Bull Racing',
         chassis: 'RB12',
-        drivers: ['Daniel Ricciardo', 'Max Verstappen', 'Daniil Kvyat'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1063,7 +1061,7 @@ export default function EbayLinkingAdmin() {
         year: 2016,
         team: 'Williams',
         chassis: 'FW38',
-        drivers: ['Valtteri Bottas', 'Felipe Massa'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1071,7 +1069,7 @@ export default function EbayLinkingAdmin() {
         year: 2016,
         team: 'Force India',
         chassis: 'VJM09',
-        drivers: ['Sergio Perez', 'Nico Hulkenberg'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1079,7 +1077,7 @@ export default function EbayLinkingAdmin() {
         year: 2016,
         team: 'McLaren',
         chassis: 'MP4-31',
-        drivers: ['Fernando Alonso', 'Jenson Button'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1087,7 +1085,7 @@ export default function EbayLinkingAdmin() {
         year: 2016,
         team: 'Toro Rosso',
         chassis: 'STR11',
-        drivers: ['Carlos Sainz', 'Max Verstappen', 'Daniil Kvyat'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1095,7 +1093,7 @@ export default function EbayLinkingAdmin() {
         year: 2016,
         team: 'Haas',
         chassis: 'VF-16',
-        drivers: ['Romain Grosjean', 'Esteban Gutierrez'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1103,7 +1101,7 @@ export default function EbayLinkingAdmin() {
         year: 2016,
         team: 'Renault',
         chassis: 'R.S.16',
-        drivers: ['Kevin Magnussen', 'Jolyon Palmer'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1111,7 +1109,7 @@ export default function EbayLinkingAdmin() {
         year: 2016,
         team: 'Sauber',
         chassis: 'C35',
-        drivers: ['Felipe Nasr', 'Marcus Ericsson'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1119,7 +1117,7 @@ export default function EbayLinkingAdmin() {
         year: 2016,
         team: 'Manor',
         chassis: 'MRT05',
-        drivers: ['Pascal Wehrlein', 'Rio Haryanto', 'Esteban Ocon'],
+        driverGroups: [],
         models: [],
       },
 
@@ -1129,7 +1127,7 @@ export default function EbayLinkingAdmin() {
         year: 2015,
         team: 'Mercedes-AMG Petronas',
         chassis: 'W06',
-        drivers: ['Lewis Hamilton', 'Nico Rosberg'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1137,7 +1135,7 @@ export default function EbayLinkingAdmin() {
         year: 2015,
         team: 'Ferrari',
         chassis: 'SF15-T',
-        drivers: ['Sebastian Vettel', 'Kimi Raikkonen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1145,7 +1143,7 @@ export default function EbayLinkingAdmin() {
         year: 2015,
         team: 'Williams',
         chassis: 'FW37',
-        drivers: ['Valtteri Bottas', 'Felipe Massa'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1153,7 +1151,7 @@ export default function EbayLinkingAdmin() {
         year: 2015,
         team: 'Red Bull Racing',
         chassis: 'RB11',
-        drivers: ['Daniel Ricciardo', 'Daniil Kvyat'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1161,7 +1159,7 @@ export default function EbayLinkingAdmin() {
         year: 2015,
         team: 'Force India',
         chassis: 'VJM08',
-        drivers: ['Sergio Perez', 'Nico Hulkenberg'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1169,7 +1167,7 @@ export default function EbayLinkingAdmin() {
         year: 2015,
         team: 'Lotus',
         chassis: 'E23',
-        drivers: ['Romain Grosjean', 'Pastor Maldonado'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1177,7 +1175,7 @@ export default function EbayLinkingAdmin() {
         year: 2015,
         team: 'Toro Rosso',
         chassis: 'STR10',
-        drivers: ['Max Verstappen', 'Carlos Sainz'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1185,7 +1183,7 @@ export default function EbayLinkingAdmin() {
         year: 2015,
         team: 'Sauber',
         chassis: 'C34',
-        drivers: ['Marcus Ericsson', 'Felipe Nasr'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1193,7 +1191,7 @@ export default function EbayLinkingAdmin() {
         year: 2015,
         team: 'McLaren',
         chassis: 'MP4-30',
-        drivers: ['Fernando Alonso', 'Jenson Button'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1201,7 +1199,7 @@ export default function EbayLinkingAdmin() {
         year: 2015,
         team: 'Manor',
         chassis: 'MR03B',
-        drivers: ['Will Stevens', 'Roberto Merhi'],
+        driverGroups: [],
         models: [],
       },
 
@@ -1211,7 +1209,7 @@ export default function EbayLinkingAdmin() {
         year: 2014,
         team: 'Mercedes-AMG Petronas',
         chassis: 'W05',
-        drivers: ['Lewis Hamilton', 'Nico Rosberg'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1219,7 +1217,7 @@ export default function EbayLinkingAdmin() {
         year: 2014,
         team: 'Red Bull Racing',
         chassis: 'RB10',
-        drivers: ['Sebastian Vettel', 'Daniel Ricciardo'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1227,7 +1225,7 @@ export default function EbayLinkingAdmin() {
         year: 2014,
         team: 'Ferrari',
         chassis: 'F14 T',
-        drivers: ['Fernando Alonso', 'Kimi Raikkonen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1235,7 +1233,7 @@ export default function EbayLinkingAdmin() {
         year: 2014,
         team: 'Williams',
         chassis: 'FW36',
-        drivers: ['Valtteri Bottas', 'Felipe Massa'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1243,7 +1241,7 @@ export default function EbayLinkingAdmin() {
         year: 2014,
         team: 'McLaren',
         chassis: 'MP4-29',
-        drivers: ['Jenson Button', 'Kevin Magnussen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1251,7 +1249,7 @@ export default function EbayLinkingAdmin() {
         year: 2014,
         team: 'Force India',
         chassis: 'VJM07',
-        drivers: ['Sergio Perez', 'Nico Hulkenberg'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1259,7 +1257,7 @@ export default function EbayLinkingAdmin() {
         year: 2014,
         team: 'Toro Rosso',
         chassis: 'STR9',
-        drivers: ['Jean-Eric Vergne', 'Daniil Kvyat'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1267,7 +1265,7 @@ export default function EbayLinkingAdmin() {
         year: 2014,
         team: 'Lotus',
         chassis: 'E22',
-        drivers: ['Romain Grosjean', 'Pastor Maldonado'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1275,7 +1273,7 @@ export default function EbayLinkingAdmin() {
         year: 2014,
         team: 'Sauber',
         chassis: 'C33',
-        drivers: ['Adrian Sutil', 'Esteban Gutierrez'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1283,7 +1281,7 @@ export default function EbayLinkingAdmin() {
         year: 2014,
         team: 'Marussia',
         chassis: 'MR03',
-        drivers: ['Jules Bianchi', 'Max Chilton'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1291,7 +1289,7 @@ export default function EbayLinkingAdmin() {
         year: 2014,
         team: 'Caterham',
         chassis: 'CT05',
-        drivers: ['Marcus Ericsson', 'Kamui Kobayashi'],
+        driverGroups: [],
         models: [],
       },
 
@@ -1301,7 +1299,7 @@ export default function EbayLinkingAdmin() {
         year: 2013,
         team: 'Red Bull Racing',
         chassis: 'RB9',
-        drivers: ['Sebastian Vettel', 'Mark Webber'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1309,7 +1307,7 @@ export default function EbayLinkingAdmin() {
         year: 2013,
         team: 'Ferrari',
         chassis: 'F138',
-        drivers: ['Fernando Alonso', 'Felipe Massa'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1317,7 +1315,7 @@ export default function EbayLinkingAdmin() {
         year: 2013,
         team: 'Mercedes-AMG Petronas',
         chassis: 'W04',
-        drivers: ['Lewis Hamilton', 'Nico Rosberg'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1325,7 +1323,7 @@ export default function EbayLinkingAdmin() {
         year: 2013,
         team: 'Lotus',
         chassis: 'E21',
-        drivers: ['Kimi Raikkonen', 'Romain Grosjean'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1333,7 +1331,7 @@ export default function EbayLinkingAdmin() {
         year: 2013,
         team: 'McLaren',
         chassis: 'MP4-28',
-        drivers: ['Jenson Button', 'Sergio Perez'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1341,7 +1339,7 @@ export default function EbayLinkingAdmin() {
         year: 2013,
         team: 'Force India',
         chassis: 'VJM06',
-        drivers: ['Paul di Resta', 'Adrian Sutil'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1349,7 +1347,7 @@ export default function EbayLinkingAdmin() {
         year: 2013,
         team: 'Sauber',
         chassis: 'C32',
-        drivers: ['Nico Hulkenberg', 'Esteban Gutierrez'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1357,7 +1355,7 @@ export default function EbayLinkingAdmin() {
         year: 2013,
         team: 'Toro Rosso',
         chassis: 'STR8',
-        drivers: ['Daniel Ricciardo', 'Jean-Eric Vergne'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1365,7 +1363,7 @@ export default function EbayLinkingAdmin() {
         year: 2013,
         team: 'Williams',
         chassis: 'FW35',
-        drivers: ['Pastor Maldonado', 'Valtteri Bottas'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1373,7 +1371,7 @@ export default function EbayLinkingAdmin() {
         year: 2013,
         team: 'Marussia',
         chassis: 'MR02',
-        drivers: ['Jules Bianchi', 'Max Chilton'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1381,7 +1379,7 @@ export default function EbayLinkingAdmin() {
         year: 2013,
         team: 'Caterham',
         chassis: 'CT03',
-        drivers: ['Charles Pic', 'Giedo van der Garde'],
+        driverGroups: [],
         models: [],
       },
 
@@ -1391,7 +1389,7 @@ export default function EbayLinkingAdmin() {
         year: 2012,
         team: 'Red Bull Racing',
         chassis: 'RB8',
-        drivers: ['Sebastian Vettel', 'Mark Webber'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1399,7 +1397,7 @@ export default function EbayLinkingAdmin() {
         year: 2012,
         team: 'McLaren',
         chassis: 'MP4-27',
-        drivers: ['Lewis Hamilton', 'Jenson Button'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1407,7 +1405,7 @@ export default function EbayLinkingAdmin() {
         year: 2012,
         team: 'Ferrari',
         chassis: 'F2012',
-        drivers: ['Fernando Alonso', 'Felipe Massa'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1415,7 +1413,7 @@ export default function EbayLinkingAdmin() {
         year: 2012,
         team: 'Lotus',
         chassis: 'E20',
-        drivers: ['Kimi Raikkonen', 'Romain Grosjean'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1423,7 +1421,7 @@ export default function EbayLinkingAdmin() {
         year: 2012,
         team: 'Mercedes',
         chassis: 'W03',
-        drivers: ['Michael Schumacher', 'Nico Rosberg'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1431,7 +1429,7 @@ export default function EbayLinkingAdmin() {
         year: 2012,
         team: 'Sauber',
         chassis: 'C31',
-        drivers: ['Sergio Perez', 'Kamui Kobayashi'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1439,7 +1437,7 @@ export default function EbayLinkingAdmin() {
         year: 2012,
         team: 'Force India',
         chassis: 'VJM05',
-        drivers: ['Paul di Resta', 'Nico Hulkenberg'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1447,7 +1445,7 @@ export default function EbayLinkingAdmin() {
         year: 2012,
         team: 'Williams',
         chassis: 'FW34',
-        drivers: ['Pastor Maldonado', 'Bruno Senna'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1455,7 +1453,7 @@ export default function EbayLinkingAdmin() {
         year: 2012,
         team: 'Toro Rosso',
         chassis: 'STR7',
-        drivers: ['Daniel Ricciardo', 'Jean-Eric Vergne'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1463,7 +1461,7 @@ export default function EbayLinkingAdmin() {
         year: 2012,
         team: 'Caterham',
         chassis: 'CT01',
-        drivers: ['Heikki Kovalainen', 'Vitaly Petrov'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1471,7 +1469,7 @@ export default function EbayLinkingAdmin() {
         year: 2012,
         team: 'Marussia',
         chassis: 'MR01',
-        drivers: ['Timo Glock', 'Charles Pic'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1479,7 +1477,7 @@ export default function EbayLinkingAdmin() {
         year: 2012,
         team: 'HRT',
         chassis: 'F112',
-        drivers: ['Pedro de la Rosa', 'Narain Karthikeyan'],
+        driverGroups: [],
         models: [],
       },
 
@@ -1489,7 +1487,7 @@ export default function EbayLinkingAdmin() {
         year: 2011,
         team: 'Red Bull Racing',
         chassis: 'RB7',
-        drivers: ['Sebastian Vettel', 'Mark Webber'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1497,7 +1495,7 @@ export default function EbayLinkingAdmin() {
         year: 2011,
         team: 'McLaren',
         chassis: 'MP4-26',
-        drivers: ['Lewis Hamilton', 'Jenson Button'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1505,7 +1503,7 @@ export default function EbayLinkingAdmin() {
         year: 2011,
         team: 'Ferrari',
         chassis: '150° Italia',
-        drivers: ['Fernando Alonso', 'Felipe Massa'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1513,7 +1511,7 @@ export default function EbayLinkingAdmin() {
         year: 2011,
         team: 'Mercedes',
         chassis: 'W02',
-        drivers: ['Michael Schumacher', 'Nico Rosberg'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1521,7 +1519,7 @@ export default function EbayLinkingAdmin() {
         year: 2011,
         team: 'Renault',
         chassis: 'R31',
-        drivers: ['Nick Heidfeld', 'Vitaly Petrov'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1529,7 +1527,7 @@ export default function EbayLinkingAdmin() {
         year: 2011,
         team: 'Sauber',
         chassis: 'C30',
-        drivers: ['Sergio Perez', 'Kamui Kobayashi'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1537,7 +1535,7 @@ export default function EbayLinkingAdmin() {
         year: 2011,
         team: 'Force India',
         chassis: 'VJM04',
-        drivers: ['Adrian Sutil', 'Paul di Resta'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1545,7 +1543,7 @@ export default function EbayLinkingAdmin() {
         year: 2011,
         team: 'Toro Rosso',
         chassis: 'STR6',
-        drivers: ['Sebastien Buemi', 'Jaime Alguersuari'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1553,7 +1551,7 @@ export default function EbayLinkingAdmin() {
         year: 2011,
         team: 'Williams',
         chassis: 'FW33',
-        drivers: ['Rubens Barrichello', 'Pastor Maldonado'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1561,7 +1559,7 @@ export default function EbayLinkingAdmin() {
         year: 2011,
         team: 'HRT',
         chassis: 'F111',
-        drivers: ['Vitantonio Liuzzi', 'Narain Karthikeyan'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1569,7 +1567,7 @@ export default function EbayLinkingAdmin() {
         year: 2011,
         team: 'Team Lotus',
         chassis: 'T128',
-        drivers: ['Jarno Trulli', 'Heikki Kovalainen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1577,7 +1575,7 @@ export default function EbayLinkingAdmin() {
         year: 2011,
         team: 'Virgin Racing',
         chassis: 'MVR-02',
-        drivers: ['Timo Glock', 'Jerome d\'Ambrosio'],
+        driverGroups: [],
         models: [],
       },
 
@@ -1587,7 +1585,7 @@ export default function EbayLinkingAdmin() {
         year: 2010,
         team: 'Red Bull Racing',
         chassis: 'RB6',
-        drivers: ['Sebastian Vettel', 'Mark Webber'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1595,7 +1593,7 @@ export default function EbayLinkingAdmin() {
         year: 2010,
         team: 'McLaren',
         chassis: 'MP4-25',
-        drivers: ['Lewis Hamilton', 'Jenson Button'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1603,7 +1601,7 @@ export default function EbayLinkingAdmin() {
         year: 2010,
         team: 'Ferrari',
         chassis: 'F10',
-        drivers: ['Fernando Alonso', 'Felipe Massa'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1611,7 +1609,7 @@ export default function EbayLinkingAdmin() {
         year: 2010,
         team: 'Mercedes',
         chassis: 'W01',
-        drivers: ['Michael Schumacher', 'Nico Rosberg'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1619,7 +1617,7 @@ export default function EbayLinkingAdmin() {
         year: 2010,
         team: 'Renault',
         chassis: 'R30',
-        drivers: ['Robert Kubica', 'Vitaly Petrov'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1627,7 +1625,7 @@ export default function EbayLinkingAdmin() {
         year: 2010,
         team: 'Williams',
         chassis: 'FW32',
-        drivers: ['Rubens Barrichello', 'Nico Hulkenberg'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1635,7 +1633,7 @@ export default function EbayLinkingAdmin() {
         year: 2010,
         team: 'Force India',
         chassis: 'VJM03',
-        drivers: ['Adrian Sutil', 'Vitantonio Liuzzi'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1643,7 +1641,7 @@ export default function EbayLinkingAdmin() {
         year: 2010,
         team: 'Sauber',
         chassis: 'C29',
-        drivers: ['Kamui Kobayashi', 'Pedro de la Rosa'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1651,7 +1649,7 @@ export default function EbayLinkingAdmin() {
         year: 2010,
         team: 'Toro Rosso',
         chassis: 'STR5',
-        drivers: ['Sebastien Buemi', 'Jaime Alguersuari'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1659,7 +1657,7 @@ export default function EbayLinkingAdmin() {
         year: 2010,
         team: 'Lotus Racing',
         chassis: 'T127',
-        drivers: ['Jarno Trulli', 'Heikki Kovalainen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1667,7 +1665,7 @@ export default function EbayLinkingAdmin() {
         year: 2010,
         team: 'HRT',
         chassis: 'F110',
-        drivers: ['Karun Chandhok', 'Bruno Senna'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1675,7 +1673,7 @@ export default function EbayLinkingAdmin() {
         year: 2010,
         team: 'Virgin Racing',
         chassis: 'VR-01',
-        drivers: ['Timo Glock', 'Lucas di Grassi'],
+        driverGroups: [],
         models: [],
       },
 
@@ -1685,7 +1683,7 @@ export default function EbayLinkingAdmin() {
         year: 2009,
         team: 'Brawn GP',
         chassis: 'BGP 001',
-        drivers: ['Jenson Button', 'Rubens Barrichello'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1693,7 +1691,7 @@ export default function EbayLinkingAdmin() {
         year: 2009,
         team: 'Red Bull Racing',
         chassis: 'RB5',
-        drivers: ['Sebastian Vettel', 'Mark Webber'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1701,7 +1699,7 @@ export default function EbayLinkingAdmin() {
         year: 2009,
         team: 'McLaren',
         chassis: 'MP4-24',
-        drivers: ['Lewis Hamilton', 'Heikki Kovalainen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1709,7 +1707,7 @@ export default function EbayLinkingAdmin() {
         year: 2009,
         team: 'Ferrari',
         chassis: 'F60',
-        drivers: ['Kimi Raikkonen', 'Felipe Massa'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1717,7 +1715,7 @@ export default function EbayLinkingAdmin() {
         year: 2009,
         team: 'Toyota',
         chassis: 'TF109',
-        drivers: ['Jarno Trulli', 'Timo Glock'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1725,7 +1723,7 @@ export default function EbayLinkingAdmin() {
         year: 2009,
         team: 'BMW Sauber',
         chassis: 'F1.09',
-        drivers: ['Nick Heidfeld', 'Robert Kubica'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1733,7 +1731,7 @@ export default function EbayLinkingAdmin() {
         year: 2009,
         team: 'Williams',
         chassis: 'FW31',
-        drivers: ['Nico Rosberg', 'Kazuki Nakajima'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1741,7 +1739,7 @@ export default function EbayLinkingAdmin() {
         year: 2009,
         team: 'Renault',
         chassis: 'R29',
-        drivers: ['Fernando Alonso', 'Nelson Piquet Jr.'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1749,7 +1747,7 @@ export default function EbayLinkingAdmin() {
         year: 2009,
         team: 'Toro Rosso',
         chassis: 'STR4',
-        drivers: ['Sebastien Buemi', 'Sebastien Bourdais'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1757,7 +1755,7 @@ export default function EbayLinkingAdmin() {
         year: 2009,
         team: 'Force India',
         chassis: 'VJM02',
-        drivers: ['Giancarlo Fisichella', 'Adrian Sutil'],
+        driverGroups: [],
         models: [],
       },
 
@@ -1767,7 +1765,7 @@ export default function EbayLinkingAdmin() {
         year: 2008,
         team: 'McLaren',
         chassis: 'MP4-23',
-        drivers: ['Lewis Hamilton', 'Heikki Kovalainen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1775,7 +1773,7 @@ export default function EbayLinkingAdmin() {
         year: 2008,
         team: 'Ferrari',
         chassis: 'F2008',
-        drivers: ['Felipe Massa', 'Kimi Raikkonen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1783,7 +1781,7 @@ export default function EbayLinkingAdmin() {
         year: 2008,
         team: 'BMW Sauber',
         chassis: 'F1.08',
-        drivers: ['Robert Kubica', 'Nick Heidfeld'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1791,7 +1789,7 @@ export default function EbayLinkingAdmin() {
         year: 2008,
         team: 'Renault',
         chassis: 'R28',
-        drivers: ['Fernando Alonso', 'Nelson Piquet Jr.'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1799,7 +1797,7 @@ export default function EbayLinkingAdmin() {
         year: 2008,
         team: 'Toyota',
         chassis: 'TF108',
-        drivers: ['Jarno Trulli', 'Timo Glock'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1807,7 +1805,7 @@ export default function EbayLinkingAdmin() {
         year: 2008,
         team: 'Toro Rosso',
         chassis: 'STR3',
-        drivers: ['Sebastian Vettel', 'Sebastien Bourdais'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1815,7 +1813,7 @@ export default function EbayLinkingAdmin() {
         year: 2008,
         team: 'Red Bull Racing',
         chassis: 'RB4',
-        drivers: ['David Coulthard', 'Mark Webber'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1823,7 +1821,7 @@ export default function EbayLinkingAdmin() {
         year: 2008,
         team: 'Williams',
         chassis: 'FW30',
-        drivers: ['Nico Rosberg', 'Kazuki Nakajima'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1831,7 +1829,7 @@ export default function EbayLinkingAdmin() {
         year: 2008,
         team: 'Honda',
         chassis: 'RA108',
-        drivers: ['Rubens Barrichello', 'Jenson Button'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1839,7 +1837,7 @@ export default function EbayLinkingAdmin() {
         year: 2008,
         team: 'Force India',
         chassis: 'VJM01',
-        drivers: ['Giancarlo Fisichella', 'Adrian Sutil'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1847,7 +1845,7 @@ export default function EbayLinkingAdmin() {
         year: 2008,
         team: 'Super Aguri',
         chassis: 'SA08',
-        drivers: ['Takuma Sato', 'Anthony Davidson'],
+        driverGroups: [],
         models: [],
       },
 
@@ -1857,7 +1855,7 @@ export default function EbayLinkingAdmin() {
         year: 2007,
         team: 'Ferrari',
         chassis: 'F2007',
-        drivers: ['Kimi Raikkonen', 'Felipe Massa'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1865,7 +1863,7 @@ export default function EbayLinkingAdmin() {
         year: 2007,
         team: 'McLaren',
         chassis: 'MP4-22',
-        drivers: ['Fernando Alonso', 'Lewis Hamilton'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1873,7 +1871,7 @@ export default function EbayLinkingAdmin() {
         year: 2007,
         team: 'BMW Sauber',
         chassis: 'F1.07',
-        drivers: ['Nick Heidfeld', 'Robert Kubica'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1881,7 +1879,7 @@ export default function EbayLinkingAdmin() {
         year: 2007,
         team: 'Renault',
         chassis: 'R27',
-        drivers: ['Giancarlo Fisichella', 'Heikki Kovalainen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1889,7 +1887,7 @@ export default function EbayLinkingAdmin() {
         year: 2007,
         team: 'Williams',
         chassis: 'FW29',
-        drivers: ['Nico Rosberg', 'Alexander Wurz'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1897,7 +1895,7 @@ export default function EbayLinkingAdmin() {
         year: 2007,
         team: 'Toyota',
         chassis: 'TF107',
-        drivers: ['Ralf Schumacher', 'Jarno Trulli'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1905,7 +1903,7 @@ export default function EbayLinkingAdmin() {
         year: 2007,
         team: 'Red Bull Racing',
         chassis: 'RB3',
-        drivers: ['David Coulthard', 'Mark Webber'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1913,7 +1911,7 @@ export default function EbayLinkingAdmin() {
         year: 2007,
         team: 'Toro Rosso',
         chassis: 'STR2',
-        drivers: ['Vitantonio Liuzzi', 'Scott Speed'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1921,7 +1919,7 @@ export default function EbayLinkingAdmin() {
         year: 2007,
         team: 'Honda',
         chassis: 'RA107',
-        drivers: ['Rubens Barrichello', 'Jenson Button'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1929,7 +1927,7 @@ export default function EbayLinkingAdmin() {
         year: 2007,
         team: 'Super Aguri',
         chassis: 'SA07',
-        drivers: ['Takuma Sato', 'Anthony Davidson'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1937,7 +1935,7 @@ export default function EbayLinkingAdmin() {
         year: 2007,
         team: 'Spyker',
         chassis: 'F8-VII',
-        drivers: ['Adrian Sutil', 'Christijan Albers'],
+        driverGroups: [],
         models: [],
       },
 
@@ -1947,7 +1945,7 @@ export default function EbayLinkingAdmin() {
         year: 2006,
         team: 'Renault',
         chassis: 'R26',
-        drivers: ['Fernando Alonso', 'Giancarlo Fisichella'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1955,7 +1953,7 @@ export default function EbayLinkingAdmin() {
         year: 2006,
         team: 'Ferrari',
         chassis: '248 F1',
-        drivers: ['Michael Schumacher', 'Felipe Massa'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1963,7 +1961,7 @@ export default function EbayLinkingAdmin() {
         year: 2006,
         team: 'McLaren',
         chassis: 'MP4-21',
-        drivers: ['Kimi Raikkonen', 'Juan Pablo Montoya'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1971,7 +1969,7 @@ export default function EbayLinkingAdmin() {
         year: 2006,
         team: 'Honda',
         chassis: 'RA106',
-        drivers: ['Jenson Button', 'Rubens Barrichello'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1979,7 +1977,7 @@ export default function EbayLinkingAdmin() {
         year: 2006,
         team: 'BMW Sauber',
         chassis: 'F1.06',
-        drivers: ['Nick Heidfeld', 'Jacques Villeneuve'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1987,7 +1985,7 @@ export default function EbayLinkingAdmin() {
         year: 2006,
         team: 'Toyota',
         chassis: 'TF106',
-        drivers: ['Ralf Schumacher', 'Jarno Trulli'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -1995,7 +1993,7 @@ export default function EbayLinkingAdmin() {
         year: 2006,
         team: 'Williams',
         chassis: 'FW28',
-        drivers: ['Mark Webber', 'Nico Rosberg'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2003,7 +2001,7 @@ export default function EbayLinkingAdmin() {
         year: 2006,
         team: 'Red Bull Racing',
         chassis: 'RB2',
-        drivers: ['David Coulthard', 'Christian Klien'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2011,7 +2009,7 @@ export default function EbayLinkingAdmin() {
         year: 2006,
         team: 'Toro Rosso',
         chassis: 'STR1',
-        drivers: ['Vitantonio Liuzzi', 'Scott Speed'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2019,7 +2017,7 @@ export default function EbayLinkingAdmin() {
         year: 2006,
         team: 'Midland F1',
         chassis: 'M16',
-        drivers: ['Christijan Albers', 'Tiago Monteiro'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2027,7 +2025,7 @@ export default function EbayLinkingAdmin() {
         year: 2006,
         team: 'Super Aguri',
         chassis: 'SA05',
-        drivers: ['Takuma Sato', 'Yuji Ide'],
+        driverGroups: [],
         models: [],
       },
 
@@ -2037,7 +2035,7 @@ export default function EbayLinkingAdmin() {
         year: 2005,
         team: 'Renault',
         chassis: 'R25',
-        drivers: ['Fernando Alonso', 'Giancarlo Fisichella'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2045,7 +2043,7 @@ export default function EbayLinkingAdmin() {
         year: 2005,
         team: 'McLaren',
         chassis: 'MP4-20',
-        drivers: ['Kimi Raikkonen', 'Juan Pablo Montoya'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2053,7 +2051,7 @@ export default function EbayLinkingAdmin() {
         year: 2005,
         team: 'Ferrari',
         chassis: 'F2005',
-        drivers: ['Michael Schumacher', 'Rubens Barrichello'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2061,7 +2059,7 @@ export default function EbayLinkingAdmin() {
         year: 2005,
         team: 'Toyota',
         chassis: 'TF105',
-        drivers: ['Ralf Schumacher', 'Jarno Trulli'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2069,7 +2067,7 @@ export default function EbayLinkingAdmin() {
         year: 2005,
         team: 'Williams',
         chassis: 'FW27',
-        drivers: ['Mark Webber', 'Nick Heidfeld'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2077,7 +2075,7 @@ export default function EbayLinkingAdmin() {
         year: 2005,
         team: 'Sauber',
         chassis: 'C24',
-        drivers: ['Jacques Villeneuve', 'Felipe Massa'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2085,7 +2083,7 @@ export default function EbayLinkingAdmin() {
         year: 2005,
         team: 'Red Bull Racing',
         chassis: 'RB1',
-        drivers: ['David Coulthard', 'Christian Klien'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2093,7 +2091,7 @@ export default function EbayLinkingAdmin() {
         year: 2005,
         team: 'BAR',
         chassis: '007',
-        drivers: ['Jenson Button', 'Takuma Sato'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2101,7 +2099,7 @@ export default function EbayLinkingAdmin() {
         year: 2005,
         team: 'Jordan',
         chassis: 'EJ15',
-        drivers: ['Tiago Monteiro', 'Narain Karthikeyan'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2109,7 +2107,7 @@ export default function EbayLinkingAdmin() {
         year: 2005,
         team: 'Minardi',
         chassis: 'PS05',
-        drivers: ['Christijan Albers', 'Patrick Friesacher'],
+        driverGroups: [],
         models: [],
       },
 
@@ -2119,7 +2117,7 @@ export default function EbayLinkingAdmin() {
         year: 2004,
         team: 'Ferrari',
         chassis: 'F2004',
-        drivers: ['Michael Schumacher', 'Rubens Barrichello'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2127,7 +2125,7 @@ export default function EbayLinkingAdmin() {
         year: 2004,
         team: 'BAR',
         chassis: '006',
-        drivers: ['Jenson Button', 'Takuma Sato'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2135,7 +2133,7 @@ export default function EbayLinkingAdmin() {
         year: 2004,
         team: 'Renault',
         chassis: 'R24',
-        drivers: ['Jarno Trulli', 'Fernando Alonso'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2143,7 +2141,7 @@ export default function EbayLinkingAdmin() {
         year: 2004,
         team: 'Williams',
         chassis: 'FW26',
-        drivers: ['Juan Pablo Montoya', 'Ralf Schumacher'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2151,7 +2149,7 @@ export default function EbayLinkingAdmin() {
         year: 2004,
         team: 'McLaren',
         chassis: 'MP4-19',
-        drivers: ['David Coulthard', 'Kimi Raikkonen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2159,7 +2157,7 @@ export default function EbayLinkingAdmin() {
         year: 2004,
         team: 'Sauber',
         chassis: 'C23',
-        drivers: ['Giancarlo Fisichella', 'Felipe Massa'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2167,7 +2165,7 @@ export default function EbayLinkingAdmin() {
         year: 2004,
         team: 'Jaguar',
         chassis: 'R5',
-        drivers: ['Mark Webber', 'Christian Klien'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2175,7 +2173,7 @@ export default function EbayLinkingAdmin() {
         year: 2004,
         team: 'Toyota',
         chassis: 'TF104',
-        drivers: ['Olivier Panis', 'Cristiano da Matta'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2183,7 +2181,7 @@ export default function EbayLinkingAdmin() {
         year: 2004,
         team: 'Jordan',
         chassis: 'EJ14',
-        drivers: ['Nick Heidfeld', 'Giorgio Pantano'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2191,7 +2189,7 @@ export default function EbayLinkingAdmin() {
         year: 2004,
         team: 'Minardi',
         chassis: 'PS04',
-        drivers: ['Gianmaria Bruni', 'Zsolt Baumgartner'],
+        driverGroups: [],
         models: [],
       },
 
@@ -2201,7 +2199,7 @@ export default function EbayLinkingAdmin() {
         year: 2003,
         team: 'Ferrari',
         chassis: 'F2003-GA',
-        drivers: ['Michael Schumacher', 'Rubens Barrichello'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2209,7 +2207,7 @@ export default function EbayLinkingAdmin() {
         year: 2003,
         team: 'Williams',
         chassis: 'FW25',
-        drivers: ['Juan Pablo Montoya', 'Ralf Schumacher'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2217,7 +2215,7 @@ export default function EbayLinkingAdmin() {
         year: 2003,
         team: 'McLaren',
         chassis: 'MP4-17D',
-        drivers: ['Kimi Raikkonen', 'David Coulthard'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2225,7 +2223,7 @@ export default function EbayLinkingAdmin() {
         year: 2003,
         team: 'Renault',
         chassis: 'R23',
-        drivers: ['Fernando Alonso', 'Jarno Trulli'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2233,7 +2231,7 @@ export default function EbayLinkingAdmin() {
         year: 2003,
         team: 'Sauber',
         chassis: 'C22',
-        drivers: ['Nick Heidfeld', 'Heinz-Harald Frentzen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2241,7 +2239,7 @@ export default function EbayLinkingAdmin() {
         year: 2003,
         team: 'Jaguar',
         chassis: 'R4',
-        drivers: ['Mark Webber', 'Antônio Pizzonia'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2249,7 +2247,7 @@ export default function EbayLinkingAdmin() {
         year: 2003,
         team: 'Toyota',
         chassis: 'TF103',
-        drivers: ['Olivier Panis', 'Cristiano da Matta'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2257,7 +2255,7 @@ export default function EbayLinkingAdmin() {
         year: 2003,
         team: 'Jordan',
         chassis: 'EJ13',
-        drivers: ['Giancarlo Fisichella', 'Ralph Firman'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2265,7 +2263,7 @@ export default function EbayLinkingAdmin() {
         year: 2003,
         team: 'BAR',
         chassis: '005',
-        drivers: ['Jacques Villeneuve', 'Jenson Button'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2273,7 +2271,7 @@ export default function EbayLinkingAdmin() {
         year: 2003,
         team: 'Minardi',
         chassis: 'PS03',
-        drivers: ['Jos Verstappen', 'Justin Wilson'],
+        driverGroups: [],
         models: [],
       },
 
@@ -2283,7 +2281,7 @@ export default function EbayLinkingAdmin() {
         year: 2002,
         team: 'Ferrari',
         chassis: 'F2002',
-        drivers: ['Michael Schumacher', 'Rubens Barrichello'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2291,7 +2289,7 @@ export default function EbayLinkingAdmin() {
         year: 2002,
         team: 'Williams',
         chassis: 'FW24',
-        drivers: ['Juan Pablo Montoya', 'Ralf Schumacher'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2299,7 +2297,7 @@ export default function EbayLinkingAdmin() {
         year: 2002,
         team: 'McLaren',
         chassis: 'MP4-17',
-        drivers: ['David Coulthard', 'Kimi Raikkonen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2307,7 +2305,7 @@ export default function EbayLinkingAdmin() {
         year: 2002,
         team: 'Renault',
         chassis: 'R202',
-        drivers: ['Jenson Button', 'Jarno Trulli'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2315,7 +2313,7 @@ export default function EbayLinkingAdmin() {
         year: 2002,
         team: 'Sauber',
         chassis: 'C21',
-        drivers: ['Nick Heidfeld', 'Felipe Massa'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2323,7 +2321,7 @@ export default function EbayLinkingAdmin() {
         year: 2002,
         team: 'Jordan',
         chassis: 'EJ12',
-        drivers: ['Giancarlo Fisichella', 'Takuma Sato'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2331,7 +2329,7 @@ export default function EbayLinkingAdmin() {
         year: 2002,
         team: 'BAR',
         chassis: '004',
-        drivers: ['Jacques Villeneuve', 'Olivier Panis'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2339,7 +2337,7 @@ export default function EbayLinkingAdmin() {
         year: 2002,
         team: 'Jaguar',
         chassis: 'R3',
-        drivers: ['Eddie Irvine', 'Pedro de la Rosa'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2347,7 +2345,7 @@ export default function EbayLinkingAdmin() {
         year: 2002,
         team: 'Toyota',
         chassis: 'TF102',
-        drivers: ['Mika Salo', 'Allan McNish'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2355,7 +2353,7 @@ export default function EbayLinkingAdmin() {
         year: 2002,
         team: 'Minardi',
         chassis: 'PS02',
-        drivers: ['Alex Yoong', 'Mark Webber'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2363,7 +2361,7 @@ export default function EbayLinkingAdmin() {
         year: 2002,
         team: 'Arrows',
         chassis: 'A23',
-        drivers: ['Heinz-Harald Frentzen', 'Enrique Bernoldi'],
+        driverGroups: [],
         models: [],
       },
 
@@ -2373,7 +2371,7 @@ export default function EbayLinkingAdmin() {
         year: 2001,
         team: 'Ferrari',
         chassis: 'F2001',
-        drivers: ['Michael Schumacher', 'Rubens Barrichello'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2381,7 +2379,7 @@ export default function EbayLinkingAdmin() {
         year: 2001,
         team: 'McLaren',
         chassis: 'MP4-16',
-        drivers: ['David Coulthard', 'Mika Hakkinen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2389,7 +2387,7 @@ export default function EbayLinkingAdmin() {
         year: 2001,
         team: 'Williams',
         chassis: 'FW23',
-        drivers: ['Ralf Schumacher', 'Juan Pablo Montoya'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2397,7 +2395,7 @@ export default function EbayLinkingAdmin() {
         year: 2001,
         team: 'Sauber',
         chassis: 'C20',
-        drivers: ['Nick Heidfeld', 'Kimi Raikkonen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2405,7 +2403,7 @@ export default function EbayLinkingAdmin() {
         year: 2001,
         team: 'Jordan',
         chassis: 'EJ11',
-        drivers: ['Jarno Trulli', 'Heinz-Harald Frentzen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2413,7 +2411,7 @@ export default function EbayLinkingAdmin() {
         year: 2001,
         team: 'BAR',
         chassis: '003',
-        drivers: ['Jacques Villeneuve', 'Olivier Panis'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2421,7 +2419,7 @@ export default function EbayLinkingAdmin() {
         year: 2001,
         team: 'Benetton',
         chassis: 'B201',
-        drivers: ['Giancarlo Fisichella', 'Jenson Button'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2429,7 +2427,7 @@ export default function EbayLinkingAdmin() {
         year: 2001,
         team: 'Jaguar',
         chassis: 'R2',
-        drivers: ['Eddie Irvine', 'Pedro de la Rosa'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2437,7 +2435,7 @@ export default function EbayLinkingAdmin() {
         year: 2001,
         team: 'Prost',
         chassis: 'AP04',
-        drivers: ['Jean Alesi', 'Luciano Burti'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2445,7 +2443,7 @@ export default function EbayLinkingAdmin() {
         year: 2001,
         team: 'Arrows',
         chassis: 'A22',
-        drivers: ['Jos Verstappen', 'Enrique Bernoldi'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2453,7 +2451,7 @@ export default function EbayLinkingAdmin() {
         year: 2001,
         team: 'Minardi',
         chassis: 'PS01',
-        drivers: ['Fernando Alonso', 'Tarso Marques'],
+        driverGroups: [],
         models: [],
       },
 
@@ -2463,7 +2461,7 @@ export default function EbayLinkingAdmin() {
         year: 2000,
         team: 'Ferrari',
         chassis: 'F1-2000',
-        drivers: ['Michael Schumacher', 'Rubens Barrichello'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2471,7 +2469,7 @@ export default function EbayLinkingAdmin() {
         year: 2000,
         team: 'McLaren',
         chassis: 'MP4-15',
-        drivers: ['Mika Hakkinen', 'David Coulthard'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2479,7 +2477,7 @@ export default function EbayLinkingAdmin() {
         year: 2000,
         team: 'Williams',
         chassis: 'FW22',
-        drivers: ['Ralf Schumacher', 'Jenson Button'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2487,7 +2485,7 @@ export default function EbayLinkingAdmin() {
         year: 2000,
         team: 'Benetton',
         chassis: 'B200',
-        drivers: ['Giancarlo Fisichella', 'Alexander Wurz'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2495,7 +2493,7 @@ export default function EbayLinkingAdmin() {
         year: 2000,
         team: 'Jordan',
         chassis: 'EJ10',
-        drivers: ['Heinz-Harald Frentzen', 'Jarno Trulli'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2503,7 +2501,7 @@ export default function EbayLinkingAdmin() {
         year: 2000,
         team: 'BAR',
         chassis: '002',
-        drivers: ['Jacques Villeneuve', 'Ricardo Zonta'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2511,7 +2509,7 @@ export default function EbayLinkingAdmin() {
         year: 2000,
         team: 'Arrows',
         chassis: 'A21',
-        drivers: ['Pedro de la Rosa', 'Jos Verstappen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2519,7 +2517,7 @@ export default function EbayLinkingAdmin() {
         year: 2000,
         team: 'Sauber',
         chassis: 'C19',
-        drivers: ['Pedro Diniz', 'Mika Salo'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2527,7 +2525,7 @@ export default function EbayLinkingAdmin() {
         year: 2000,
         team: 'Jaguar',
         chassis: 'R1',
-        drivers: ['Eddie Irvine', 'Johnny Herbert'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2535,7 +2533,7 @@ export default function EbayLinkingAdmin() {
         year: 2000,
         team: 'Minardi',
         chassis: 'M02',
-        drivers: ['Marc Gene', 'Gaston Mazzacane'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2543,7 +2541,7 @@ export default function EbayLinkingAdmin() {
         year: 2000,
         team: 'Prost',
         chassis: 'AP03',
-        drivers: ['Jean Alesi', 'Nick Heidfeld'],
+        driverGroups: [],
         models: [],
       },
 
@@ -2553,7 +2551,7 @@ export default function EbayLinkingAdmin() {
         year: 1999,
         team: 'Ferrari',
         chassis: 'F399',
-        drivers: ['Michael Schumacher', 'Eddie Irvine'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2561,7 +2559,7 @@ export default function EbayLinkingAdmin() {
         year: 1999,
         team: 'McLaren',
         chassis: 'MP4/14',
-        drivers: ['Mika Hakkinen', 'David Coulthard'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2569,7 +2567,7 @@ export default function EbayLinkingAdmin() {
         year: 1999,
         team: 'Jordan',
         chassis: '199',
-        drivers: ['Damon Hill', 'Heinz-Harald Frentzen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2577,7 +2575,7 @@ export default function EbayLinkingAdmin() {
         year: 1999,
         team: 'Williams',
         chassis: 'FW21',
-        drivers: ['Alex Zanardi', 'Ralf Schumacher'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2585,7 +2583,7 @@ export default function EbayLinkingAdmin() {
         year: 1999,
         team: 'Benetton',
         chassis: 'B199',
-        drivers: ['Giancarlo Fisichella', 'Alexander Wurz'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2593,7 +2591,7 @@ export default function EbayLinkingAdmin() {
         year: 1999,
         team: 'Stewart',
         chassis: 'SF3',
-        drivers: ['Rubens Barrichello', 'Johnny Herbert'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2601,7 +2599,7 @@ export default function EbayLinkingAdmin() {
         year: 1999,
         team: 'Prost',
         chassis: 'AP02',
-        drivers: ['Olivier Panis', 'Jarno Trulli'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2609,7 +2607,7 @@ export default function EbayLinkingAdmin() {
         year: 1999,
         team: 'Sauber',
         chassis: 'C18',
-        drivers: ['Jean Alesi', 'Pedro Diniz'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2617,7 +2615,7 @@ export default function EbayLinkingAdmin() {
         year: 1999,
         team: 'Arrows',
         chassis: 'A20',
-        drivers: ['Pedro de la Rosa', 'Toranosuke Takagi'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2625,7 +2623,7 @@ export default function EbayLinkingAdmin() {
         year: 1999,
         team: 'Minardi',
         chassis: 'M01',
-        drivers: ['Luca Badoer', 'Marc Gene'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2633,7 +2631,7 @@ export default function EbayLinkingAdmin() {
         year: 1999,
         team: 'BAR',
         chassis: '01',
-        drivers: ['Jacques Villeneuve', 'Ricardo Zonta'],
+        driverGroups: [],
         models: [],
       },
 
@@ -2643,7 +2641,7 @@ export default function EbayLinkingAdmin() {
         year: 1998,
         team: 'McLaren',
         chassis: 'MP4/13',
-        drivers: ['Mika Hakkinen', 'David Coulthard'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2651,7 +2649,7 @@ export default function EbayLinkingAdmin() {
         year: 1998,
         team: 'Ferrari',
         chassis: 'F300',
-        drivers: ['Michael Schumacher', 'Eddie Irvine'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2659,7 +2657,7 @@ export default function EbayLinkingAdmin() {
         year: 1998,
         team: 'Williams',
         chassis: 'FW20',
-        drivers: ['Jacques Villeneuve', 'Heinz-Harald Frentzen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2667,7 +2665,7 @@ export default function EbayLinkingAdmin() {
         year: 1998,
         team: 'Jordan',
         chassis: '198',
-        drivers: ['Damon Hill', 'Ralf Schumacher'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2675,7 +2673,7 @@ export default function EbayLinkingAdmin() {
         year: 1998,
         team: 'Benetton',
         chassis: 'B198',
-        drivers: ['Giancarlo Fisichella', 'Alexander Wurz'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2683,7 +2681,7 @@ export default function EbayLinkingAdmin() {
         year: 1998,
         team: 'Sauber',
         chassis: 'C17',
-        drivers: ['Johnny Herbert', 'Jean Alesi'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2691,7 +2689,7 @@ export default function EbayLinkingAdmin() {
         year: 1998,
         team: 'Arrows',
         chassis: 'A19',
-        drivers: ['Mika Salo', 'Pedro Diniz'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2699,7 +2697,7 @@ export default function EbayLinkingAdmin() {
         year: 1998,
         team: 'Stewart',
         chassis: 'SF02',
-        drivers: ['Rubens Barrichello', 'Jan Magnussen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2707,7 +2705,7 @@ export default function EbayLinkingAdmin() {
         year: 1998,
         team: 'Prost',
         chassis: 'AP01',
-        drivers: ['Olivier Panis', 'Jarno Trulli'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2715,7 +2713,7 @@ export default function EbayLinkingAdmin() {
         year: 1998,
         team: 'Tyrrell',
         chassis: '026',
-        drivers: ['Ricardo Rosset', 'Toranosuke Takagi'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2723,7 +2721,7 @@ export default function EbayLinkingAdmin() {
         year: 1998,
         team: 'Minardi',
         chassis: 'M198',
-        drivers: ['Shinji Nakano', 'Esteban Tuero'],
+        driverGroups: [],
         models: [],
       },
 
@@ -2733,7 +2731,7 @@ export default function EbayLinkingAdmin() {
         year: 1997,
         team: 'Williams',
         chassis: 'FW19',
-        drivers: ['Jacques Villeneuve', 'Heinz-Harald Frentzen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2741,7 +2739,7 @@ export default function EbayLinkingAdmin() {
         year: 1997,
         team: 'Ferrari',
         chassis: 'F310B',
-        drivers: ['Michael Schumacher', 'Eddie Irvine'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2749,7 +2747,7 @@ export default function EbayLinkingAdmin() {
         year: 1997,
         team: 'Benetton',
         chassis: 'B197',
-        drivers: ['Jean Alesi', 'Gerhard Berger'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2757,7 +2755,7 @@ export default function EbayLinkingAdmin() {
         year: 1997,
         team: 'McLaren',
         chassis: 'MP4/12',
-        drivers: ['David Coulthard', 'Mika Hakkinen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2765,7 +2763,7 @@ export default function EbayLinkingAdmin() {
         year: 1997,
         team: 'Jordan',
         chassis: '197',
-        drivers: ['Giancarlo Fisichella', 'Ralf Schumacher'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2773,7 +2771,7 @@ export default function EbayLinkingAdmin() {
         year: 1997,
         team: 'Prost',
         chassis: 'JS45',
-        drivers: ['Olivier Panis', 'Shinji Nakano'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2781,7 +2779,7 @@ export default function EbayLinkingAdmin() {
         year: 1997,
         team: 'Sauber',
         chassis: 'C16',
-        drivers: ['Johnny Herbert', 'Nicola Larini'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2789,7 +2787,7 @@ export default function EbayLinkingAdmin() {
         year: 1997,
         team: 'Arrows',
         chassis: 'A18',
-        drivers: ['Damon Hill', 'Pedro Diniz'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2797,7 +2795,7 @@ export default function EbayLinkingAdmin() {
         year: 1997,
         team: 'Stewart',
         chassis: 'SF01',
-        drivers: ['Rubens Barrichello', 'Jan Magnussen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2805,7 +2803,7 @@ export default function EbayLinkingAdmin() {
         year: 1997,
         team: 'Tyrrell',
         chassis: '025',
-        drivers: ['Mika Salo', 'Jos Verstappen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2813,7 +2811,7 @@ export default function EbayLinkingAdmin() {
         year: 1997,
         team: 'Minardi',
         chassis: 'M197',
-        drivers: ['Ukyo Katayama', 'Jarno Trulli'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2821,7 +2819,7 @@ export default function EbayLinkingAdmin() {
         year: 1997,
         team: 'Lola',
         chassis: 'T97/30',
-        drivers: ['Vincenzo Sospiri', 'Ricardo Rosset'],
+        driverGroups: [],
         models: [],
       },
 
@@ -2831,7 +2829,7 @@ export default function EbayLinkingAdmin() {
         year: 1996,
         team: 'Williams',
         chassis: 'FW18',
-        drivers: ['Damon Hill', 'Jacques Villeneuve'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2839,7 +2837,7 @@ export default function EbayLinkingAdmin() {
         year: 1996,
         team: 'Ferrari',
         chassis: 'F310',
-        drivers: ['Michael Schumacher', 'Eddie Irvine'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2847,7 +2845,7 @@ export default function EbayLinkingAdmin() {
         year: 1996,
         team: 'Benetton',
         chassis: 'B196',
-        drivers: ['Jean Alesi', 'Gerhard Berger'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2855,7 +2853,7 @@ export default function EbayLinkingAdmin() {
         year: 1996,
         team: 'McLaren',
         chassis: 'MP4/11',
-        drivers: ['David Coulthard', 'Mika Hakkinen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2863,7 +2861,7 @@ export default function EbayLinkingAdmin() {
         year: 1996,
         team: 'Jordan',
         chassis: '196',
-        drivers: ['Rubens Barrichello', 'Martin Brundle'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2871,7 +2869,7 @@ export default function EbayLinkingAdmin() {
         year: 1996,
         team: 'Ligier',
         chassis: 'JS43',
-        drivers: ['Olivier Panis', 'Pedro Diniz'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2879,7 +2877,7 @@ export default function EbayLinkingAdmin() {
         year: 1996,
         team: 'Sauber',
         chassis: 'C15',
-        drivers: ['Johnny Herbert', 'Heinz-Harald Frentzen'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2887,7 +2885,7 @@ export default function EbayLinkingAdmin() {
         year: 1996,
         team: 'Tyrrell',
         chassis: '024',
-        drivers: ['Ukyo Katayama', 'Mika Salo'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2895,7 +2893,7 @@ export default function EbayLinkingAdmin() {
         year: 1996,
         team: 'Footwork',
         chassis: 'FA17',
-        drivers: ['Jos Verstappen', 'Ricardo Rosset'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2903,7 +2901,7 @@ export default function EbayLinkingAdmin() {
         year: 1996,
         team: 'Minardi',
         chassis: 'M195B',
-        drivers: ['Giancarlo Fisichella', 'Pedro Lamy'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2911,7 +2909,7 @@ export default function EbayLinkingAdmin() {
         year: 1996,
         team: 'Forti',
         chassis: 'FG03',
-        drivers: ['Luca Badoer', 'Andrea Montermini'],
+        driverGroups: [],
         models: [],
       },
 
@@ -2921,7 +2919,7 @@ export default function EbayLinkingAdmin() {
         year: 1995,
         team: 'Benetton',
         chassis: 'B195',
-        drivers: ['Michael Schumacher', 'Johnny Herbert'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2929,7 +2927,7 @@ export default function EbayLinkingAdmin() {
         year: 1995,
         team: 'Williams',
         chassis: 'FW17',
-        drivers: ['Damon Hill', 'David Coulthard'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2937,7 +2935,7 @@ export default function EbayLinkingAdmin() {
         year: 1995,
         team: 'Ferrari',
         chassis: '412 T2',
-        drivers: ['Jean Alesi', 'Gerhard Berger'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2945,7 +2943,7 @@ export default function EbayLinkingAdmin() {
         year: 1995,
         team: 'McLaren',
         chassis: 'MP4/10',
-        drivers: ['Mika Hakkinen', 'Mark Blundell'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2953,7 +2951,7 @@ export default function EbayLinkingAdmin() {
         year: 1995,
         team: 'Ligier',
         chassis: 'JS41',
-        drivers: ['Martin Brundle', 'Olivier Panis'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2961,7 +2959,7 @@ export default function EbayLinkingAdmin() {
         year: 1995,
         team: 'Jordan',
         chassis: '195',
-        drivers: ['Rubens Barrichello', 'Eddie Irvine'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2969,7 +2967,7 @@ export default function EbayLinkingAdmin() {
         year: 1995,
         team: 'Sauber',
         chassis: 'C14',
-        drivers: ['Heinz-Harald Frentzen', 'Jean-Christophe Boullion'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2977,7 +2975,7 @@ export default function EbayLinkingAdmin() {
         year: 1995,
         team: 'Footwork',
         chassis: 'FA16',
-        drivers: ['Giancarlo Fisichella', 'Max Papis'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2985,7 +2983,7 @@ export default function EbayLinkingAdmin() {
         year: 1995,
         team: 'Tyrrell',
         chassis: '023',
-        drivers: ['Mika Salo', 'Ukyo Katayama'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -2993,7 +2991,7 @@ export default function EbayLinkingAdmin() {
         year: 1995,
         team: 'Minardi',
         chassis: 'M195',
-        drivers: ['Pierluigi Martini', 'Luca Badoer'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -3001,7 +2999,7 @@ export default function EbayLinkingAdmin() {
         year: 1995,
         team: 'Forti',
         chassis: 'FG01',
-        drivers: ['Pedro Diniz', 'Roberto Moreno'],
+        driverGroups: [],
         models: [],
       },
       {
@@ -3009,7 +3007,7 @@ export default function EbayLinkingAdmin() {
         year: 1995,
         team: 'Pacific',
         chassis: 'PR02',
-        drivers: ['Andrea Montermini', 'Giovanni Lavaggi'],
+        driverGroups: [],
         models: [],
       },
     ];
@@ -3813,6 +3811,7 @@ export default function EbayLinkingAdmin() {
                             {/* Linking Status Box */}
                             <div className="bg-gray-800/20 border border-gray-700/30 rounded-lg p-3 space-y-3">
                               {/* eBay Status */}
+                              {console.log('Model eBay data:', { id: model.id, ebayLinked: model.ebayLinked, ebayUrl: model.ebayUrl, ebayPrice: model.ebayPrice })}
                               {model.ebayLinked ? (
                                 <div>
                                   <div className="flex items-center gap-2 mb-1">
