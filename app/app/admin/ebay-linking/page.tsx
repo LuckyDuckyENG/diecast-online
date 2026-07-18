@@ -2825,9 +2825,20 @@ export default function EbayLinkingAdmin() {
     if (!confirm('Remove eBay link for this model?')) return;
 
     try {
-      // TODO: Remove from Supabase
       console.log('Removing eBay link for model:', model.id);
 
+      // Delete from Supabase
+      const response = await fetch('/api/admin/delete-ebay-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modelId: model.id }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete eBay link from database');
+      }
+
+      // Update local state
       setF1Cars((prev) =>
         prev.map((car) =>
           car.id === carId
@@ -2852,10 +2863,55 @@ export default function EbayLinkingAdmin() {
         )
       );
 
-      alert('eBay link removed');
+      alert('✅ eBay link removed');
     } catch (error) {
       console.error('Error removing eBay link:', error);
-      alert('Failed to remove eBay link');
+      alert('❌ Failed to remove eBay link');
+    }
+  };
+
+  const deleteModel = async (carId: string, model: DiecastModel, returnToInventory: boolean = false) => {
+    const action = returnToInventory ? 'move back to inventory' : 'delete permanently';
+    if (!confirm(`Are you sure you want to ${action} "${model.name}"?`)) return;
+
+    try {
+      console.log('Deleting model:', model.id);
+
+      // Delete from Supabase
+      const response = await fetch('/api/admin/delete-model', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modelId: model.id }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete model from database');
+      }
+
+      // Remove from cars list
+      setF1Cars((prev) =>
+        prev.map((car) =>
+          car.id === carId
+            ? {
+                ...car,
+                driverGroups: car.driverGroups.map((dg) => ({
+                  ...dg,
+                  models: dg.models.filter((m) => m.id !== model.id),
+                })),
+              }
+            : car
+        )
+      );
+
+      // Optionally add back to inventory
+      if (returnToInventory && model.discoveredFrom) {
+        setInventoryItems((prev) => [...prev, model]);
+      }
+
+      alert(returnToInventory ? '✅ Model moved back to inventory' : '✅ Model deleted');
+    } catch (error) {
+      console.error('Error deleting model:', error);
+      alert('❌ Failed to delete model');
     }
   };
 
@@ -3418,14 +3474,14 @@ export default function EbayLinkingAdmin() {
                                 )}
                               </div>
 
-                              <div className="flex gap-2">
+                              <div className="flex gap-2 flex-wrap">
                                 <button
                                   onClick={() => searchRetailers(model, car)}
                                   disabled={loadingRetailers}
                                   className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50"
                                   title="Show existing retailer links from database"
                                 >
-                                  🏪 Search Retailers
+                                  🏪 Retailers
                                 </button>
                                 <button
                                   onClick={() => refreshRetailers(model, car)}
@@ -3441,16 +3497,31 @@ export default function EbayLinkingAdmin() {
                                     disabled={loading}
                                     className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
                                   >
-                                    🔍 Search eBay
+                                    🔍 eBay
                                   </button>
                                 ) : (
                                   <button
                                     onClick={() => removeEbayLink(car.id, model)}
-                                    className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
+                                    className="px-3 py-1.5 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700"
+                                    title="Remove eBay link only"
                                   >
-                                    Remove
+                                    ❌ Unlink
                                   </button>
                                 )}
+                                <button
+                                  onClick={() => deleteModel(car.id, model, true)}
+                                  className="px-3 py-1.5 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700"
+                                  title="Move back to inventory"
+                                >
+                                  ↩️ Return
+                                </button>
+                                <button
+                                  onClick={() => deleteModel(car.id, model, false)}
+                                  className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
+                                  title="Delete permanently from database"
+                                >
+                                  🗑️ Delete
+                                </button>
                               </div>
                             </div>
 
