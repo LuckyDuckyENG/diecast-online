@@ -76,7 +76,7 @@ export default function MasterCarPage() {
           console.error('Error fetching variants:', variantsError);
         }
 
-        // For each variant, fetch retailer prices
+        // For each variant, fetch retailer prices AND eBay links
         const variantsWithPrices = await Promise.all(
           (modelVariants || []).map(async (variant: any) => {
             const { data: priceData } = await supabase
@@ -94,17 +94,44 @@ export default function MasterCarPage() {
               .order('in_stock', { ascending: false })
               .order('price_aud', { ascending: true });
 
+            // Fetch eBay link for this variant
+            const { data: ebayLink } = await supabase
+              .from('ebay_links')
+              .select('*')
+              .eq('model_id', variant.id)
+              .single();
+
+            // Build retailers array from price_history
+            const retailers = (priceData || []).map((item: any) => ({
+              name: item.retailer?.name || 'Unknown',
+              price: parseFloat(item.price) || 0,
+              currency: item.currency || 'AUD',
+              priceAUD: parseFloat(item.price_aud) || parseFloat(item.price) || 0,
+              inStock: item.in_stock !== false, // Default to true if null
+              url: item.product_url || item.retailer?.url || '#',
+            }));
+
+            // Add eBay as a retailer if eBay link exists
+            if (ebayLink) {
+              const ebayPrice = parseFloat(ebayLink.ebay_price?.replace(/[^0-9.]/g, '') || '0');
+              if (ebayPrice > 0) {
+                retailers.push({
+                  name: 'eBay',
+                  price: ebayPrice,
+                  currency: 'USD',
+                  priceAUD: ebayPrice, // You may want to convert USD to AUD
+                  inStock: true,
+                  url: ebayLink.ebay_url,
+                });
+              }
+            }
+
             return {
               ...variant,
-              retailers: (priceData || []).map((item: any) => ({
-                name: item.retailer?.name || 'Unknown',
-                price: parseFloat(item.price) || 0,
-                currency: item.currency || 'AUD',
-                priceAUD: parseFloat(item.price_aud) || parseFloat(item.price) || 0,
-                inStock: item.in_stock !== false, // Default to true if null
-                url: item.product_url || item.retailer?.url || '#',
-              })),
-              lowestPrice: priceData?.find((p: any) => p.in_stock !== false)?.price_aud || priceData?.[0]?.price_aud || null,
+              retailers: retailers,
+              lowestPrice: retailers.length > 0
+                ? Math.min(...retailers.filter(r => r.inStock).map(r => r.priceAUD))
+                : null,
             };
           })
         );
