@@ -3558,8 +3558,53 @@ export default function EbayLinkingAdmin() {
                     </div>
                   </div>
 
-                  <div className="text-[var(--text-secondary)]">
-                    {isExpanded ? '▼' : '▶'}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // TODO: Open edit car modal
+                        alert('Edit car coming soon!');
+                      }}
+                      className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                      title="Edit car details and link drivers"
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (confirm(`Delete ${car.year} ${car.team} ${car.chassis} and all its models?\n\nThis will permanently delete ${totalModels} model(s).`)) {
+                          try {
+                            const response = await fetch('/api/admin/delete-car', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ carId: car.id }),
+                            });
+
+                            if (response.ok) {
+                              alert('✅ Car deleted successfully');
+                              // Refresh data
+                              const refreshResponse = await fetch('/api/admin/get-f1-data');
+                              const refreshData = await refreshResponse.json();
+                              if (refreshData.success) {
+                                setF1Cars(refreshData.cars);
+                              }
+                            } else {
+                              alert('❌ Failed to delete car');
+                            }
+                          } catch (error) {
+                            alert('❌ Error deleting car');
+                          }
+                        }
+                      }}
+                      className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+                      title="Delete this car and all its models"
+                    >
+                      🗑️ Delete
+                    </button>
+                    <div className="text-[var(--text-secondary)] ml-2">
+                      {isExpanded ? '▼' : '▶'}
+                    </div>
                   </div>
                 </button>
 
