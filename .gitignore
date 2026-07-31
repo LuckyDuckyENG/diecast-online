@@ -1,0 +1,40 @@
+# ---------------------------------------------------------------
+# Secrets — never commit these.
+# The root .env.local was tracked and pushed to a public repo; the keys
+# in it are compromised and being rotated. Nothing env-shaped goes in again.
+# ---------------------------------------------------------------
+.env
+.env.local
+.env.*.local
+*.env.local
+
+# Dependencies / build output
+node_modules/
+.next/
+out/
+dist/
+
+# Logs
+*.log
+scraper-output.log
+scraper-all-retailers.log
+scraper-stock-update.log
+single-sku-output.log
+import-output.log
+
+# Scratch data — large one-off dumps and backups, not source
+backup-before-clean-slate.json
+ebay-parsed-listings.json
+filtered_import_data.json
+*.html.bak
+
+# Saved retailer pages used for one-off parsing (2.7 MB, not source)
+Spark 1_43 F1 Diecast for sale _ eBay.html
+
+# Accidental file created by a shell redirect on Windows
+nul
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
