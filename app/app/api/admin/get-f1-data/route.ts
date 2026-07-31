@@ -38,13 +38,11 @@ export async function GET(request: NextRequest) {
       .from('cars')
       .select(`
         id,
-        livery_name,
+        chassis_name,
         event_name,
         team:teams(name),
         season:seasons(year),
-        car_drivers(
-          driver:drivers(name)
-        )
+        driver:drivers(name)
       `)
       .order('id', { ascending: false });
 
@@ -54,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`📊 Fetched ${cars?.length || 0} cars from database`);
 
-    // Fetch all models with manufacturer data
+    // Fetch all models with manufacturer data (driver comes from car now)
     const { data: models, error: modelsError } = await supabase
       .from('models')
       .select(`
@@ -118,13 +116,13 @@ export async function GET(request: NextRequest) {
       console.log(`📊 Sample model IDs:`, models.slice(0, 5).map(m => m.id));
     }
 
-    // Group cars by chassis (year + team + livery_name)
+    // Group cars by chassis (year + team + chassis_name)
     const chassisMap = new Map();
 
     cars?.forEach((car: any) => {
       const year = car.season?.year || 2024;
       const team = normalizeTeamName(car.team?.name || 'Unknown Team');
-      const chassis = normalizeChassis(car.livery_name || 'Unknown');
+      const chassis = normalizeChassis(car.chassis_name || 'Unknown');
       const chassisKey = `${year}-${team}-${chassis}`;
 
       if (!chassisMap.has(chassisKey)) {
@@ -138,17 +136,18 @@ export async function GET(request: NextRequest) {
       }
 
       const chassisData = chassisMap.get(chassisKey);
-      const driverName = car.car_drivers?.[0]?.driver?.name || 'Unknown Driver';
 
       // Get models for this car entry
       const carModels = modelsByCar.get(car.id) || [];
 
-      if (!chassisData.driverGroups.has(driverName)) {
-        chassisData.driverGroups.set(driverName, []);
-      }
-
-      // Add models to this driver's group
+      // Group models by car's driver (from car.driver), not model.driver (doesn't exist anymore)
       carModels.forEach((model: any) => {
+        const modelDriverName = car.driver?.name || 'Unknown Driver';
+
+        if (!chassisData.driverGroups.has(modelDriverName)) {
+          chassisData.driverGroups.set(modelDriverName, []);
+        }
+
         const ebayLink = ebayLinksMap.get(model.id);
         const pricesForModel = priceHistoryMap.get(model.id) || [];
 
@@ -156,7 +155,7 @@ export async function GET(request: NextRequest) {
           console.log(`✅ Model ${model.id} has eBay link:`, ebayLink.ebay_url);
         }
 
-        chassisData.driverGroups.get(driverName).push({
+        chassisData.driverGroups.get(modelDriverName).push({
           id: model.id,
           name: `${model.manufacturer?.name || 'Unknown'} ${model.scale}`,
           manufacturer: model.manufacturer?.name || 'Unknown',
@@ -172,6 +171,10 @@ export async function GET(request: NextRequest) {
           ebayImage: ebayLink?.ebay_image,
           lastUpdated: ebayLink?.last_updated,
           retailerPrices: pricesForModel.map((price: any) => ({
+            // The price_history row id. Without it the per-row refresh button
+            // sent priceHistoryId: undefined and silently refreshed every
+            // retailer on the model instead of the one that was clicked.
+            id: price.id,
             retailerId: price.retailer_id,
             retailerName: price.retailer?.name,
             productUrl: price.product_url,

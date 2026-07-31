@@ -16,8 +16,21 @@ export async function POST(request: Request) {
 
     console.log('🗑️ Deleting model:', modelId);
 
-    // Delete the model from the database
-    // This will cascade delete related records (price_history, ebay_links, etc.)
+    // First, delete related records that might block the delete
+    console.log('🗑️ Deleting price history...');
+    await supabase
+      .from('price_history')
+      .delete()
+      .eq('model_id', modelId);
+
+    console.log('🗑️ Deleting eBay links...');
+    await supabase
+      .from('ebay_links')
+      .delete()
+      .eq('model_id', modelId);
+
+    // Now delete the model itself
+    console.log('🗑️ Deleting model record...');
     const { error: deleteError } = await supabase
       .from('models')
       .delete()
