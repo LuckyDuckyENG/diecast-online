@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { DndContext, DragEndEvent, useDraggable, useDroppable, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 
 interface RetailerPrice {
+  /** price_history row id — lets actions target one retailer link, not all of them */
+  id: string;
   retailerId: string;
   retailerName: string;
   productUrl: string;
@@ -175,12 +177,28 @@ export default function EbayLinkingAdmin() {
   const [expandedCars, setExpandedCars] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [loadingRetailers, setLoadingRetailers] = useState(false);
+  const [refreshingPrice, setRefreshingPrice] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [inventorySidebarOpen, setInventorySidebarOpen] = useState(false);
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [inventoryCount, setInventoryCount] = useState(0);
+
+  // Bulk retailer refresh. Walks the plan in small batches so no single request
+  // runs for minutes, progress is visible, and it can be stopped part-way.
+  const REFRESH_BATCH_SIZE = 8;
+  const [refreshAllState, setRefreshAllState] = useState<{
+    running: boolean;
+    dryRun: boolean;
+    done: number;
+    total: number;
+    updated: number;
+    unchanged: number;
+    failed: number;
+    suspicious: any[];
+  } | null>(null);
+  const refreshAllCancel = useRef(false);
   const [isDragging, setIsDragging] = useState(false);
   const [createModelModalOpen, setCreateModelModalOpen] = useState(false);
   const [newModelData, setNewModelData] = useState({
@@ -197,6 +215,50 @@ export default function EbayLinkingAdmin() {
     imageUrl: '',
   });
 
+  // Smart Paste verification modal
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
+  const [verifyData, setVerifyData] = useState({
+    manufacturer: '',
+    scale: '',
+    sku: '',
+    driver: '',
+    eventName: '',
+    seasonYear: '',
+    team: '',
+    chassis: '',
+    price: '',
+    currency: 'AUD',
+    productUrl: '',
+  });
+
+  // Edit Model modal
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingModel, setEditingModel] = useState<any>(null);
+  const [editData, setEditData] = useState({
+    modelId: '',
+    manufacturer: '',
+    scale: '',
+    sku: '',
+    driver: '',
+    eventName: '',
+    price: '',
+  });
+
+  // Duplicate SKU warning modal state
+  const [duplicateWarningOpen, setDuplicateWarningOpen] = useState(false);
+  const [duplicateInfo, setDuplicateInfo] = useState<any>(null);
+
+  // Edit Retailer Link modal state
+  const [editRetailerModalOpen, setEditRetailerModalOpen] = useState(false);
+  const [editRetailerData, setEditRetailerData] = useState({
+    priceHistoryId: '',
+    retailerName: '',
+    price: '',
+    currency: 'AUD',
+    inStock: true,
+    productUrl: '',
+  });
+
   // Add Model modal state
   const [addModelModalOpen, setAddModelModalOpen] = useState(false);
   const [addModelForm, setAddModelForm] = useState({
@@ -209,9 +271,27 @@ export default function EbayLinkingAdmin() {
     eventName: '',
     price: '',
     imageUrl: '',
+    pasteInput: '',
   });
   const [searchedCar, setSearchedCar] = useState<any>(null);
   const [searchingCar, setSearchingCar] = useState(false);
+
+  // Edit Car modal state
+  const [editCarModalOpen, setEditCarModalOpen] = useState(false);
+
+  // Add Retailer modal state
+  const [addRetailerModalOpen, setAddRetailerModalOpen] = useState(false);
+  const [addRetailerModel, setAddRetailerModel] = useState<DiecastModel | null>(null);
+  const [addRetailerUrl, setAddRetailerUrl] = useState('');
+  const [addRetailerPrice, setAddRetailerPrice] = useState('');
+  const [addRetailerName, setAddRetailerName] = useState('');
+  const [addRetailerManualMode, setAddRetailerManualMode] = useState(false);
+  const [editingCar, setEditingCar] = useState<any>(null);
+  const [editCarForm, setEditCarForm] = useState({
+    liveryName: '',
+    drivers: [] as string[],
+    newDriverName: '',
+  });
 
   // Generate years from 1995 to 2025
   const years = Array.from({ length: 31 }, (_, i) => 2025 - i); // 2025 down to 1995
@@ -2886,6 +2966,99 @@ export default function EbayLinkingAdmin() {
     }
   };
 
+  /**
+   * Walk every retailer link in batches.
+   *
+   * The route can do all 104 in one call, but that's a ~5 minute request with no
+   * feedback and nothing to show if it dies half way. Batching keeps each request
+   * short, shows progress, and lets you stop. The plan comes back interleaved by
+   * retailer so we don't hammer one shop.
+   */
+  const runRefreshAll = async (dryRun: boolean) => {
+    refreshAllCancel.current = false;
+
+    let ids: string[] = [];
+    try {
+      const planResponse = await fetch('/api/admin/refresh-prices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: true }),
+      });
+      const planData = await planResponse.json();
+      if (!planData.success) throw new Error(planData.error || 'Could not build plan');
+      ids = planData.ids || [];
+    } catch (error: any) {
+      alert('❌ Could not start refresh: ' + error.message);
+      return;
+    }
+
+    if (ids.length === 0) {
+      alert('No retailer links to refresh.');
+      return;
+    }
+
+    if (
+      !dryRun &&
+      !confirm(
+        `Refresh ${ids.length} retailer link(s)?\n\n` +
+          `This checks each shop's page and updates price and stock.\n` +
+          `Roughly ${Math.ceil((ids.length * 3) / 60)} minutes. You can stop it at any point.`
+      )
+    ) {
+      return;
+    }
+
+    const totals = { done: 0, updated: 0, unchanged: 0, failed: 0, suspicious: [] as any[] };
+    setRefreshAllState({ running: true, dryRun, total: ids.length, ...totals });
+
+    for (let i = 0; i < ids.length; i += REFRESH_BATCH_SIZE) {
+      if (refreshAllCancel.current) {
+        console.log('⏹️ Refresh cancelled by user');
+        break;
+      }
+
+      const batch = ids.slice(i, i + REFRESH_BATCH_SIZE);
+
+      try {
+        const response = await fetch('/api/admin/refresh-prices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ priceHistoryIds: batch, dryRun }),
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          totals.updated += data.summary?.updated || 0;
+          totals.unchanged += data.summary?.unchanged || 0;
+          totals.failed += data.summary?.failed || 0;
+          if (data.suspicious?.length) totals.suspicious.push(...data.suspicious);
+        } else {
+          // Whole batch failed — count it rather than losing track of it
+          totals.failed += batch.length;
+        }
+      } catch (error) {
+        console.error('Batch failed:', error);
+        totals.failed += batch.length;
+      }
+
+      totals.done += batch.length;
+      setRefreshAllState({ running: true, dryRun, total: ids.length, ...totals });
+    }
+
+    setRefreshAllState({ running: false, dryRun, total: ids.length, ...totals });
+
+    // Pull the updated numbers back into the page
+    if (!dryRun) {
+      try {
+        const refreshResponse = await fetch('/api/admin/get-f1-data');
+        const refreshData = await refreshResponse.json();
+        if (refreshData.cars) setF1Cars(refreshData.cars);
+      } catch {
+        // The refresh itself succeeded; a stale view is recoverable
+      }
+    }
+  };
+
   const searchForCar = async () => {
     if (!addModelForm.year || !addModelForm.team) {
       alert('Please enter year and team');
@@ -2907,36 +3080,28 @@ export default function EbayLinkingAdmin() {
 
       if (data.success && data.car) {
         setSearchedCar(data.car);
-        alert(`✅ Found: ${data.car.year} ${data.car.team?.name} ${data.car.livery_name}`);
-      } else {
-        // Car not found - offer to create
-        const createIt = confirm(
-          `No car found for ${addModelForm.year} ${addModelForm.team}.\n\nWould you like to create it?`
+        alert(
+          `✅ Found: ${data.car.season?.year} ${data.car.team?.name} ${data.car.chassis_name}` +
+            ` - ${data.car.event_name} - ${data.car.driver?.name}`
         );
-        if (createIt) {
-          // Create the car
-          const createResponse = await fetch('/api/admin/create-car', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              year: addModelForm.year,
-              team: addModelForm.team,
-              chassis: null,
-            }),
-          });
+      } else {
+        // Not found. Creating a car needs chassis + driver + event (the composite
+        // key), which this form doesn't collect — so show what exists instead of
+        // creating a NULL-keyed duplicate.
+        const existing = data.existing || data.candidates || [];
+        const existingList = existing.length
+          ? `\n\nCars that already exist for ${addModelForm.year} ${addModelForm.team}:\n` +
+            existing
+              .map((c: any) => `  • ${c.chassis_name} - ${c.event_name} - ${c.driver}`)
+              .join('\n')
+          : '';
 
-          const createData = await createResponse.json();
-
-          if (createData.success && createData.car) {
-            setSearchedCar(createData.car);
-            alert(`✅ Created: ${createData.message}`);
-          } else {
-            alert(`❌ Failed to create car: ${createData.error}`);
-            setSearchedCar(null);
-          }
-        } else {
-          setSearchedCar(null);
-        }
+        alert(
+          `❌ ${data.message || `No car found for ${addModelForm.year} ${addModelForm.team}.`}` +
+            existingList +
+            `\n\nTo create a car, use the paste-a-URL flow — it supplies the chassis, driver and event.`
+        );
+        setSearchedCar(null);
       }
     } catch (error) {
       console.error('Error searching for car:', error);
@@ -2989,6 +3154,7 @@ export default function EbayLinkingAdmin() {
           eventName: '',
           price: '',
           imageUrl: '',
+          pasteInput: '',
         });
         setSearchedCar(null);
         setAddModelModalOpen(false);
@@ -3049,6 +3215,110 @@ export default function EbayLinkingAdmin() {
     } catch (error) {
       console.error('Error deleting model:', error);
       alert('❌ Failed to delete model');
+    }
+  };
+
+  const refreshPrice = async (model: DiecastModel) => {
+    setRefreshingPrice(model.id);
+    try {
+      console.log('🔄 Refreshing price for model:', model.id);
+
+      const response = await fetch('/api/admin/refresh-prices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modelId: model.id }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to refresh price');
+      }
+
+      const { summary } = data;
+
+      if (summary.updated > 0) {
+        alert(`✅ Price updated! Found ${summary.updated} price change(s)`);
+        // Refresh the data to show new prices
+        const refreshResponse = await fetch('/api/admin/get-f1-data');
+        const refreshData = await refreshResponse.json();
+        if (refreshData.success) {
+          setF1Cars(refreshData.cars);
+        }
+      } else if (summary.unchanged > 0) {
+        alert('✅ Price checked - no changes detected');
+      } else {
+        alert('⚠️ Could not check price - no retailer links found');
+      }
+    } catch (error: any) {
+      console.error('Error refreshing price:', error);
+      alert('❌ Failed to refresh price: ' + error.message);
+    } finally {
+      setRefreshingPrice(null);
+    }
+  };
+
+  const addRetailer = async () => {
+    if (!addRetailerModel || !addRetailerUrl.trim()) {
+      alert('Please enter a retailer URL');
+      return;
+    }
+
+    // Manual mode validation
+    if (addRetailerManualMode) {
+      if (!addRetailerName.trim() || !addRetailerPrice.trim()) {
+        alert('Please enter retailer name and price');
+        return;
+      }
+    }
+
+    try {
+      console.log('🏪 Adding retailer for model:', addRetailerModel.id, addRetailerUrl);
+
+      const response = await fetch('/api/admin/add-retailer-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          modelId: addRetailerModel.id,
+          url: addRetailerUrl,
+          manualMode: addRetailerManualMode,
+          retailerName: addRetailerManualMode ? addRetailerName : undefined,
+          price: addRetailerManualMode ? parseFloat(addRetailerPrice) : undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        // If auto-fetch failed, suggest manual mode
+        if (!addRetailerManualMode && data.details?.includes('403')) {
+          const retry = confirm('❌ Website is blocking automated access (403 Forbidden).\n\nWould you like to enter the price manually instead?');
+          if (retry) {
+            setAddRetailerManualMode(true);
+            return;
+          }
+        }
+        throw new Error(data.error || 'Failed to add retailer');
+      }
+
+      alert('✅ Retailer link added successfully!');
+
+      // Close modal and refresh data
+      setAddRetailerModalOpen(false);
+      setAddRetailerUrl('');
+      setAddRetailerPrice('');
+      setAddRetailerName('');
+      setAddRetailerManualMode(false);
+      setAddRetailerModel(null);
+
+      const refreshResponse = await fetch('/api/admin/get-f1-data');
+      const refreshData = await refreshResponse.json();
+      if (refreshData.success) {
+        setF1Cars(refreshData.cars);
+      }
+    } catch (error: any) {
+      console.error('Error adding retailer:', error);
+      alert('❌ Failed to add retailer: ' + error.message);
     }
   };
 
@@ -3426,6 +3696,22 @@ export default function EbayLinkingAdmin() {
               ➕ Add Model
             </button>
             <button
+              disabled={refreshAllState?.running}
+              onClick={() => runRefreshAll(true)}
+              className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-colors"
+              title="Check every retailer link and report what would change, without writing anything"
+            >
+              🧪 Dry-run All
+            </button>
+            <button
+              disabled={refreshAllState?.running}
+              onClick={() => runRefreshAll(false)}
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
+              title="Refresh price and stock for every retailer link"
+            >
+              🔄 Refresh All Retailers
+            </button>
+            <button
               onClick={async () => {
                 const carsWithModels = f1Cars.filter(car => car.driverGroups.flatMap(dg => dg.models).length > 0);
                 const totalModels = carsWithModels.reduce((sum, car) => sum + car.driverGroups.flatMap(dg => dg.models).length, 0);
@@ -3454,6 +3740,81 @@ export default function EbayLinkingAdmin() {
             </button>
           </div>
         </div>
+
+        {/* Bulk refresh progress */}
+        {refreshAllState && (
+          <div className="mb-6 p-4 rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)]">
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-semibold text-[var(--text-primary)]">
+                {refreshAllState.running
+                  ? `${refreshAllState.dryRun ? '🧪 Dry-running' : '🔄 Refreshing'} retailers… ${refreshAllState.done}/${refreshAllState.total}`
+                  : `${refreshAllState.dryRun ? '🧪 Dry run' : '✅ Refresh'} finished — ${refreshAllState.done}/${refreshAllState.total} checked`}
+              </div>
+              {refreshAllState.running ? (
+                <button
+                  onClick={() => {
+                    refreshAllCancel.current = true;
+                  }}
+                  className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                  Stop
+                </button>
+              ) : (
+                <button
+                  onClick={() => setRefreshAllState(null)}
+                  className="px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700"
+                >
+                  Dismiss
+                </button>
+              )}
+            </div>
+
+            <div className="w-full h-2 bg-[var(--border-color)] rounded overflow-hidden mb-3">
+              <div
+                className="h-full bg-orange-500 transition-all"
+                style={{
+                  width: `${refreshAllState.total ? (refreshAllState.done / refreshAllState.total) * 100 : 0}%`,
+                }}
+              />
+            </div>
+
+            <div className="flex gap-5 text-sm text-[var(--text-secondary)]">
+              <span>
+                {refreshAllState.dryRun ? 'would change' : 'updated'}:{' '}
+                <strong className="text-[var(--text-primary)]">{refreshAllState.updated}</strong>
+              </span>
+              <span>unchanged: <strong className="text-[var(--text-primary)]">{refreshAllState.unchanged}</strong></span>
+              <span>no price found: <strong className="text-[var(--text-primary)]">{refreshAllState.failed}</strong></span>
+              <span>
+                quarantined:{' '}
+                <strong className={refreshAllState.suspicious.length ? 'text-yellow-500' : 'text-[var(--text-primary)]'}>
+                  {refreshAllState.suspicious.length}
+                </strong>
+              </span>
+            </div>
+
+            {/* Implausible reads are never written — surface them so they can be fixed by hand */}
+            {refreshAllState.suspicious.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-[var(--border-color)]">
+                <p className="text-sm font-semibold text-yellow-500 mb-2">
+                  Not written — the scraped price was too far from the stored one:
+                </p>
+                <ul className="text-xs text-[var(--text-secondary)] space-y-1 max-h-40 overflow-y-auto">
+                  {refreshAllState.suspicious.map((s: any) => (
+                    <li key={s.id}>
+                      <span className="font-mono">
+                        {s.storedPrice} → {s.scrapedPrice} {s.currency} ({s.ratio}x)
+                      </span>{' '}
+                      <a href={s.url} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">
+                        open listing
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Year Selector - Season Boxes */}
         <div className="mb-6">
@@ -3533,37 +3894,44 @@ export default function EbayLinkingAdmin() {
                 className="bg-[var(--bg-primary)] rounded-lg border border-[var(--border-color)] overflow-hidden"
               >
                 {/* Car Header - Always Visible */}
-                <button
-                  onClick={() => toggleCarExpand(car.id)}
-                  className="w-full p-6 flex items-center justify-between hover:bg-[var(--bg-secondary)] transition-colors text-left"
-                >
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">
-                      📦 {car.year} {car.team} - {car.chassis}
-                    </h3>
-                    <div className="flex gap-3 text-sm text-[var(--text-secondary)]">
-                      <span>Drivers: {drivers.join(', ')}</span>
-                      <span>•</span>
-                      <span>
-                        {totalModels} model{totalModels !== 1 ? 's' : ''}
-                      </span>
-                      {totalModels > 0 && (
-                        <>
-                          <span>•</span>
-                          <span className="text-green-400">
-                            {linkedCount} linked to eBay
-                          </span>
-                        </>
-                      )}
+                <div className="w-full p-6 flex items-center justify-between">
+                  <button
+                    onClick={() => toggleCarExpand(car.id)}
+                    className="flex-1 hover:bg-[var(--bg-secondary)] transition-colors text-left -m-6 p-6 mr-0"
+                  >
+                    <div>
+                      <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">
+                        📦 {car.year} {car.team} - {car.chassis}
+                      </h3>
+                      <div className="flex gap-3 text-sm text-[var(--text-secondary)]">
+                        <span>Drivers: {drivers.join(', ')}</span>
+                        <span>•</span>
+                        <span>
+                          {totalModels} model{totalModels !== 1 ? 's' : ''}
+                        </span>
+                        {totalModels > 0 && (
+                          <>
+                            <span>•</span>
+                            <span className="text-green-400">
+                              {linkedCount} linked to eBay
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </button>
 
                   <div className="flex items-center gap-2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        // TODO: Open edit car modal
-                        alert('Edit car coming soon!');
+                        setEditingCar(car);
+                        setEditCarForm({
+                          liveryName: car.chassis,
+                          drivers: drivers,
+                          newDriverName: '',
+                        });
+                        setEditCarModalOpen(true);
                       }}
                       className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
                       title="Edit car details and link drivers"
@@ -3602,11 +3970,14 @@ export default function EbayLinkingAdmin() {
                     >
                       🗑️ Delete
                     </button>
-                    <div className="text-[var(--text-secondary)] ml-2">
+                    <button
+                      onClick={() => toggleCarExpand(car.id)}
+                      className="text-[var(--text-secondary)] ml-2 hover:text-[var(--text-primary)] px-2"
+                    >
                       {isExpanded ? '▼' : '▶'}
-                    </div>
+                    </button>
                   </div>
-                </button>
+                </div>
 
                 {/* Create New Model Drop Zone - Always visible when expanded */}
                 {isExpanded && (
@@ -3665,14 +4036,28 @@ export default function EbayLinkingAdmin() {
                               </div>
 
                               <div className="flex gap-2 flex-wrap">
-                                <button
-                                  onClick={() => searchRetailers(model, car)}
-                                  disabled={loadingRetailers}
-                                  className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50"
-                                  title="Show existing retailer links from database"
-                                >
-                                  🏪 Retailers
-                                </button>
+                                {model.retailerPrices && model.retailerPrices.length > 0 ? (
+                                  <button
+                                    onClick={() => searchRetailers(model, car)}
+                                    disabled={loadingRetailers}
+                                    className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50"
+                                    title="Show existing retailer links from database"
+                                  >
+                                    🏪 Retailers
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      setAddRetailerModel(model);
+                                      setAddRetailerModalOpen(true);
+                                    }}
+                                    disabled={loadingRetailers}
+                                    className="px-3 py-1.5 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                                    title="Add retailer link manually"
+                                  >
+                                    ➕ Add Retailer
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => refreshRetailers(model, car)}
                                   disabled={loadingRetailers}
@@ -3680,6 +4065,14 @@ export default function EbayLinkingAdmin() {
                                   title="Search live stores for this SKU (10-30 seconds)"
                                 >
                                   🔄 Refresh
+                                </button>
+                                <button
+                                  onClick={() => refreshPrice(model)}
+                                  disabled={refreshingPrice === model.id}
+                                  className="px-3 py-1.5 bg-cyan-600 text-white text-sm rounded-lg hover:bg-cyan-700 disabled:opacity-50"
+                                  title="Check current price and update if changed"
+                                >
+                                  {refreshingPrice === model.id ? '⏳ Checking...' : '💰 Price'}
                                 </button>
                                 {!model.ebayLinked ? (
                                   <button
@@ -3698,6 +4091,25 @@ export default function EbayLinkingAdmin() {
                                     ❌ Unlink
                                   </button>
                                 )}
+                                <button
+                                  onClick={() => {
+                                    setEditingModel(model);
+                                    setEditData({
+                                      modelId: model.id,
+                                      manufacturer: model.manufacturer || '',
+                                      scale: model.scale || '',
+                                      sku: model.sku || '',
+                                      driver: model.driver || '',
+                                      eventName: model.eventName || '',
+                                      price: model.price?.toString() || '',
+                                    });
+                                    setEditModalOpen(true);
+                                  }}
+                                  className="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700"
+                                  title="Edit model details"
+                                >
+                                  ✏️ Edit
+                                </button>
                                 <button
                                   onClick={() => deleteModel(car.id, model, true)}
                                   className="px-3 py-1.5 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700"
@@ -3775,6 +4187,159 @@ export default function EbayLinkingAdmin() {
                                           ) : (
                                             <span className="text-gray-400 text-xs">❌ Out of Stock</span>
                                           )}
+                                          <button
+                                            onClick={async () => {
+                                              // Refresh price from URL
+                                              if (!retailer.productUrl) {
+                                                alert('❌ No product URL to refresh from');
+                                                return;
+                                              }
+
+                                              if (confirm(`🔄 Refresh price and stock for ${retailer.retailerName}?`)) {
+                                                try {
+                                                  setRefreshingPrice(retailer.id || `${model.id}-${idx}`);
+
+                                                  const response = await fetch('/api/admin/refresh-prices', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({
+                                                      priceHistoryId: retailer.id,
+                                                      modelId: model.id
+                                                    }),
+                                                  });
+
+                                                  const data = await response.json();
+
+                                                  if (data.success) {
+                                                    alert('✅ Price refreshed successfully!');
+                                                    // Reload F1 data
+                                                    const refreshResponse = await fetch('/api/admin/get-f1-data');
+                                                    const refreshData = await refreshResponse.json();
+                                                    if (refreshData.cars) {
+                                                      setF1Cars(refreshData.cars);
+                                                    }
+                                                  } else {
+                                                    alert('❌ Failed to refresh: ' + data.error);
+                                                  }
+                                                } catch (error) {
+                                                  console.error('Error refreshing price:', error);
+                                                  alert('❌ Error refreshing price');
+                                                } finally {
+                                                  setRefreshingPrice(null);
+                                                }
+                                              }
+                                            }}
+                                            disabled={refreshingPrice === (retailer.id || `${model.id}-${idx}`)}
+                                            className="px-2 py-1 bg-orange-600 text-white text-xs rounded hover:bg-orange-700 disabled:opacity-50"
+                                            title="Refresh price and stock from retailer"
+                                          >
+                                            {refreshingPrice === (retailer.id || `${model.id}-${idx}`) ? '...' : '🔄'}
+                                          </button>
+                                          <button
+                                            onClick={async () => {
+                                              // Set image from this retailer
+                                              if (!retailer.productUrl) {
+                                                alert('❌ No product URL');
+                                                return;
+                                              }
+
+                                              if (confirm(`📸 Set model image from ${retailer.retailerName}?`)) {
+                                                try {
+                                                  // Fetch the product page
+                                                  const fetchResponse = await fetch('/api/admin/fetch-url', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ url: retailer.productUrl }),
+                                                  });
+
+                                                  const fetchData = await fetchResponse.json();
+                                                  if (!fetchData.success) {
+                                                    alert('❌ Failed to fetch page: ' + fetchData.error);
+                                                    return;
+                                                  }
+
+                                                  const html = fetchData.html;
+
+                                                  // Extract image URL from HTML (try multiple methods)
+                                                  let imageUrl = null;
+
+                                                  // Method 1: og:image meta tag
+                                                  const ogImageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
+                                                  if (ogImageMatch) {
+                                                    imageUrl = ogImageMatch[1];
+                                                  }
+
+                                                  // Method 2: twitter:image meta tag
+                                                  if (!imageUrl) {
+                                                    const twitterImageMatch = html.match(/<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']+)["']/i);
+                                                    if (twitterImageMatch) {
+                                                      imageUrl = twitterImageMatch[1];
+                                                    }
+                                                  }
+
+                                                  // Method 3: JSON-LD structured data
+                                                  if (!imageUrl) {
+                                                    const jsonLdMatch = html.match(/"image":\s*"([^"]+)"/i);
+                                                    if (jsonLdMatch) {
+                                                      imageUrl = jsonLdMatch[1];
+                                                    }
+                                                  }
+
+                                                  if (!imageUrl) {
+                                                    alert('❌ Could not find product image on page');
+                                                    return;
+                                                  }
+
+                                                  // Update model with new image URL
+                                                  const updateResponse = await fetch('/api/admin/update-model', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({
+                                                      modelId: model.id,
+                                                      imageUrl: imageUrl,
+                                                    }),
+                                                  });
+
+                                                  const updateData = await updateResponse.json();
+                                                  if (updateData.success) {
+                                                    alert('✅ Model image updated!');
+                                                    // Reload F1 data
+                                                    const refreshResponse = await fetch('/api/admin/get-f1-data');
+                                                    const refreshData = await refreshResponse.json();
+                                                    if (refreshData.cars) {
+                                                      setF1Cars(refreshData.cars);
+                                                    }
+                                                  } else {
+                                                    alert('❌ Failed to update image: ' + updateData.error);
+                                                  }
+                                                } catch (error) {
+                                                  console.error('Error setting image:', error);
+                                                  alert('❌ Error setting image');
+                                                }
+                                              }
+                                            }}
+                                            className="px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                                            title="Set as model image"
+                                          >
+                                            📸
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              setEditRetailerData({
+                                                priceHistoryId: retailer.id || '',
+                                                retailerName: retailer.retailerName || '',
+                                                price: retailer.price?.toString() || '0',
+                                                currency: retailer.currency || 'AUD',
+                                                inStock: retailer.inStock !== false,
+                                                productUrl: retailer.productUrl || '',
+                                              });
+                                              setEditRetailerModalOpen(true);
+                                            }}
+                                            className="px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
+                                            title="Edit retailer link"
+                                          >
+                                            ✏️
+                                          </button>
                                           <a
                                             href={retailer.productUrl}
                                             target="_blank"
@@ -4215,6 +4780,360 @@ export default function EbayLinkingAdmin() {
         </div>
       )}
 
+      {/* Smart Paste Verification Modal */}
+      {verifyModalOpen && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100]">
+          <div className="bg-white rounded-lg border border-gray-300 p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-[var(--text-primary)]">
+                ⚠️ Verify Extracted Data
+              </h2>
+              <button
+                onClick={() => setVerifyModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-6">
+              Review and edit the extracted data before creating the model. Click "Create Model" to proceed or "Cancel" to abort.
+            </p>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setVerifyModalOpen(false);
+                setSearchingCar(true);
+
+                try {
+                  // Step 1: Search for car (or create if doesn't exist)
+                  const searchCarResponse = await fetch('/api/admin/search-car', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      year: parseInt(verifyData.seasonYear) || 2024,
+                      team: verifyData.team,
+                      driver: verifyData.driver,
+                      eventName: verifyData.eventName,
+                      chassis: verifyData.chassis,
+                    }),
+                  });
+
+                  const carData = await searchCarResponse.json();
+                  let carId;
+
+                  if (carData.success && carData.car) {
+                    carId = carData.car.id;
+                  } else {
+                    // Car not found. Show what already exists for this team/year
+                    // so we don't blindly duplicate one.
+                    const existing = carData.existing || carData.candidates || [];
+                    const existingList = existing.length
+                      ? `\n\nExisting cars for this team/year:\n` +
+                        existing
+                          .map((c: any) => `  • ${c.chassis_name} - ${c.event_name} - ${c.driver}`)
+                          .join('\n')
+                      : '';
+
+                    const confirmCreate = confirm(
+                      `No car found for:\n` +
+                        `${verifyData.seasonYear} ${verifyData.team} ${verifyData.chassis} - ` +
+                        `${verifyData.eventName} - ${verifyData.driver}` +
+                        existingList +
+                        `\n\nCreate this as a NEW car?`
+                    );
+
+                    if (!confirmCreate) {
+                      throw new Error('Cancelled — no car selected');
+                    }
+
+                    const createCarResponse = await fetch('/api/admin/create-car', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        year: parseInt(verifyData.seasonYear) || 2024,
+                        team: verifyData.team,
+                        chassis: verifyData.chassis,
+                        driver: verifyData.driver,
+                        eventName: verifyData.eventName,
+                      }),
+                    });
+
+                    const createCarData = await createCarResponse.json();
+                    if (createCarData.success && createCarData.car) {
+                      carId = createCarData.car.id;
+                      if (createCarData.existed) {
+                        console.log('♻️ Reused existing car', carId);
+                      }
+                    } else {
+                      throw new Error(
+                        createCarData.details || createCarData.error || 'Failed to create car'
+                      );
+                    }
+                  }
+
+                  // Step 2: Create the model
+                  const createModelResponse = await fetch('/api/admin/create-model', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      carId,
+                      manufacturer: verifyData.manufacturer,
+                      scale: verifyData.scale,
+                      sku: verifyData.sku,
+                      driver: verifyData.driver,
+                      eventName: verifyData.eventName,
+                      price: verifyData.price,
+                      currency: verifyData.currency,
+                      retailerUrl: verifyData.productUrl,
+                    }),
+                  });
+
+                  const modelData = await createModelResponse.json();
+
+                  if (modelData.success) {
+                    alert(`✅ Model created successfully!\n\n${verifyData.manufacturer} ${verifyData.scale} - ${verifyData.driver}`);
+
+                    // Refresh F1 data
+                    const refreshResponse = await fetch('/api/admin/get-f1-data');
+                    const refreshData = await refreshResponse.json();
+                    if (refreshData.success) {
+                      setF1Cars(refreshData.cars);
+                    }
+                  } else if (modelData.duplicate && modelData.duplicateModel) {
+                    // Duplicate SKU detected - offer to add retailer link to existing model
+                    const addRetailer = confirm(
+                      `⚠️ This model already exists!\n\n` +
+                      `SKU: ${modelData.duplicateModel.sku}\n` +
+                      `Manufacturer: ${modelData.duplicateModel.manufacturer}\n` +
+                      `Scale: ${modelData.duplicateModel.scale}\n` +
+                      `Driver: ${modelData.duplicateModel.driver}\n` +
+                      `Event: ${modelData.duplicateModel.eventName}\n\n` +
+                      `Would you like to add this retailer link to the existing model?\n\n` +
+                      `Click OK to add retailer link, or Cancel to abort.`
+                    );
+
+                    if (addRetailer) {
+                      // Add retailer link to existing model
+                      const addRetailerResponse = await fetch('/api/admin/add-retailer-link', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          modelId: modelData.duplicateModel.id,
+                          url: verifyData.productUrl,
+                          manualMode: false,
+                        }),
+                      });
+
+                      const addRetailerData = await addRetailerResponse.json();
+
+                      if (addRetailerData.success) {
+                        alert('✅ Retailer link added to existing model!');
+
+                        // Refresh F1 data
+                        const refreshResponse = await fetch('/api/admin/get-f1-data');
+                        const refreshData = await refreshResponse.json();
+                        if (refreshData.success) {
+                          setF1Cars(refreshData.cars);
+                        }
+                      } else {
+                        throw new Error(addRetailerData.error || 'Failed to add retailer link');
+                      }
+                    }
+                  } else {
+                    throw new Error(modelData.error || 'Failed to create model');
+                  }
+                } catch (error: any) {
+                  console.error('Error:', error);
+                  alert(`❌ Error: ${error.message}`);
+                } finally {
+                  setSearchingCar(false);
+                }
+              }}
+            >
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Manufacturer *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={verifyData.manufacturer}
+                      onChange={(e) => setVerifyData({ ...verifyData, manufacturer: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Scale *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={verifyData.scale}
+                      onChange={(e) => setVerifyData({ ...verifyData, scale: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="e.g., 1:43"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Driver *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={verifyData.driver}
+                      onChange={(e) => setVerifyData({ ...verifyData, driver: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Event Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={verifyData.eventName}
+                      onChange={(e) => setVerifyData({ ...verifyData, eventName: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="e.g., Bahrain GP"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Year *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={verifyData.seasonYear}
+                      onChange={(e) => setVerifyData({ ...verifyData, seasonYear: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="e.g., 2024"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Team *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={verifyData.team}
+                      onChange={(e) => setVerifyData({ ...verifyData, team: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Chassis *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={verifyData.chassis}
+                      onChange={(e) => setVerifyData({ ...verifyData, chassis: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="e.g., W13"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      SKU
+                    </label>
+                    <input
+                      type="text"
+                      value={verifyData.sku}
+                      onChange={(e) => setVerifyData({ ...verifyData, sku: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="e.g., 417220144"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Price
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2">
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">
+                          {verifyData.currency === 'USD' ? '$' : verifyData.currency === 'EUR' ? '€' : verifyData.currency === 'GBP' ? '£' : '$'}
+                        </span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={verifyData.price}
+                          onChange={(e) => setVerifyData({ ...verifyData, price: e.target.value })}
+                          className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          placeholder="199.99"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <select
+                        value={verifyData.currency}
+                        onChange={(e) => setVerifyData({ ...verifyData, currency: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      >
+                        <option value="AUD">AUD 🇦🇺</option>
+                        <option value="USD">USD 🇺🇸</option>
+                        <option value="EUR">EUR 🇪🇺</option>
+                        <option value="GBP">GBP 🇬🇧</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Product URL
+                  </label>
+                  <input
+                    type="text"
+                    value={verifyData.productUrl}
+                    onChange={(e) => setVerifyData({ ...verifyData, productUrl: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setVerifyModalOpen(false)}
+                  className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                >
+                  ✓ Create Model
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Add Model Modal */}
       {addModelModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -4237,6 +5156,273 @@ export default function EbayLinkingAdmin() {
             </div>
 
             <div className="p-6 space-y-6">
+              {/* Smart Paste Section */}
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
+                  🪄 Smart Paste (AI-Powered)
+                </h3>
+                <p className="text-sm text-[var(--text-secondary)] mb-3">
+                  Paste a product URL or title and let AI extract all the details automatically
+                </p>
+                <div className="space-y-3">
+                  <textarea
+                    value={addModelForm.pasteInput || ''}
+                    onChange={(e) => setAddModelForm({ ...addModelForm, pasteInput: e.target.value })}
+                    placeholder="Paste URL or product title here...&#10;Example: https://anthonysdiecasts.com.au/products/spark-hamilton-miami-gp"
+                    className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] min-h-[80px]"
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!addModelForm.pasteInput) {
+                        alert('Please paste a URL or product title first');
+                        return;
+                      }
+
+                      setSearchingCar(true);
+                      try {
+                        // Check if it's a URL
+                        const isUrl = addModelForm.pasteInput.startsWith('http');
+
+                        let productData;
+
+                        if (isUrl) {
+                          // Fetch via backend proxy to avoid CORS issues
+                          const fetchResponse = await fetch('/api/admin/fetch-url', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: addModelForm.pasteInput }),
+                          });
+
+                          const fetchData = await fetchResponse.json();
+                          if (!fetchData.success) {
+                            throw new Error(fetchData.error || 'Failed to fetch URL');
+                          }
+
+                          const html = fetchData.html;
+
+                          // Extract comprehensive product information
+                          const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+                          const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
+                          const priceMatch = html.match(/"price":\s*(\d+)/);
+                          const skuMatch = html.match(/"sku":\s*"([^"]+)"/);
+
+                          // Extract breadcrumbs (often contains team/category info)
+                          let breadcrumbs = '';
+                          const breadcrumbMatches = html.match(/<nav[^>]*class=["'][^"']*breadcrumb[^"']*["'][^>]*>([\s\S]*?)<\/nav>/i);
+                          if (breadcrumbMatches) {
+                            breadcrumbs = breadcrumbMatches[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+                          }
+
+                          // Extract product description (multiple possible locations)
+                          let productDesc = '';
+
+                          // Try description div/section
+                          const descDivMatch = html.match(/<div[^>]*class=["'][^"']*description[^"']*["'][^>]*>([\s\S]*?)<\/div>/i) ||
+                                              html.match(/<div[^>]*class=["'][^"']*product-description[^"']*["'][^>]*>([\s\S]*?)<\/div>/i) ||
+                                              html.match(/<section[^>]*class=["'][^"']*description[^"']*["'][^>]*>([\s\S]*?)<\/section>/i);
+                          if (descDivMatch) {
+                            productDesc = descDivMatch[1].replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+                          }
+
+                          // Extract product details/specifications table
+                          let productDetails = '';
+                          const detailsMatches = html.match(/<table[^>]*class=["'][^"']*product[^"']*["'][^>]*>([\s\S]*?)<\/table>/i) ||
+                                                html.match(/<div[^>]*class=["'][^"']*product-details[^"']*["'][^>]*>([\s\S]*?)<\/div>/i) ||
+                                                html.match(/<div[^>]*class=["'][^"']*specifications[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+                          if (detailsMatches) {
+                            productDetails = detailsMatches[1].replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+                          }
+
+                          // Extract bullet points
+                          let bulletPoints = '';
+                          const bulletMatches = html.match(/<ul[^>]*class=["'][^"']*product[^"']*["'][^>]*>([\s\S]*?)<\/ul>/i);
+                          if (bulletMatches) {
+                            bulletPoints = bulletMatches[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+                          }
+
+                          // Extract image URL
+                          let imageUrl = '';
+                          const ogImageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
+                          if (ogImageMatch) {
+                            imageUrl = ogImageMatch[1];
+                          } else {
+                            const imgMatch = html.match(/<img[^>]*class=["'][^"']*product[^"']*["'][^>]*src=["']([^"']+)["']/i);
+                            if (imgMatch) {
+                              imageUrl = imgMatch[1];
+                            }
+                          }
+
+                          // Build comprehensive snippet with all extracted info
+                          const snippetParts = [
+                            descMatch ? `Description: ${descMatch[1]}` : '',
+                            breadcrumbs ? `Categories: ${breadcrumbs}` : '',
+                            productDesc ? `Product Details: ${productDesc.substring(0, 500)}` : '',
+                            productDetails ? `Specifications: ${productDetails.substring(0, 300)}` : '',
+                            bulletPoints ? `Features: ${bulletPoints.substring(0, 300)}` : '',
+                            priceMatch ? `Price: ${parseInt(priceMatch[1])/100}` : '',
+                            skuMatch ? `SKU: ${skuMatch[1]}` : ''
+                          ].filter(Boolean);
+
+                          productData = {
+                            title: titleMatch ? titleMatch[1] : '',
+                            snippet: snippetParts.join('\n').trim(),
+                            imageUrl: imageUrl
+                          };
+                        } else {
+                          // Just a title
+                          productData = {
+                            title: addModelForm.pasteInput,
+                            snippet: ''
+                          };
+                        }
+
+                        // Parse with Claude
+                        const parseResponse = await fetch('/api/admin/parse-product', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(productData)
+                        });
+
+                        const parseData = await parseResponse.json();
+
+                        if (parseData.success) {
+                          const extracted = parseData.data;
+
+                          // Show verification modal with editable fields
+                          setVerifyData({
+                            manufacturer: extracted.manufacturer || '',
+                            scale: extracted.scale || '',
+                            sku: extracted.sku || '',
+                            driver: extracted.driver || '',
+                            eventName: extracted.event_name || '',
+                            seasonYear: extracted.season_year?.toString() || '',
+                            team: extracted.team || '',
+                            chassis: extracted.chassis || '',
+                            price: extracted.price?.toString() || '',
+                            productUrl: addModelForm.pasteInput,
+                          });
+                          setVerifyModalOpen(true);
+                          setSearchingCar(false);
+                          return; // Stop here - modal will handle creation
+
+                          // Step 1: Search for car (or create if doesn't exist)
+                          const searchCarResponse = await fetch('/api/admin/search-car', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              year: extracted.season_year || 2024,
+                              team: extracted.team || '',
+                              chassis: extracted.chassis || '',
+                            }),
+                          });
+
+                          const carData = await searchCarResponse.json();
+                          let carId;
+
+                          if (carData.success && carData.car) {
+                            carId = carData.car.id;
+                          } else {
+                            // Car doesn't exist - warn user about potential duplicate chassis
+                            const chassis = extracted.chassis || '';
+                            const confirmCreate = confirm(
+                              `⚠️ No car found for:\n` +
+                              `${extracted.event_name || 'Event'} - ${chassis} - ${extracted.driver}\n\n` +
+                              `This will create a NEW car entry.\n` +
+                              `If a ${chassis} already exists for another driver/event, you'll have multiple ${chassis} entries.\n\n` +
+                              `Continue?`
+                            );
+
+                            if (!confirmCreate) {
+                              throw new Error('User cancelled car creation');
+                            }
+
+                            // Create the car
+                            const createCarResponse = await fetch('/api/admin/create-car', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                year: extracted.season_year || 2024,
+                                team: extracted.team || '',
+                                chassis: extracted.chassis || `${extracted.team} ${extracted.season_year}`,
+                              }),
+                            });
+
+                            const createCarData = await createCarResponse.json();
+                            if (createCarData.success && createCarData.car) {
+                              carId = createCarData.car.id;
+                            } else {
+                              throw new Error('Failed to create car');
+                            }
+                          }
+
+                          // Step 2: Create the model
+                          const createModelResponse = await fetch('/api/admin/create-model', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              carId: carId,
+                              manufacturer: extracted.manufacturer || '',
+                              scale: extracted.scale || '',
+                              sku: extracted.sku || '',
+                              driver: extracted.driver || '',
+                              eventName: extracted.event_name || '',
+                              price: extracted.price?.toString() || '',
+                              imageUrl: productData.imageUrl || '', // Pass extracted image URL
+                              retailerUrl: isUrl ? addModelForm.pasteInput : '', // Only pass URL if it's actually a URL
+                            }),
+                          });
+
+                          const createModelData = await createModelResponse.json();
+
+                          if (createModelData.success) {
+                            alert(`✅ Model added successfully!\n\n${extracted.manufacturer} ${extracted.scale}\n${extracted.driver} - ${extracted.event_name}\n${extracted.season_year} ${extracted.team}`);
+
+                            // Close modal and refresh data
+                            setAddModelModalOpen(false);
+                            setAddModelForm({
+                              manufacturer: '',
+                              scale: '',
+                              sku: '',
+                              year: '2024',
+                              team: '',
+                              driver: '',
+                              eventName: '',
+                              price: '',
+                              imageUrl: '',
+                              pasteInput: '',
+                            });
+
+                            // Refresh F1 cars data
+                            const refreshResponse = await fetch('/api/admin/get-f1-data');
+                            const refreshData = await refreshResponse.json();
+                            if (refreshData.success) {
+                              setF1Cars(refreshData.cars);
+                            }
+                          } else {
+                            alert('❌ Failed to create model: ' + createModelData.message);
+                          }
+                        } else {
+                          alert('❌ Failed to extract product details: ' + parseData.error);
+                        }
+                      } catch (error: any) {
+                        console.error('Error parsing product:', error);
+                        alert('❌ Error: ' + error.message);
+                      } finally {
+                        setSearchingCar(false);
+                      }
+                    }}
+                    disabled={searchingCar || !addModelForm.pasteInput}
+                    className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors font-semibold"
+                  >
+                    {searchingCar ? '🔄 Processing...' : '🪄 Add to Database (AI-Powered)'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-center text-[var(--text-secondary)] text-sm">
+                OR fill manually below
+              </div>
+
               {/* Product Information */}
               <div>
                 <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
@@ -4366,7 +5552,9 @@ export default function EbayLinkingAdmin() {
                   <div className="mt-4 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
                     <p className="text-green-400 font-semibold mb-2">✅ Car Found:</p>
                     <p className="text-[var(--text-primary)]">
-                      {searchedCar.season?.year} {searchedCar.team?.name} {searchedCar.livery_name}
+                      {searchedCar.season?.year} {searchedCar.team?.name} {searchedCar.chassis_name}
+                      {searchedCar.event_name ? ` — ${searchedCar.event_name}` : ''}
+                      {searchedCar.driver?.name ? ` — ${searchedCar.driver.name}` : ''}
                     </p>
                   </div>
                 )}
@@ -4426,6 +5614,805 @@ export default function EbayLinkingAdmin() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Retailer Modal */}
+      {addRetailerModalOpen && addRetailerModel && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  ➕ Add Retailer Link
+                </h2>
+                <button
+                  onClick={() => {
+                    setAddRetailerModalOpen(false);
+                    setAddRetailerUrl('');
+                    setAddRetailerPrice('');
+                    setAddRetailerName('');
+                    setAddRetailerManualMode(false);
+                    setAddRetailerModel(null);
+                  }}
+                  className="text-gray-500 hover:text-gray-900"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Adding retailer link for: <span className="font-semibold text-gray-900">{addRetailerModel.name}</span>
+                  </p>
+
+                  {/* Manual Mode Toggle */}
+                  <label className="flex items-center gap-2 mb-4 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={addRetailerManualMode}
+                      onChange={(e) => setAddRetailerManualMode(e.target.checked)}
+                      className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700">
+                      Manual entry (for sites with bot protection)
+                    </span>
+                  </label>
+
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    Retailer Product URL
+                  </label>
+                  <input
+                    type="url"
+                    value={addRetailerUrl}
+                    onChange={(e) => setAddRetailerUrl(e.target.value)}
+                    placeholder="https://example.com/products/..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  {!addRetailerManualMode && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      We'll automatically extract the price and details.
+                    </p>
+                  )}
+                </div>
+
+                {/* Manual Entry Fields */}
+                {addRetailerManualMode && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-2">
+                        Retailer Name
+                      </label>
+                      <input
+                        type="text"
+                        value={addRetailerName}
+                        onChange={(e) => setAddRetailerName(e.target.value)}
+                        placeholder="e.g., Model Universe"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-2">
+                        Price (AUD)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={addRetailerPrice}
+                        onChange={(e) => setAddRetailerPrice(e.target.value)}
+                        placeholder="e.g., 389.99"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={() => {
+                      setAddRetailerModalOpen(false);
+                      setAddRetailerUrl('');
+                      setAddRetailerPrice('');
+                      setAddRetailerName('');
+                      setAddRetailerManualMode(false);
+                      setAddRetailerModel(null);
+                    }}
+                    className="flex-1 px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={addRetailer}
+                    className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  >
+                    Add Retailer
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Car Modal */}
+      {editCarModalOpen && editingCar && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  ✏️ Edit Car
+                </h2>
+                <button
+                  onClick={() => {
+                    setEditCarModalOpen(false);
+                    setEditingCar(null);
+                  }}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Car Info Display */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-1">Editing:</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {editingCar.year} {editingCar.team} - {editingCar.chassis}
+                </p>
+              </div>
+
+              {/* Livery Name Field */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Livery Name / Chassis
+                </label>
+                <input
+                  type="text"
+                  value={editCarForm.liveryName}
+                  onChange={(e) => setEditCarForm({ ...editCarForm, liveryName: e.target.value })}
+                  placeholder="e.g., W14, RB19, SF-23"
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  This will update the car's chassis/livery name
+                </p>
+              </div>
+
+              {/* Current Drivers */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Current Drivers
+                </label>
+                {editCarForm.drivers.length > 0 ? (
+                  <div className="space-y-2">
+                    {editCarForm.drivers.map((driver, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
+                        <span className="text-gray-900">{driver}</span>
+                        <button
+                          onClick={() => {
+                            setEditCarForm({
+                              ...editCarForm,
+                              drivers: editCarForm.drivers.filter((_, i) => i !== idx)
+                            });
+                          }}
+                          className="text-red-600 hover:text-red-700 font-bold"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 italic">No drivers linked</p>
+                )}
+              </div>
+
+              {/* Add Driver */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Add Driver
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={editCarForm.newDriverName}
+                    onChange={(e) => setEditCarForm({ ...editCarForm, newDriverName: e.target.value })}
+                    placeholder="e.g., Lewis Hamilton"
+                    className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && editCarForm.newDriverName.trim()) {
+                        setEditCarForm({
+                          ...editCarForm,
+                          drivers: [...editCarForm.drivers, editCarForm.newDriverName.trim()],
+                          newDriverName: ''
+                        });
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (editCarForm.newDriverName.trim()) {
+                        setEditCarForm({
+                          ...editCarForm,
+                          drivers: [...editCarForm.drivers, editCarForm.newDriverName.trim()],
+                          newDriverName: ''
+                        });
+                      }
+                    }}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setEditCarModalOpen(false);
+                    setEditingCar(null);
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/admin/update-car', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          carId: editingCar.id,
+                          liveryName: editCarForm.liveryName,
+                          drivers: editCarForm.drivers,
+                        }),
+                      });
+
+                      const data = await response.json();
+
+                      if (data.success) {
+                        alert('✅ Car updated successfully!');
+                        setEditCarModalOpen(false);
+                        setEditingCar(null);
+                        // Refresh data
+                        const refreshResponse = await fetch('/api/admin/get-f1-data');
+                        const refreshData = await refreshResponse.json();
+                        if (refreshData.cars) {
+                          setF1Cars(refreshData.cars);
+                        }
+                      } else {
+                        alert('❌ Failed to update car: ' + data.message);
+                      }
+                    } catch (error) {
+                      console.error('Error updating car:', error);
+                      alert('❌ Error updating car');
+                    }
+                  }}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  💾 Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Model Modal */}
+      {editModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  ✏️ Edit Model
+                </h2>
+                <button
+                  onClick={() => {
+                    setEditModalOpen(false);
+                    setEditingModel(null);
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+
+                try {
+                  const response = await fetch('/api/admin/update-model', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      modelId: editData.modelId,
+                      manufacturer: editData.manufacturer,
+                      scale: editData.scale,
+                      sku: editData.sku,
+                      driver: editData.driver,
+                      eventName: editData.eventName,
+                      price: editData.price ? parseFloat(editData.price) : null,
+                    }),
+                  });
+
+                  const data = await response.json();
+
+                  if (data.success) {
+                    alert('✅ Model updated successfully!');
+                    setEditModalOpen(false);
+                    setEditingModel(null);
+
+                    // Refresh F1 data
+                    const refreshResponse = await fetch('/api/admin/get-f1-data');
+                    const refreshData = await refreshResponse.json();
+                    if (refreshData.cars) {
+                      setF1Cars(refreshData.cars);
+                    }
+                  } else {
+                    // Duplicate SKU -> offer the merge flow.
+                    // Branch on the `duplicate` flag, not on the wording of the
+                    // error message (the old check sniffed for "duplicate key"
+                    // and silently stopped working when the message changed).
+                    if (data.duplicateModel && (data.duplicate || data.error?.includes('duplicate key'))) {
+                      setDuplicateInfo(data.duplicateModel);
+                      setDuplicateWarningOpen(true);
+                    } else {
+                      alert('❌ Failed to update model: ' + (data.details || data.error));
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error updating model:', error);
+                  alert('❌ Error updating model');
+                }
+              }}
+              className="p-6"
+            >
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Manufacturer *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editData.manufacturer}
+                    onChange={(e) => setEditData({ ...editData, manufacturer: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="e.g., Minichamps, Spark, Bburago"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Scale *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editData.scale}
+                    onChange={(e) => setEditData({ ...editData, scale: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="e.g., 1:43, 1:18"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    SKU (Manufacturer Part Number)
+                  </label>
+                  <input
+                    type="text"
+                    value={editData.sku}
+                    onChange={(e) => setEditData({ ...editData, sku: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="e.g., 417220144"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Driver
+                  </label>
+                  <input
+                    type="text"
+                    value={editData.driver}
+                    onChange={(e) => setEditData({ ...editData, driver: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="e.g., Lando Norris"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Event Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editData.eventName}
+                    onChange={(e) => setEditData({ ...editData, eventName: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="e.g., Bahrain GP, Miami GP"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Price (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={editData.price}
+                    onChange={(e) => setEditData({ ...editData, price: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="e.g., 199.99"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditModalOpen(false);
+                    setEditingModel(null);
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
+                >
+                  💾 Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Duplicate SKU Warning Modal */}
+      {duplicateWarningOpen && duplicateInfo && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+            <div className="bg-orange-100 border-b border-orange-200 p-6">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">⚠️</span>
+                <h2 className="text-2xl font-bold text-orange-900">
+                  Duplicate SKU Detected
+                </h2>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <p className="text-gray-700 mb-6">
+                A model with SKU <span className="font-mono font-bold text-orange-600">{editData.sku}</span> already exists in the database.
+              </p>
+
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {/* Current Model Being Edited - KEEP */}
+                <div className="border-2 border-green-500 rounded-lg p-4 bg-green-50">
+                  <h3 className="font-bold text-green-900 mb-3 flex items-center gap-2">
+                    <span>✅</span>
+                    <span>Your Model (Will Keep)</span>
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="font-semibold text-gray-700">Old SKU:</span>
+                      <span className="ml-2 font-mono text-red-600 line-through">{editingModel?.sku || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">New SKU:</span>
+                      <span className="ml-2 font-mono text-green-600 font-bold">{editData.sku}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">Manufacturer:</span>
+                      <span className="ml-2">{editData.manufacturer}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">Scale:</span>
+                      <span className="ml-2">{editData.scale}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">Driver:</span>
+                      <span className="ml-2">{editData.driver}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">Event:</span>
+                      <span className="ml-2">{editData.eventName}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Old Existing Model - DELETE */}
+                <div className="border-2 border-red-500 rounded-lg p-4 bg-red-50">
+                  <h3 className="font-bold text-red-900 mb-3 flex items-center gap-2">
+                    <span>🗑️</span>
+                    <span>Old Model (Will Delete)</span>
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="font-semibold text-gray-700">SKU:</span>
+                      <span className="ml-2 font-mono">{duplicateInfo.sku}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">Manufacturer:</span>
+                      <span className="ml-2">{duplicateInfo.manufacturer}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">Scale:</span>
+                      <span className="ml-2">{duplicateInfo.scale}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">Driver:</span>
+                      <span className="ml-2">{duplicateInfo.driver}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">Event:</span>
+                      <span className="ml-2">{duplicateInfo.eventName}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <p className="text-sm text-yellow-900">
+                  <strong>What will happen:</strong> The old model will be <strong>deleted</strong>,
+                  and your current model's SKU will be updated to <strong className="font-mono">{editData.sku}</strong>. All your retailer links will be preserved!
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDuplicateWarningOpen(false);
+                    setDuplicateInfo(null);
+                  }}
+                  className="flex-1 px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-semibold"
+                >
+                  Cancel (Go Back)
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      // STEP 1: Transfer retailer links from OLD model to CURRENT model
+                      console.log('🔄 Transferring retailer links from old model to current model...');
+                      const transferResponse = await fetch('/api/admin/transfer-retailer-links', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          fromModelId: duplicateInfo.id,
+                          toModelId: editData.modelId,
+                        }),
+                      });
+
+                      const transferData = await transferResponse.json();
+                      console.log(`✅ Transferred ${transferData.transferred || 0} retailer link(s)`);
+
+                      // STEP 2: Delete the OLD model (the existing one with correct SKU)
+                      const deleteResponse = await fetch('/api/admin/delete-model', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ modelId: duplicateInfo.id }),
+                      });
+
+                      const deleteData = await deleteResponse.json();
+
+                      if (deleteData.success) {
+                        // STEP 3: Update the current model with the correct SKU (no duplicate now)
+                        const updateResponse = await fetch('/api/admin/update-model', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            modelId: editData.modelId,
+                            manufacturer: editData.manufacturer,
+                            scale: editData.scale,
+                            sku: editData.sku, // The correct SKU
+                            driver: editData.driver,
+                            eventName: editData.eventName,
+                            price: editData.price ? parseFloat(editData.price) : null,
+                          }),
+                        });
+
+                        const updateResponseData = await updateResponse.json();
+
+                        if (updateResponseData.success) {
+                          const message = transferData.transferred > 0
+                            ? `✅ Merged successfully! ${transferData.transferred} retailer link(s) combined + SKU updated!`
+                            : '✅ Old model deleted and SKU updated successfully!';
+                          alert(message);
+                          setDuplicateWarningOpen(false);
+                          setDuplicateInfo(null);
+                          setEditModalOpen(false);
+                          setEditingModel(null);
+
+                          // Refresh F1 data
+                          const refreshResponse = await fetch('/api/admin/get-f1-data');
+                          const refreshData = await refreshResponse.json();
+                          if (refreshData.cars) {
+                            setF1Cars(refreshData.cars);
+                          }
+                        } else {
+                          alert('❌ Failed to update SKU: ' + updateResponseData.error);
+                        }
+                      } else {
+                        alert('❌ Failed to delete old model: ' + deleteData.message);
+                      }
+                    } catch (error) {
+                      console.error('Error merging models:', error);
+                      alert('❌ Error merging models');
+                    }
+                  }}
+                  className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                >
+                  ✅ Merge: Keep Current & Update SKU
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Retailer Link Modal */}
+      {editRetailerModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full">
+            <div className="bg-indigo-100 border-b border-indigo-200 p-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-indigo-900">
+                  ✏️ Edit Retailer Link
+                </h2>
+                <button
+                  onClick={() => {
+                    setEditRetailerModalOpen(false);
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+
+                try {
+                  const response = await fetch('/api/admin/update-retailer-link', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      priceHistoryId: editRetailerData.priceHistoryId,
+                      price: parseFloat(editRetailerData.price),
+                      currency: editRetailerData.currency,
+                      inStock: editRetailerData.inStock,
+                      productUrl: editRetailerData.productUrl,
+                    }),
+                  });
+
+                  const data = await response.json();
+
+                  if (data.success) {
+                    alert('✅ Retailer link updated successfully!');
+                    setEditRetailerModalOpen(false);
+
+                    // Refresh F1 data
+                    const refreshResponse = await fetch('/api/admin/get-f1-data');
+                    const refreshData = await refreshResponse.json();
+                    if (refreshData.cars) {
+                      setF1Cars(refreshData.cars);
+                    }
+                  } else {
+                    alert('❌ Failed to update: ' + data.error);
+                  }
+                } catch (error) {
+                  console.error('Error updating retailer link:', error);
+                  alert('❌ Error updating retailer link');
+                }
+              }}
+              className="p-6"
+            >
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Retailer Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editRetailerData.retailerName}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Retailer name cannot be changed</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Price *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={editRetailerData.price}
+                      onChange={(e) => setEditRetailerData({ ...editRetailerData, price: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Currency
+                    </label>
+                    <select
+                      value={editRetailerData.currency}
+                      onChange={(e) => setEditRetailerData({ ...editRetailerData, currency: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="AUD">AUD</option>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="GBP">GBP</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={editRetailerData.inStock}
+                      onChange={(e) => setEditRetailerData({ ...editRetailerData, inStock: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">In Stock</span>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Product URL *
+                  </label>
+                  <input
+                    type="url"
+                    required
+                    value={editRetailerData.productUrl}
+                    onChange={(e) => setEditRetailerData({ ...editRetailerData, productUrl: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setEditRetailerModalOpen(false)}
+                  className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
+                >
+                  💾 Save Changes
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
