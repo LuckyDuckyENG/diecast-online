@@ -32,12 +32,11 @@ export default function ModelDetailPage() {
             *,
             manufacturer:manufacturers(name),
             car:cars(
-              livery_name,
+              chassis_name,
+              event_name,
               team:teams(name),
               season:seasons(year),
-              car_drivers(
-                driver:drivers(name, number)
-              )
+              driver:drivers(name, number)
             )
           `)
           .eq('id', id)
@@ -60,26 +59,64 @@ export default function ModelDetailPage() {
           `)
           .eq('model_id', id);
 
-        // Transform retailer data
-        const retailers = (priceData || []).map((item: any) => ({
-          name: item.retailer?.name || 'Unknown',
-          price: parseFloat(item.price) || 0,
-          currency: 'AUD',
-          availability: 'In Stock' as const,
-          url: item.product_url || item.retailer?.url || '#', // Use product_url if available, fallback to homepage
-        }));
+        // Fetch eBay link data
+        const { data: ebayLink, error: ebayError } = await supabase
+          .from('ebay_links')
+          .select('*')
+          .eq('model_id', id)
+          .single();
+
+        console.log('🔗 eBay link fetch result:', { ebayLink, ebayError, modelId: id });
+
+        // Transform retailer data.
+        // Skip rows with no usable price — a 0 is a failed extraction, not an
+        // offer, and it would present as the cheapest option available.
+        const retailers = (priceData || [])
+          .filter((item: any) => parseFloat(item.price) > 0)
+          .map((item: any) => ({
+            name: item.retailer?.name || 'Unknown',
+            price: parseFloat(item.price) || 0,
+            currency: 'AUD',
+            availability: 'In Stock' as const,
+            url: item.product_url || item.retailer?.url || '#', // Use product_url if available, fallback to homepage
+          }));
+
+        console.log('💰 Retailers before eBay:', retailers);
+
+        // Add eBay as a retailer if eBay link exists
+        if (ebayLink) {
+          console.log('✅ eBay link exists, processing...');
+          const ebayPrice = parseFloat(ebayLink.ebay_price?.replace(/[^0-9.]/g, '') || '0');
+          console.log('💵 Parsed eBay price:', ebayPrice);
+          if (ebayPrice > 0) {
+            console.log('✅ Adding eBay to retailers');
+            retailers.push({
+              name: 'eBay',
+              price: ebayPrice,
+              currency: 'AUD', // Assuming USD in eBay price
+              availability: 'In Stock' as const,
+              url: ebayLink.ebay_url,
+            });
+          } else {
+            console.log('⚠️ eBay price is 0 or invalid');
+          }
+        } else {
+          console.log('⚠️ No eBay link found for model:', id);
+        }
+
+        console.log('💰 Final retailers array:', retailers);
 
         // Transform to expected format
-        const driver = data.car?.car_drivers?.[0]?.driver;
+        const driver = data.car?.driver;
         const imageUrl = data.image_url || '/placeholder.jpg';
         const transformedModel = {
           id: data.id,
-          name: data.description || `${data.car?.livery_name} - ${driver?.name}`,
+          name: data.description || `${data.car?.chassis_name} - ${driver?.name}`,
           manufacturer: data.manufacturer?.name || '',
           year: data.car?.season?.year || 2024,
           driver: driver?.name,
           team: data.car?.team?.name,
-          grandPrix: data.description?.split(' - ')[2] || 'Grand Prix 2024',
+          grandPrix: data.car?.event_name || data.description?.split(' - ')[2] || 'Grand Prix 2024',
           scale: data.scale,
           material: 'Die-cast metal',
           priceRange: {

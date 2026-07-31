@@ -14,6 +14,9 @@ interface ModelCardProps {
   liveryName?: string;
   teamPrimaryColor?: string;
   teamTextColor?: string;
+  eventName?: string;
+  /** False when nothing is currently sold for this car (search results only). */
+  hasStore?: boolean;
 }
 
 export default function ModelCard({
@@ -29,6 +32,8 @@ export default function ModelCard({
   liveryName,
   teamPrimaryColor,
   teamTextColor,
+  eventName,
+  hasStore,
 }: ModelCardProps) {
   return (
     <Link
@@ -49,6 +54,7 @@ export default function ModelCard({
             liveryName={liveryName}
             primaryColor={teamPrimaryColor}
             textColor={teamTextColor}
+            eventName={eventName}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)] text-sm">
@@ -58,6 +64,11 @@ export default function ModelCard({
         {releaseDate && (
           <div className="absolute top-3 right-3 bg-[var(--accent)] text-white text-xs font-bold px-2.5 py-1 rounded-md">
             {releaseDate}
+          </div>
+        )}
+        {hasStore === false && (
+          <div className="absolute top-3 left-3 bg-white/90 text-[var(--text-tertiary)] text-xs font-semibold px-2.5 py-1 rounded-md border border-[var(--border-light)]">
+            Not yet listed
           </div>
         )}
       </div>

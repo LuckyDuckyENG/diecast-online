@@ -10,6 +10,7 @@ import BrowseGrid from '../components/BrowseGrid';
 import Breadcrumb from '../components/Breadcrumb';
 import { FilterOptions, SortOption, Model } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
+import { REQUIRE_RETAILER, fetchModelIdsWithStore } from '@/lib/storeCoverage';
 import { ModelWithDetails } from '@/lib-root/database.types';
 
 const INITIAL_FILTERS: FilterOptions = {
@@ -34,60 +35,84 @@ function BrowsePageContent() {
       try {
         setLoading(true);
 
-        // Fetch all cars with their details
+        // Fetch all cars with their details.
+        // Driver and event live on the car itself (see ARCHITECTURE.md).
         const { data: carsData, error: carsError } = await supabase
           .from('cars')
           .select(`
             id,
-            livery_name,
+            chassis_name,
             event_name,
             team:teams(name, primary_color, text_color),
             season:seasons(year),
-            car_drivers(
-              driver:drivers(name, number)
-            )
+            driver:drivers(name, number)
           `);
 
         if (carsError) {
-          console.error('Error fetching cars:', carsError);
+          console.error('Error fetching cars:', carsError.message || carsError);
           return;
         }
 
-        // For each car, count manufacturer variants and get sample image
-        const carsWithVariants = await Promise.all(
-          (carsData || []).map(async (car: any) => {
-            const { data: variants } = await supabase
-              .from('models')
-              .select('id, image_url, manufacturer_sku, scale, manufacturers(name)')
-              .eq('car_id', car.id);
+        // Fetch every model in one go, then group by car (avoids N+1)
+        const { data: allModels, error: modelsError } = await supabase
+          .from('models')
+          .select('id, car_id, image_url, manufacturer_sku, scale, manufacturers(name)');
 
-            const driver = car.car_drivers?.[0]?.driver;
-            const eventName = car.event_name || 'Grand Prix';
+        if (modelsError) {
+          console.error('Error fetching models:', modelsError.message || modelsError);
+          return;
+        }
 
-            // Find first variant with an image
-            const variantWithImage = variants?.find((v: any) => v.image_url);
+        const modelsByCar = new Map<string, any[]>();
+        (allModels || []).forEach((m: any) => {
+          if (!modelsByCar.has(m.car_id)) modelsByCar.set(m.car_id, []);
+          modelsByCar.get(m.car_id)!.push(m);
+        });
 
-            return {
-              id: car.id, // This is car_id, used for /cars/[id] link
-              name: `${eventName} - ${car.livery_name} - ${driver?.name} - ${car.season?.year}`,
-              manufacturer: `${variants?.length || 0} manufacturers`, // Show count instead of single manufacturer
-              year: car.season?.year || 2024,
-              driver: driver?.name,
-              team: car.team?.name,
-              price: undefined, // Don't show price on browse (shows on master page)
-              imageUrl: variantWithImage?.image_url || null,
-              releaseDate: undefined,
-              scale: variants?.[0]?.scale || '1:18',
-              variantCount: variants?.length || 0,
-              liveryName: car.livery_name,
-              teamPrimaryColor: car.team?.primary_color,
-              teamTextColor: car.team?.text_color,
-            };
-          })
-        );
+        // Which models are actually buyable (retailer link or eBay listing)
+        const modelIdsWithStore = await fetchModelIdsWithStore();
+
+        const carsWithVariants = (carsData || []).map((car: any) => {
+          const variants = modelsByCar.get(car.id) || [];
+          const driver = car.driver;
+          const eventName = car.event_name || 'Grand Prix';
+          const hasStore = variants.some((v: any) => modelIdsWithStore.has(v.id));
+
+          // Find first variant with an image
+          const variantWithImage = variants.find((v: any) => v.image_url);
+
+          return {
+            id: car.id, // This is car_id, used for /cars/[id] link
+            name: `${eventName} - ${car.chassis_name} - ${driver?.name} - ${car.season?.year}`,
+            manufacturer: `${variants.length} manufacturers`, // Show count instead of single manufacturer
+            year: car.season?.year || 2024,
+            driver: driver?.name,
+            team: car.team?.name,
+            price: undefined, // Don't show price on browse (shows on master page)
+            imageUrl: variantWithImage?.image_url || null,
+            releaseDate: undefined,
+            scale: variants[0]?.scale || '1:18',
+            variantCount: variants.length,
+            liveryName: car.chassis_name,
+            teamPrimaryColor: car.team?.primary_color,
+            teamTextColor: car.team?.text_color,
+            eventName: eventName, // Pass event name to card
+            hasStore,
+          };
+        });
 
         // Filter out cars with no manufacturer variants (safety net)
-        const carsWithModels = carsWithVariants.filter(car => car.variantCount > 0);
+        let carsWithModels = carsWithVariants.filter(car => car.variantCount > 0);
+
+        // The browse grid is the shop window: only show what someone can buy.
+        // Detail pages and search stay complete — see lib/storeCoverage.ts.
+        if (REQUIRE_RETAILER) {
+          const beforeCount = carsWithModels.length;
+          carsWithModels = carsWithModels.filter(car => car.hasStore);
+          console.log(
+            `🏪 Store filter: ${carsWithModels.length}/${beforeCount} cars have a retailer or eBay listing`
+          );
+        }
 
         setModels(carsWithModels);
       } catch (err) {

@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ModelCard from '../components/ModelCard';
 import { supabase } from '@/lib/supabase';
+import { fetchModelIdsWithStore } from '@/lib/storeCoverage';
 import { Model } from '@/lib/types';
 
 function SearchResults() {
@@ -28,28 +29,34 @@ function SearchResults() {
         const searchTerm = query.toLowerCase();
 
         // Get ALL cars with their details
-        const { data: allCars } = await supabase
+        const { data: allCars, error: carsError } = await supabase
           .from('cars')
           .select(`
             id,
-            livery_name,
+            chassis_name,
             event_name,
             team:teams(name, primary_color, text_color),
             season:seasons(year),
-            car_drivers(driver:drivers(name, number))
+            driver:drivers(name, number)
           `);
+
+        if (carsError) {
+          console.error('Error fetching cars:', carsError.message || carsError);
+          setResults([]);
+          return;
+        }
 
         // Get all models with SKUs
         const { data: allModels } = await supabase
           .from('models')
-          .select('car_id, manufacturer_sku');
+          .select('id, car_id, manufacturer_sku, image_url, scale');
 
         // Filter in JavaScript for better control
         const matchedCars = (allCars || []).filter((car: any) => {
-          const driver = car.car_drivers?.[0]?.driver?.name?.toLowerCase() || '';
+          const driver = car.driver?.name?.toLowerCase() || '';
           const team = car.team?.name?.toLowerCase() || '';
           const event = car.event_name?.toLowerCase() || '';
-          const livery = car.livery_name?.toLowerCase() || '';
+          const livery = car.chassis_name?.toLowerCase() || '';
 
           // Check if query matches driver, team, event, or livery
           const textMatch =
@@ -69,33 +76,43 @@ function SearchResults() {
 
         const uniqueCars = matchedCars;
 
-        // For each car, get sample image and variant count
-        const carsWithData = await Promise.all(
-          uniqueCars.map(async (car: any) => {
-            const { data: variants } = await supabase
-              .from('models')
-              .select('id, image_url, scale')
-              .eq('car_id', car.id);
+        // Group the models we already fetched by car — no extra round trips
+        const modelsByCar = new Map<string, any[]>();
+        (allModels || []).forEach((m: any) => {
+          if (!modelsByCar.has(m.car_id)) modelsByCar.set(m.car_id, []);
+          modelsByCar.get(m.car_id)!.push(m);
+        });
 
-            const driver = car.car_drivers?.[0]?.driver;
-            const eventName = car.event_name || 'Grand Prix';
-            const variantWithImage = variants?.find((v: any) => v.image_url);
+        // Search deliberately does NOT filter by retailer — someone typing a
+        // driver's name meant it, and empty results would look broken. Mark the
+        // ones nobody sells yet instead.
+        const modelIdsWithStore = await fetchModelIdsWithStore();
 
-            return {
-              id: car.id,
-              name: `${eventName} - ${car.livery_name} - ${driver?.name} - ${car.season?.year}`,
-              manufacturer: `${variants?.length || 0} manufacturers`,
-              year: car.season?.year || 2024,
-              driver: driver?.name,
-              team: car.team?.name,
-              imageUrl: variantWithImage?.image_url || null,
-              scale: variants?.[0]?.scale || '1:18',
-              liveryName: car.livery_name,
-              teamPrimaryColor: car.team?.primary_color,
-              teamTextColor: car.team?.text_color,
-            };
-          })
-        );
+        const carsWithData = uniqueCars.map((car: any) => {
+          const variants = modelsByCar.get(car.id) || [];
+          const driver = car.driver;
+          const eventName = car.event_name || 'Grand Prix';
+          const variantWithImage = variants.find((v: any) => v.image_url);
+          const hasStore = variants.some((v: any) => modelIdsWithStore.has(v.id));
+
+          return {
+            id: car.id,
+            name: `${eventName} - ${car.chassis_name} - ${driver?.name} - ${car.season?.year}`,
+            manufacturer: `${variants.length} manufacturers`,
+            year: car.season?.year || 2024,
+            driver: driver?.name,
+            team: car.team?.name,
+            imageUrl: variantWithImage?.image_url || null,
+            scale: variants[0]?.scale || '1:18',
+            liveryName: car.chassis_name,
+            teamPrimaryColor: car.team?.primary_color,
+            teamTextColor: car.team?.text_color,
+            hasStore,
+          };
+        });
+
+        // Buyable results first, but keep the rest reachable
+        carsWithData.sort((a: any, b: any) => Number(b.hasStore) - Number(a.hasStore));
 
         setResults(carsWithData);
       } catch (error) {

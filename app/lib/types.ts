@@ -20,6 +20,9 @@ export interface Model {
   liveryName?: string;
   teamPrimaryColor?: string;
   teamTextColor?: string;
+  eventName?: string;
+  /** True when at least one variant is sold somewhere (retailer or eBay). */
+  hasStore?: boolean;
 }
 
 export type SortOption = 'newest' | 'price-low' | 'price-high' | 'popular';

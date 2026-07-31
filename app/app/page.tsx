@@ -44,26 +44,29 @@ export default function Home() {
   // Fetch top drivers with model counts
   useEffect(() => {
     async function fetchDrivers() {
-      const { data: allDrivers } = await supabase
+      // Cars reference drivers directly now, so the reverse join is cars(...)
+      const { data: allDrivers, error } = await supabase
         .from('drivers')
         .select(`
           id,
           name,
           number,
-          car_drivers(
-            car:cars(
-              id,
-              team:teams(name, primary_color)
-            )
+          cars(
+            id,
+            team:teams(name, primary_color)
           )
         `);
 
+      if (error) {
+        console.error('Error fetching drivers:', error.message || error);
+        return;
+      }
       if (!allDrivers) return;
 
-      // Count models per driver and get their current team
+      // Count cars per driver and get their current team
       const driverCounts = allDrivers.map((driver: any) => {
-        const cars = driver.car_drivers || [];
-        const latestCar = cars[cars.length - 1]?.car;
+        const cars = driver.cars || [];
+        const latestCar = cars[cars.length - 1];
         return {
           name: driver.name,
           team: latestCar?.team?.name || 'F1',
@@ -82,46 +85,56 @@ export default function Home() {
   // Fetch latest cars with models
   useEffect(() => {
     async function fetchLatestCars() {
-      const { data: carsData } = await supabase
+      const { data: carsData, error } = await supabase
         .from('cars')
         .select(`
           id,
           event_name,
-          livery_name,
+          chassis_name,
           created_at,
           team:teams(name, primary_color),
           season:seasons(year),
-          car_drivers(driver:drivers(name))
+          driver:drivers(name)
         `)
         .order('created_at', { ascending: false })
         .limit(12);
 
+      if (error) {
+        console.error('Error fetching latest cars:', error.message || error);
+        return;
+      }
       if (!carsData) return;
 
-      const carsWithModels = await Promise.all(
-        carsData.map(async (car: any) => {
-          const { data: models } = await supabase
-            .from('models')
-            .select('id, image_url, scale, manufacturer:manufacturers(name)')
-            .eq('car_id', car.id);
+      const carIds = carsData.map((c: any) => c.id);
+      const { data: allModels } = await supabase
+        .from('models')
+        .select('id, car_id, image_url, scale, manufacturer:manufacturers(name)')
+        .in('car_id', carIds);
 
-          const driverName = car.car_drivers?.[0]?.driver?.name || '';
-          const imageUrl = models?.find((m: any) => m.image_url)?.image_url;
+      const modelsByCar = new Map<string, any[]>();
+      (allModels || []).forEach((m: any) => {
+        if (!modelsByCar.has(m.car_id)) modelsByCar.set(m.car_id, []);
+        modelsByCar.get(m.car_id)!.push(m);
+      });
 
-          return {
-            id: car.id,
-            event: car.event_name || 'Grand Prix',
-            year: car.season?.year || 2024,
-            driver: driverName,
-            team: car.team?.name || '',
-            livery: car.livery_name || '',
-            teamColor: car.team?.primary_color || '#cf2f2a',
-            imageUrl,
-            retailers: models?.length || 0,
-            price: '$' + (Math.floor(Math.random() * 200) + 60), // Mock price for now
-          };
-        })
-      );
+      const carsWithModels = carsData.map((car: any) => {
+        const models = modelsByCar.get(car.id) || [];
+        const driverName = car.driver?.name || '';
+        const imageUrl = models.find((m: any) => m.image_url)?.image_url;
+
+        return {
+          id: car.id,
+          event: car.event_name || 'Grand Prix',
+          year: car.season?.year || 2024,
+          driver: driverName,
+          team: car.team?.name || '',
+          livery: car.chassis_name || '',
+          teamColor: car.team?.primary_color || '#cf2f2a',
+          imageUrl,
+          retailers: models.length,
+          price: '$' + (Math.floor(Math.random() * 200) + 60), // Mock price for now
+        };
+      });
 
       setLatestCars(carsWithModels);
     }

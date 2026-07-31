@@ -6,6 +6,7 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import Breadcrumb from '../../components/Breadcrumb';
 import { supabase } from '@/lib/supabase';
+import { formatAge, shouldHidePrice, freshnessOf } from '@/lib/freshness';
 
 // Helper to get manufacturer logo filename
 function getManufacturerLogo(name: string): string {
@@ -43,9 +44,7 @@ export default function MasterCarPage() {
             *,
             team:teams(name),
             season:seasons(year),
-            car_drivers(
-              driver:drivers(name, number)
-            )
+            driver:drivers(name, number)
           `)
           .eq('id', carId)
           .single();
@@ -81,13 +80,10 @@ export default function MasterCarPage() {
           (modelVariants || []).map(async (variant: any) => {
             const { data: priceData } = await supabase
               .from('price_history')
+              // `*` rather than a column list so this keeps working whether or
+              // not migration 009 (last_checked_at) has been applied yet.
               .select(`
-                price,
-                currency,
-                price_aud,
-                in_stock,
-                recorded_at,
-                product_url,
+                *,
                 retailer:retailers(name, url)
               `)
               .eq('model_id', variant.id)
@@ -101,20 +97,38 @@ export default function MasterCarPage() {
               .eq('model_id', variant.id)
               .single();
 
-            // Build retailers array from price_history
-            const retailers = (priceData || []).map((item: any) => ({
-              name: item.retailer?.name || 'Unknown',
-              price: parseFloat(item.price) || 0,
-              currency: item.currency || 'AUD',
-              priceAUD: parseFloat(item.price_aud) || parseFloat(item.price) || 0,
-              inStock: item.in_stock !== false, // Default to true if null
-              url: item.product_url || item.retailer?.url || '#',
-            }));
+            // Build retailers array from price_history.
+            // Skip rows with no usable price — a 0 is always a failed extraction,
+            // never a real offer, and it would sort first as the "cheapest".
+            // The row stays in the DB (it holds a real product URL); it just
+            // isn't advertised until someone supplies the price.
+            const retailers = (priceData || [])
+              .filter((item: any) => parseFloat(item.price) > 0)
+              .map((item: any) => {
+                // Fall back to recorded_at until migration 009 has run
+                const checkedAt = item.last_checked_at || item.recorded_at;
+                return {
+                  name: item.retailer?.name || 'Unknown',
+                  price: parseFloat(item.price) || 0,
+                  currency: item.currency || 'AUD',
+                  priceAUD: parseFloat(item.price_aud) || parseFloat(item.price) || 0,
+                  inStock: item.in_stock !== false, // Default to true if null
+                  url: item.product_url || item.retailer?.url || '#',
+                  checkedAt,
+                  checkedLabel: formatAge(checkedAt),
+                  // Too old to quote a number for — we still link to the shop
+                  priceHidden: shouldHidePrice(checkedAt),
+                };
+              });
 
             // Add eBay as a retailer if eBay link exists
             if (ebayLink) {
               const ebayPrice = parseFloat(ebayLink.ebay_price?.replace(/[^0-9.]/g, '') || '0');
               if (ebayPrice > 0) {
+                // eBay links aren't part of the refresh cycle, so their age comes
+                // from when the listing was last synced. Same staleness rules —
+                // an old eBay price is no more trustworthy than an old shop price.
+                const ebayCheckedAt = ebayLink.last_updated || null;
                 retailers.push({
                   name: 'eBay',
                   price: ebayPrice,
@@ -122,6 +136,9 @@ export default function MasterCarPage() {
                   priceAUD: ebayPrice, // You may want to convert USD to AUD
                   inStock: true,
                   url: ebayLink.ebay_url,
+                  checkedAt: ebayCheckedAt,
+                  checkedLabel: formatAge(ebayCheckedAt),
+                  priceHidden: shouldHidePrice(ebayCheckedAt),
                 });
               }
             }
@@ -129,9 +146,16 @@ export default function MasterCarPage() {
             return {
               ...variant,
               retailers: retailers,
-              lowestPrice: retailers.length > 0
-                ? Math.min(...retailers.filter(r => r.inStock).map(r => r.priceAUD))
-                : null,
+              // "Cheapest" is the strongest claim on the page, so it may only
+              // draw on prices we're still willing to quote — in stock, and
+              // verified recently enough. A stale low price is the worst kind
+              // of wrong: it sends someone to a shop where it costs more.
+              lowestPrice: (() => {
+                const quotable = retailers.filter((r: any) => r.inStock && !r.priceHidden);
+                return quotable.length > 0
+                  ? Math.min(...quotable.map((r: any) => r.priceAUD))
+                  : null;
+              })(),
             };
           })
         );
@@ -183,10 +207,10 @@ export default function MasterCarPage() {
     );
   }
 
-  const driver = carData.car_drivers?.[0]?.driver;
+  const driver = carData.driver;
   // Build title with event name as PRIMARY identifier
   const eventName = carData.event_name || 'Grand Prix';
-  const masterTitle = `${eventName} - ${carData.livery_name} - ${driver?.name} - ${carData.season?.year}`;
+  const masterTitle = `${eventName} - ${carData.chassis_name} - ${driver?.name} - ${carData.season?.year}`;
 
   // Filter variants by scale AND manufacturer
   let filteredVariants = variants;
@@ -381,23 +405,39 @@ export default function MasterCarPage() {
                                 !retailer.inStock ? 'opacity-50' : ''
                               }`}
                             >
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-[var(--text-primary)]">
-                                  {retailer.name}
+                              <div className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-[var(--text-primary)]">
+                                    {retailer.name}
+                                  </span>
+                                  {retailer.inStock ? (
+                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
+                                      ✓ In Stock
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold">
+                                      ✗ Out of Stock
+                                    </span>
+                                  )}
+                                </div>
+                                {/* Freshness sits beside the number it qualifies */}
+                                <span
+                                  className={`text-[11px] ${
+                                    freshnessOf(retailer.checkedAt) === 'fresh'
+                                      ? 'text-[var(--text-tertiary)]'
+                                      : 'text-amber-600'
+                                  }`}
+                                >
+                                  Price checked {retailer.checkedLabel}
                                 </span>
-                                {retailer.inStock ? (
-                                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
-                                    ✓ In Stock
-                                  </span>
-                                ) : (
-                                  <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold">
-                                    ✗ Out of Stock
-                                  </span>
-                                )}
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className={`font-black ${retailer.inStock ? 'text-[var(--accent)]' : 'text-gray-400'}`}>
-                                  {retailer.currency === 'AUD' ? (
+                                  {retailer.priceHidden ? (
+                                    <span className="text-sm font-semibold text-[var(--text-tertiary)]">
+                                      Check price on site
+                                    </span>
+                                  ) : retailer.currency === 'AUD' ? (
                                     `AUD $${retailer.price.toFixed(2)}`
                                   ) : (
                                     <span>
@@ -442,6 +482,20 @@ export default function MasterCarPage() {
               No variants found for this manufacturer.
             </p>
           )}
+
+          {/* Say plainly where these numbers come from. Prices are parsed from
+              retailer pages, which can change without notice — and the visitor
+              always sees the real price on the shop's own site before paying. */}
+          <div className="mt-10 pt-6 border-t border-[var(--border-light)]">
+            <p className="text-xs text-[var(--text-tertiary)] leading-relaxed max-w-3xl">
+              <strong className="text-[var(--text-secondary)]">About these prices.</strong>{' '}
+              Prices and stock are collected automatically from each retailer&apos;s website and
+              may be out of date or incorrect. Figures shown in AUD for non-Australian shops are
+              approximate conversions and exclude shipping, duties and taxes. Always confirm the
+              current price on the retailer&apos;s own site before purchasing — the price there is
+              the one that applies.
+            </p>
+          </div>
         </div>
       </div>
 
