@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Exa from 'exa-js';
 
-const exa = new Exa(process.env.EXA_API_KEY);
+// Built per request, not at module scope. `new Exa()` throws when the key is
+// missing, and Next evaluates every route module while collecting page data —
+// so a module-level client turned an unset optional env var into a hard build
+// failure, with nothing deployed at all.
+function getExa(): Exa | null {
+  const apiKey = process.env.EXA_API_KEY;
+  if (!apiKey) return null;
+  return new Exa(apiKey);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,6 +19,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Search query required' },
         { status: 400 }
+      );
+    }
+
+    const exa = getExa();
+    if (!exa) {
+      return NextResponse.json(
+        {
+          error: 'Product discovery is not configured',
+          details: 'EXA_API_KEY is not set in this environment.',
+        },
+        { status: 503 }
       );
     }
 
