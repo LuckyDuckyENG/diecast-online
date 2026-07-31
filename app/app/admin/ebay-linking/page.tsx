@@ -5299,6 +5299,10 @@ export default function EbayLinkingAdmin() {
                             team: extracted.team || '',
                             chassis: extracted.chassis || '',
                             price: extracted.price?.toString() || '',
+                            // Required by verifyData's type. Without it the
+                            // production build fails type checking, even though
+                            // this block sits after an earlier return.
+                            currency: extracted.currency || 'AUD',
                             productUrl: addModelForm.pasteInput,
                           });
                           setVerifyModalOpen(true);
