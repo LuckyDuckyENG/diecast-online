@@ -1,0 +1,74 @@
+team,driver_name,event_name,livery_name,year,manufacturer,sku_1_18,sku_1_43,notes,verification_status
+Ferrari,Carlos Sainz,Bahrain GP,SF-24,2024,Looksmart,LS18F1056,LSF1056,3rd Place,confirmed via Looksmart product listing
+Ferrari,Charles Leclerc,Saudi Arabian GP,SF-24,2024,Looksmart,LS18F1057,LSF1057,3rd Place,confirmed via Looksmart product listing
+Ferrari,Oliver Bearman,Saudi Arabian GP,SF-24,2024,Looksmart,LS18F1058,LSF1058,"F1 Debut (#38, standing in for Sainz)",confirmed via Looksmart product listing
+Ferrari,Carlos Sainz,Australian GP,SF-24,2024,Looksmart,LS18F1059,LSF1059,Race Winner (returned from appendicitis),confirmed via Looksmart product listing
+Ferrari,Charles Leclerc,Australian GP,SF-24,2024,Looksmart,LS18F1060,LSF1060,2nd Place,confirmed via Looksmart product listing
+Ferrari,,Japanese GP,SF-24,2024,Looksmart,,,No release - SKU sequence runs 1060(Australia) direct to 1061(Miami) with no gap,confirmed absence - sequential SKU numbering has no room for a Japan release
+Ferrari,,Chinese GP,SF-24,2024,Looksmart,,,No release - same gap as Japanese GP,confirmed absence - sequential SKU numbering has no room for a China release
+Ferrari,Charles Leclerc,Miami GP,SF-24,2024,Looksmart,LS18F1061,,3rd Place,1:18 confirmed via Looksmart; 1:43 counterpart not yet confirmed
+Ferrari,Carlos Sainz,Miami GP,SF-24,2024,Looksmart,LS18F1062,,5th Place,1:18 confirmed via Looksmart; 1:43 counterpart not yet confirmed
+Ferrari,Charles Leclerc,Monaco GP,SF-24,2024,Looksmart,LS18F1063,LSF1063,Race Winner,confirmed via Looksmart product listing
+Ferrari,Carlos Sainz,Monaco GP,SF-24,2024,Looksmart,LS18F1064,LSF1064,3rd Place,confirmed via Looksmart product listing
+Ferrari,Charles Leclerc,Italian GP (Monza),SF-24,2024,Looksmart,LS18F1065,LSF1065,Race Winner,confirmed via Looksmart product listing
+Ferrari,Carlos Sainz,Italian GP (Monza),SF-24,2024,Looksmart,,LSF1066,"4th Place - 1:43 scale ONLY, no 1:18 version was ever produced",confirmed via Looksmart + DiecastSociety.com release announcement (explicitly states 1:43 only)
+Ferrari,Charles Leclerc,United States GP (Austin),SF-24,2024,Looksmart,LS18F1067,LSF1067,Race Winner,confirmed via Looksmart product listing
+Ferrari,Carlos Sainz,United States GP (Austin),SF-24,2024,Looksmart,LS18F1068,LSF1068,2nd Place,confirmed via Looksmart product listing
+Ferrari,Carlos Sainz,Mexico City GP,SF-24,2024,Looksmart,,LSF1069,Race Winner - 1:18 counterpart not yet confirmed,1:43 confirmed via Looksmart product listing
+Ferrari,Charles Leclerc,Mexico City GP,SF-24,2024,Looksmart,,LSF1070,3rd Place - 1:18 counterpart not yet confirmed,1:43 confirmed via Looksmart product listing
+Mercedes,George Russell,Bahrain GP,W15,2024,Minichamps,110240163,410240163,Standard Bahrain Spec,confirmed via Minichamps product listings
+Mercedes,Lewis Hamilton,Bahrain GP,W15,2024,Minichamps,110240144,410240144,Standard Bahrain Spec,confirmed via Minichamps product listings
+Mercedes,George Russell,Austrian GP,W15,2024,Minichamps,110241163,410241163,Race Winner (diecast opening variant),confirmed via DiecastSociety.com announcement matching SKU to description
+Mercedes,Lewis Hamilton,Austrian GP,W15,2024,Minichamps,110241144,410241144,(diecast opening variant),confirmed via DiecastSociety.com announcement matching SKU to description
+Mercedes,Lewis Hamilton,British GP,W15,2024,Minichamps,110241244,410241244,"Race Winner, w/ flag (diecast opening variant)",confirmed via DiecastSociety.com announcement matching SKU to description
+Mercedes,George Russell,British GP,W15,2024,Minichamps,110241263,410241263,(diecast opening variant),confirmed via DiecastSociety.com announcement matching SKU to description
+Mercedes,George Russell + Lewis Hamilton,Las Vegas GP,W15,2024,Minichamps,,412244463,"2-car set, 1-2 finish (Russell win, Hamilton 2nd)",confirmed via Minichamps product listing
+Mercedes,Lewis Hamilton,Abu Dhabi GP,W15,2024,Minichamps,127242444,,"Last race for Mercedes, w/ figurine, finished 4th",confirmed via DiecastSociety.com announcement
+McLaren,Lando Norris,Australian GP,MCL38,2024,Spark,18S986,,3rd Place Podium Finish,1:18 confirmed via Spark's own announcement (DiecastSociety.com); 1:43 counterpart confirmed to exist (Tibormodel listing) but its SKU not yet confirmed
+McLaren,Oscar Piastri,Australian GP,MCL38,2024,Spark,18S987,S9524,"4th Place, Home Race Edition",confirmed via multiple independent retailers; note this SKU was initially announced by Spark as a Bahrain GP placeholder before being reassigned to Australia in final production
+McLaren,Lando Norris,Miami GP,MCL38,2024,Spark,,S9523,Race Winner (maiden win),confirmed via 6 independent retailers; note this SKU was initially announced by Spark as a Bahrain GP placeholder before being reassigned to Miami
+McLaren,Lando Norris,Monaco GP,MCL38,2024,Spark,18S997,S9538,4th Place,confirmed via DiecastSociety.com announcement matching SKU to description
+McLaren,Oscar Piastri,Monaco GP,MCL38,2024,Spark,18S998,S9539,2nd Place (Senna tribute livery),confirmed via DiecastSociety.com announcement matching SKU to description
+McLaren,Lando Norris,Singapore GP,MCL38,2024,Spark,,S9561,Race Winner,confirmed via DiecastSociety.com announcement; 1:18 counterpart not yet confirmed
+McLaren,Oscar Piastri,Singapore GP,MCL38,2024,Spark,,,3rd Place,"referenced in a DiecastSociety.com Minichamps re-release post, but could not cleanly match a specific SKU to this description"
+McLaren,Oscar Piastri,Hungarian GP,MCL38,2024,Spark,,,Race Winner (first career win),confirmed to exist via DiecastSociety.com (1:12 scale SKU 12S051 confirmed); 1:18/1:43 versions referenced in same announcement batch but not cleanly matched to individual SKUs
+McLaren,Lando Norris,Abu Dhabi GP,MCL38,2024,Spark,,S9568,Race Winner,confirmed via DiecastSociety.com announcement (1:12 scale SKU 12S052 also confirmed); 1:18 counterpart not yet confirmed
+McLaren,Norris + Piastri,Season,MCL38,2024,Spark,,S9571,"2-car set, Constructors' Champions 2024",confirmed via DiecastSociety.com announcement
+Red Bull,Max Verstappen,Bahrain GP,RB20,2024,Minichamps,110240101,410240101,Race Winner,confirmed via Minichamps product listings
+Red Bull,Sergio Perez,Bahrain GP,RB20,2024,Minichamps,110240111,410240111,2nd Place,confirmed via Minichamps product listings
+Red Bull,Max Verstappen,Bahrain GP,RB20,2024,Spark,18S982,,Race Winner,confirmed via DiecastSociety.com announcement
+Red Bull,Sergio Perez,Bahrain GP,RB20,2024,Spark,18S983,,2nd Place,confirmed via DiecastSociety.com announcement + Legacy Diecast listing
+Red Bull,Max Verstappen,Saudi Arabian GP,RB20,2024,Minichamps,110240201,,Race Winner,1:18 confirmed via Minichamps numbering pattern (round 2); 1:43 counterpart not yet confirmed
+Red Bull,Max Verstappen,Australian GP,RB20,2024,Minichamps,110240301,,Pole Position / DNF Brake Fire,confirmed via Minichamps product listing
+Red Bull,Max Verstappen,Japanese GP,RB20,2024,Minichamps,110240401,410240401,Race Winner,confirmed via 3 independent sources including DiecastSociety.com release tracker
+Red Bull,Max Verstappen,Chinese GP,RB20,2024,Minichamps,110240501,410240501,Race Winner,confirmed via DiecastSociety.com release tracker
+Red Bull,Max Verstappen,Emilia Romagna GP (Imola),RB20,2024,Minichamps,110240701,410240701,Race Winner,confirmed via DiecastSociety.com release tracker
+Red Bull,Max Verstappen,Canadian GP,RB20,2024,Minichamps,110240901,410240901,Race Winner,confirmed via DiecastSociety.com release tracker
+Red Bull,Max Verstappen,Spanish GP,RB20,2024,Minichamps,110241001,410241001,Race Winner,confirmed via DiecastSociety.com release tracker
+Red Bull,Max Verstappen,British GP,RB20,2024,Minichamps,110241201,410241201,2nd Place,confirmed via DiecastSociety.com release tracker
+Red Bull,Max Verstappen,Brazilian GP,RB20,2024,Minichamps,110242101,410242101,Race Winner,confirmed via DiecastSociety.com release tracker
+Red Bull,Max Verstappen,Brazilian GP,RB20,2024,Spark,,S9550,Race Winner,confirmed via DiecastSociety.com announcement + Toronto Motorsports listing
+Red Bull,Max Verstappen,Las Vegas GP,RB20,2024,Minichamps,110242201,410242201,World Champion clinched,confirmed via DiecastSociety.com release tracker
+Red Bull,Max Verstappen,Season,RB20,2024,Spark,,S9547,"2024 Formula One Drivers' Champion (season-spec, not race-specific)",confirmed via DiecastSociety.com announcement
+Aston Martin,Fernando Alonso,Season,AMR24,2024,Minichamps,117240114,417240114,"Generic season-spec, not race-specific (no 2024 podiums for the team)","confirmed via DiecastSociety.com announcement matching SKU to description, cross-checked against Five Diecast listing"
+Aston Martin,Lance Stroll,Season,AMR24,2024,Minichamps,117240118,417240118,"Generic season-spec, not race-specific",confirmed via DiecastSociety.com announcement matching SKU to description
+Alpine,Pierre Gasly,Season,A524,2024,Minichamps,117240110,417240110,"Generic season-spec, no podiums for the team",1:43 confirmed via DiecastSociety.com; 1:18 derived from confirmed 117+YY+car# pattern (validated identically across 2022/2023 announcements) but not individually spot-checked
+Alpine,Esteban Ocon,Season,A524,2024,Minichamps,117240131,417240131,Generic season-spec,"1:43 confirmed via DiecastSociety.com; 1:18 derived from pattern, not individually spot-checked"
+Alpine,Pierre Gasly,Season,A524,2024,Spark,18S980,,Generic season-spec (TBC),confirmed via DiecastSociety.com Spark announcement
+Alpine,Esteban Ocon,Season,A524,2024,Spark,18S981,,Generic season-spec (TBC),confirmed via DiecastSociety.com Spark announcement
+Haas,Kevin Magnussen,Season,VF-24,2024,Minichamps,117240120,417240120,Generic season-spec,1:43 confirmed via DiecastSociety.com; 1:18 derived from pattern
+Haas,Nico Hulkenberg,Season,VF-24,2024,Minichamps,117240127,417240127,Generic season-spec,1:43 confirmed via DiecastSociety.com; 1:18 derived from pattern
+Haas,Kevin Magnussen,Australian GP,VF-24,2024,Spark,18S990,,10th Place,"confirmed via DiecastSociety.com Spark announcement (race-specific, not generic)"
+Haas,Nico Hulkenberg,Australian GP,VF-24,2024,Spark,18S991,,9th Place,"confirmed via DiecastSociety.com Spark announcement (race-specific, not generic)"
+Kick Sauber,Valtteri Bottas,Season,C44,2024,Minichamps,117240177,417240177,"Generic season-spec, no standout results",1:43 confirmed via DiecastSociety.com; 1:18 derived from pattern
+Kick Sauber,Zhou Guanyu,Season,C44,2024,Minichamps,117240124,417240124,Generic season-spec,1:43 confirmed via DiecastSociety.com; 1:18 derived from pattern
+Kick Sauber,Valtteri Bottas,Season,C44,2024,Spark,18S978,,Generic season-spec (TBC),confirmed via DiecastSociety.com Spark announcement
+Kick Sauber,Zhou Guanyu,Season,C44,2024,Spark,18S979,,Generic season-spec (TBC),confirmed via DiecastSociety.com Spark announcement
+VCARB,Daniel Ricciardo,Season,VCARB 01,2024,Minichamps,117240103,417240103,Generic season-spec,1:43 confirmed via DiecastSociety.com; 1:18 derived from pattern
+VCARB,Yuki Tsunoda,Season,VCARB 01,2024,Minichamps,117240122,417240122,Generic season-spec,1:43 confirmed via DiecastSociety.com; 1:18 derived from pattern
+VCARB,Daniel Ricciardo,Season,VCARB 01,2024,Spark,18S984,,Generic season-spec (TBC),confirmed via DiecastSociety.com Spark announcement
+VCARB,Yuki Tsunoda,Season,VCARB 01,2024,Spark,18S985,,Generic season-spec (TBC),confirmed via DiecastSociety.com Spark announcement
+Williams,Alex Albon,Season,FW46,2024,Minichamps,117240123,417240123,Generic season-spec,1:43 confirmed via DiecastSociety.com; 1:18 derived from pattern
+Williams,Logan Sargeant,Season,FW46,2024,Minichamps,117240102,417240102,Generic season-spec,1:43 confirmed via DiecastSociety.com; 1:18 derived from pattern
+Williams,Alex Albon,Season,FW46,2024,Spark,18S989,,Generic season-spec (TBC),confirmed via DiecastSociety.com Spark announcement
+Williams,Logan Sargeant,Season,FW46,2024,Spark,18S988,,Generic season-spec (TBC),confirmed via DiecastSociety.com Spark announcement
