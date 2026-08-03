@@ -8,21 +8,59 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-async function syncCSV(dryRun = false) {
+/**
+ * Split one CSV line, respecting quoted fields.
+ *
+ * The notes and verification columns contain commas inside quotes
+ * ("6th Place, Special Livery"), which a plain split(',') would shred. It
+ * happens not to matter for the SKU columns because they come earlier in the
+ * row, but relying on column order for correctness is a trap.
+ */
+function parseCsvLine(line) {
+  const fields = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }  // escaped ""
+      else inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      fields.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  fields.push(current);
+  return fields;
+}
+
+async function syncCSV(dryRun = false, csvArg = null) {
   console.log('🔄 CSV SYNC SCRIPT');
   console.log('═══════════════════════════════════════════\n');
-  
+
   if (dryRun) {
     console.log('🧪 DRY RUN MODE - No database changes will be made\n');
   }
-  
-  // Read CSV
-  const csvPath = path.join(__dirname, '..', 'f1_2024_models_by_team.csv');
+
+  // Read CSV. Path can be given as an argument so this works for any season;
+  // defaults to the 2024 file it was originally written for.
+  const csvPath = csvArg
+    ? (path.isAbsolute(csvArg) ? csvArg : path.resolve(process.cwd(), csvArg))
+    : path.join(__dirname, '..', 'f1_2024_models_by_team.csv');
+
+  if (!fs.existsSync(csvPath)) {
+    console.error(`❌ CSV not found: ${csvPath}`);
+    process.exit(1);
+  }
+
   const csvContent = fs.readFileSync(csvPath, 'utf8');
-  const lines = csvContent.split('\n').filter(l => l.trim());
-  const headers = lines[0].split(',');
-  
-  console.log(`📄 Loaded CSV: ${lines.length - 1} rows\n`);
+  const lines = csvContent.split(/\r?\n/).filter(l => l.trim());
+  const headers = parseCsvLine(lines[0]);
+
+  console.log(`📄 Loaded CSV: ${path.basename(csvPath)} — ${lines.length - 1} rows\n`);
   
   // Get reference data
   const {data: seasons} = await supabase.from('seasons').select('*');
@@ -78,7 +116,7 @@ async function syncCSV(dryRun = false) {
     const line = lines[i];
     if (!line.trim()) continue;
     
-    const fields = line.split(',');
+    const fields = parseCsvLine(line);
     const row = {
       team: fields[0]?.trim(),
       driver_name: fields[1]?.trim(),
@@ -211,6 +249,7 @@ async function syncCSV(dryRun = false) {
   }
 }
 
-// Check if --dry-run flag is passed
+// Usage: node sync-csv.js [path/to/file.csv] [--dry-run]
 const dryRun = process.argv.includes('--dry-run');
-syncCSV(dryRun).catch(console.error);
+const csvArg = process.argv.slice(2).find(a => !a.startsWith('--')) || null;
+syncCSV(dryRun, csvArg).catch(console.error);
