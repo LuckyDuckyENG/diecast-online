@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { eventMatches, chassisMatches } from '@/lib/eventName';
+import { resolveDriver } from '@/lib/driverName';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -121,33 +122,20 @@ export async function POST(request: Request) {
       teamId = teams[0].id;
     }
 
-    // Step 3: Create or get driver
-    const { data: existingDriver, error: driverSearchError } = await supabase
-      .from('drivers')
-      .select('id, name')
-      .ilike('name', driver)
-      .maybeSingle();
-
-    if (driverSearchError) {
-      throw new Error(`Driver lookup failed: ${driverSearchError.message}`);
+    // Step 3: Create or get driver.
+    // resolveDriver folds accents and trims before matching — an ilike misses
+    // on "Sergio Pérez" vs "Sergio Perez" and then creates a second row,
+    // splitting one driver's cars across two identities.
+    const resolvedDriver = await resolveDriver(supabase, driver);
+    if (!resolvedDriver) {
+      return NextResponse.json({ error: 'Driver name is empty' }, { status: 400 });
     }
 
-    let driverId: string;
-    if (!existingDriver) {
-      console.log(`🧑 Creating driver ${driver}...`);
-      const { data: newDriver, error: createDriverError } = await supabase
-        .from('drivers')
-        .insert({ name: driver })
-        .select('id, name')
-        .single();
-
-      if (createDriverError) {
-        throw new Error(`Failed to create driver: ${createDriverError.message}`);
-      }
-      driverId = newDriver.id;
-      console.log(`✅ Created driver ${driver}`);
-    } else {
-      driverId = existingDriver.id;
+    const driverId = resolvedDriver.id;
+    if (resolvedDriver.created) {
+      console.log(`✅ Created driver ${resolvedDriver.name}`);
+    } else if (resolvedDriver.name !== driver) {
+      console.log(`🔗 Driver "${driver}" → existing "${resolvedDriver.name}"`);
     }
 
     const normalizedChassis = normalizeChassis(chassis);

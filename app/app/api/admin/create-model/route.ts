@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { eventMatches } from '@/lib/eventName';
+import { driverMatches } from '@/lib/driverName';
 import { attachRetailerLink } from '@/lib/retailerLink';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-const normalizeName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
 
 // Parsers return these when a listing doesn't name the maker. Creating a
 // manufacturer row from one pollutes the table permanently.
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
         );
 
         // Guard against linking a retailer page to the wrong product
-        if (driver && carDriver && normalizeName(driver) !== normalizeName(carDriver)) {
+        if (driver && carDriver && !driverMatches(driver, carDriver)) {
           return NextResponse.json(
             {
               error: 'SKU belongs to a different driver',

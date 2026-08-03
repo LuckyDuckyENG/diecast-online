@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { resolveDriver } from '@/lib/driverName';
 
 export async function POST(request: Request) {
   try {
@@ -41,39 +42,22 @@ export async function POST(request: Request) {
       updates.event_name = eventName;
     }
 
-    // Resolve the driver to an id (create if genuinely new)
+    // Resolve the driver to an id (create only if genuinely new).
+    // Matching folds accents and trims, so "Sergio Pérez" resolves to the
+    // existing "Sergio Perez" rather than creating a rival row.
     if (driverList.length === 1) {
-      const driverName = driverList[0];
-
-      const { data: existingDriver, error: driverLookupError } = await supabase
-        .from('drivers')
-        .select('id, name')
-        .ilike('name', driverName)
-        .maybeSingle();
-
-      if (driverLookupError) {
-        return NextResponse.json(
-          { success: false, message: 'Driver lookup failed: ' + driverLookupError.message },
-          { status: 500 }
-        );
-      }
-
-      if (existingDriver) {
-        updates.driver_id = existingDriver.id;
-      } else {
-        const { data: newDriver, error: createDriverError } = await supabase
-          .from('drivers')
-          .insert({ name: driverName, number: null })
-          .select('id')
-          .single();
-
-        if (createDriverError) {
+      try {
+        const resolved = await resolveDriver(supabase, driverList[0]);
+        if (!resolved) {
           return NextResponse.json(
-            { success: false, message: 'Failed to create driver: ' + createDriverError.message },
-            { status: 500 }
+            { success: false, message: 'Driver name is empty' },
+            { status: 400 }
           );
         }
-        updates.driver_id = newDriver.id;
+        updates.driver_id = resolved.id;
+        if (resolved.created) console.log(`✅ Created driver ${resolved.name}`);
+      } catch (err: any) {
+        return NextResponse.json({ success: false, message: err.message }, { status: 500 });
       }
     }
 

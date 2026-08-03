@@ -56,3 +56,65 @@ export function driverMatches(a?: string | null, b?: string | null): boolean {
 
   return shared === Math.min(A.size, B.size);
 }
+
+/** Whole name, folded for comparison: trimmed, accent-free, single-spaced. */
+export function normalizeDriverName(raw?: string | null): string {
+  if (!raw) return '';
+  return foldAccents(raw.toLowerCase()).replace(/\s+/g, ' ').trim();
+}
+
+interface DriverRow {
+  id: string;
+  name: string;
+}
+
+/**
+ * Find an existing driver, tolerating the spellings that actually occur.
+ *
+ * A plain `.ilike('name', x)` misses on a trailing space or an accent, and the
+ * caller then "helpfully" creates a second driver. That is exactly how
+ * "Esteban Ocon " and "Sergio Pérez" ended up as separate rows, splitting one
+ * driver's cars across two identities.
+ *
+ * Exact (folded) name first, surname set second — so "Verstappen" and
+ * "M. Verstappen" both find Max, without "Norris" matching "Norris + Piastri"
+ * ahead of a real full-name match.
+ */
+export function findDriverIn(drivers: DriverRow[], name?: string | null): DriverRow | null {
+  if (!name) return null;
+
+  const target = normalizeDriverName(name);
+  const exact = drivers.find(d => normalizeDriverName(d.name) === target);
+  if (exact) return exact;
+
+  const bySurname = drivers.filter(d => driverMatches(d.name, name));
+  return bySurname.length === 1 ? bySurname[0] : null;
+}
+
+/**
+ * Resolve a driver name to a row, creating one only when it genuinely isn't
+ * there. Always stores the trimmed name — an untrimmed insert is what created
+ * the "Esteban Ocon " duplicate in the first place.
+ */
+export async function resolveDriver(
+  supabase: any,
+  name: string
+): Promise<{ id: string; name: string; created: boolean } | null> {
+  const clean = (name || '').replace(/\s+/g, ' ').trim();
+  if (!clean) return null;
+
+  const { data: drivers, error } = await supabase.from('drivers').select('id, name');
+  if (error) throw new Error(`Driver lookup failed: ${error.message}`);
+
+  const found = findDriverIn(drivers || [], clean);
+  if (found) return { ...found, created: false };
+
+  const { data: created, error: createError } = await supabase
+    .from('drivers')
+    .insert({ name: clean })
+    .select('id, name')
+    .single();
+
+  if (createError) throw new Error(`Failed to create driver: ${createError.message}`);
+  return { ...created, created: true };
+}

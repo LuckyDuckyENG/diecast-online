@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { eventMatches } from '@/lib/eventName';
+import { driverMatches, resolveDriver } from '@/lib/driverName';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const normalizeName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
     let createdCar = false;
 
     const wantsDriverChange =
-      !!driver && !!carDriverName && normalizeName(driver) !== normalizeName(carDriverName);
+      !!driver && !!carDriverName && !driverMatches(driver, carDriverName);
     const wantsEventChange =
       !!eventName && !!car?.event_name && !eventMatches(car.event_name, eventName);
 
@@ -101,31 +102,16 @@ export async function POST(request: NextRequest) {
         `"${car.event_name}" / ${carDriverName} → "${targetEventName}" / ${targetDriverName}`
       );
 
-      // Resolve the destination driver
-      let targetDriverId: string;
-      const { data: existingDriver, error: driverErr } = await supabase
-        .from('drivers')
-        .select('id, name')
-        .ilike('name', targetDriverName)
-        .maybeSingle();
-
-      if (driverErr) {
-        throw new Error(`Driver lookup failed: ${driverErr.message}`);
+      // Resolve the destination driver. Accent- and whitespace-tolerant, so
+      // moving a model to "Sergio Pérez" lands on the existing "Sergio Perez"
+      // rather than minting a duplicate to hold it.
+      const resolvedTarget = await resolveDriver(supabase, targetDriverName);
+      if (!resolvedTarget) {
+        throw new Error('Destination driver name is empty');
       }
-
-      if (existingDriver) {
-        targetDriverId = existingDriver.id;
-      } else {
-        const { data: newDriver, error: createDriverErr } = await supabase
-          .from('drivers')
-          .insert({ name: targetDriverName })
-          .select('id')
-          .single();
-        if (createDriverErr) {
-          throw new Error(`Failed to create driver: ${createDriverErr.message}`);
-        }
-        targetDriverId = newDriver.id;
-        console.log(`✅ Created driver ${targetDriverName}`);
+      const targetDriverId = resolvedTarget.id;
+      if (resolvedTarget.created) {
+        console.log(`✅ Created driver ${resolvedTarget.name}`);
       }
 
       // Look for the destination car among this chassis's siblings
