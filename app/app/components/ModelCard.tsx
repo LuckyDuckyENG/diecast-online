@@ -3,6 +3,8 @@ import TeamColorFallback from './TeamColorFallback';
 
 interface ModelCardProps {
   id: string;
+  /** Readable URL segment. Falls back to id so older links keep working. */
+  slug?: string | null;
   name: string;
   manufacturer: string;
   year: number;
@@ -21,6 +23,7 @@ interface ModelCardProps {
 
 export default function ModelCard({
   id,
+  slug,
   name,
   manufacturer,
   year,
@@ -37,7 +40,7 @@ export default function ModelCard({
 }: ModelCardProps) {
   return (
     <Link
-      href={`/cars/${id}`}
+      href={`/cars/${slug || id}`}
       className="group block bg-white border border-[var(--border-light)] rounded-[14px] overflow-hidden hover:shadow-lg hover:border-[var(--border-medium)] transition-all duration-200"
     >
       {/* Image */}

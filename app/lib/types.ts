@@ -8,6 +8,8 @@ export interface FilterOptions {
 
 export interface Model {
   id: string;
+  /** Readable URL segment; falls back to id when absent. */
+  slug?: string | null;
   name: string;
   manufacturer: string;
   year: number;

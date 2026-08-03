@@ -7,6 +7,7 @@ import Footer from '../../components/Footer';
 import Breadcrumb from '../../components/Breadcrumb';
 import { supabase } from '@/lib/supabase';
 import { formatAge, shouldHidePrice, freshnessOf } from '@/lib/freshness';
+import { isUuid } from '@/lib/carSlug';
 
 // Helper to get manufacturer logo filename
 function getManufacturerLogo(name: string): string {
@@ -37,7 +38,16 @@ export default function MasterCarPage() {
       try {
         setLoading(true);
 
-        // Fetch car details
+        // Accept either a slug or a UUID in the URL.
+        //
+        // /cars/2024-ferrari-sf-24-charles-leclerc-australian-gp   (preferred)
+        // /cars/c27037a6-0765-44ce-ba71-541a6f8a0791               (still works)
+        //
+        // Resolving against the stored slug column rather than regenerating it
+        // means a later change to the slug rules can't orphan URLs already in
+        // the wild. Old UUID links keep working indefinitely.
+        const lookupColumn = isUuid(carId) ? 'id' : 'slug';
+
         const { data: car, error: carError } = await supabase
           .from('cars')
           .select(`
@@ -46,7 +56,7 @@ export default function MasterCarPage() {
             season:seasons(year),
             driver:drivers(name, number)
           `)
-          .eq('id', carId)
+          .eq(lookupColumn, carId)
           .single();
 
         if (carError) {
@@ -69,7 +79,9 @@ export default function MasterCarPage() {
             stock_status,
             manufacturers(id, name, description)
           `)
-          .eq('car_id', carId);
+          // car.id, not carId — the URL param may be a slug, and models are
+          // keyed by the car's UUID.
+          .eq('car_id', car.id);
 
         if (variantsError) {
           console.error('Error fetching variants:', variantsError);

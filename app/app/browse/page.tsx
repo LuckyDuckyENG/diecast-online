@@ -41,6 +41,7 @@ function BrowsePageContent() {
           .from('cars')
           .select(`
             id,
+            slug,
             chassis_name,
             event_name,
             team:teams(name, primary_color, text_color),
@@ -83,6 +84,7 @@ function BrowsePageContent() {
 
           return {
             id: car.id, // This is car_id, used for /cars/[id] link
+            slug: car.slug,
             name: `${eventName} - ${car.chassis_name} - ${driver?.name} - ${car.season?.year}`,
             manufacturer: `${variants.length} manufacturers`, // Show count instead of single manufacturer
             year: car.season?.year || 2024,
