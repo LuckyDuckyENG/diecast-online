@@ -155,6 +155,11 @@ export async function POST(request: NextRequest) {
       currency: 'AUD',
       in_stock: inStock,
       recorded_at: new Date().toISOString(),
+      // Adding a link IS a verification — the price was just read from the
+      // live page. Without this the row has last_checked_at NULL, which the
+      // site treats as "never checked" and hides the price behind
+      // "Check price on site".
+      last_checked_at: new Date().toISOString(),
     };
 
     // One row per (model, retailer) — update instead of adding a duplicate
