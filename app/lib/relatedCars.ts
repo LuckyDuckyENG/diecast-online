@@ -66,14 +66,27 @@ export async function getRelatedCars(car: any): Promise<RelatedGroup[]> {
     };
   };
 
-  const candidates = (allCars || []).filter((c: any) => c.id !== car.id);
+  const hasRetailer = (c: any) =>
+    (modelsByCar.get(c.id) || []).some(m => (pricesByModel.get(m.id) || []).length > 0);
 
-  // Rank buyable cars first so most links go somewhere useful — but don't
-  // exclude the rest, or part of the catalogue stays uncrawlable.
+  // Only suggest cars someone can actually buy. A third of these links used to
+  // land on a page reading "no retailers found" — a dead end for the visitor,
+  // and inconsistent with /browse and sitemap.xml, which already exclude them.
+  //
+  // Store-less cars stay reachable by direct URL and site search; they just
+  // aren't promoted anywhere.
+  const candidates = (allCars || []).filter((c: any) => c.id !== car.id && hasRetailer(c));
+
+  // Cheapest-first among what's left, so the most appealing suggestion leads
   const rank = (list: any[]) =>
     list
       .map(toRelated)
-      .sort((a, b) => Number(b.hasStore) - Number(a.hasStore))
+      .sort((a, b) => {
+        if (a.lowestPrice === null && b.lowestPrice === null) return 0;
+        if (a.lowestPrice === null) return 1;
+        if (b.lowestPrice === null) return -1;
+        return a.lowestPrice - b.lowestPrice;
+      })
       .slice(0, PER_GROUP);
 
   // A car appears in at most one section
