@@ -131,11 +131,20 @@ export async function GET(request: NextRequest) {
           year,
           team,
           chassis,
+          // The real car UUIDs behind this group. `id` above is a synthetic
+          // "year-team-chassis" key for display only — sending it to an API
+          // that expects a UUID fails with a Postgres 22P02. Cars with no
+          // models contribute nothing to driverGroups, so this is also the
+          // only place an empty car is visible to the client at all.
+          carIds: [],
           driverGroups: new Map(), // Group by driver
         });
       }
 
       const chassisData = chassisMap.get(chassisKey);
+      if (!chassisData.carIds.includes(car.id)) {
+        chassisData.carIds.push(car.id);
+      }
 
       // Get models for this car entry
       const carModels = modelsByCar.get(car.id) || [];
@@ -194,6 +203,7 @@ export async function GET(request: NextRequest) {
       year: chassis.year,
       team: chassis.team,
       chassis: chassis.chassis,
+      carIds: chassis.carIds,
       driverGroups: Array.from(chassis.driverGroups.entries()).map((entry: any) => ({
         driver: entry[0],
         models: entry[1],

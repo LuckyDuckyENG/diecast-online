@@ -38,3 +38,6 @@ nul
 .DS_Store
 Thumbs.db
 *.swp
+
+# Machine-specific editor config
+.claude/settings.local.json

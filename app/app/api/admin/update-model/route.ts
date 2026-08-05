@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { eventMatches } from '@/lib/eventName';
 import { driverMatches, resolveDriver } from '@/lib/driverName';
+import { buildCarSlug } from '@/lib/carSlug';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,7 +31,12 @@ export async function POST(request: NextRequest) {
       .select(`
         *,
         manufacturer:manufacturers(id, name),
-        car:cars(id, season_id, team_id, chassis_name, event_name, driver:drivers(id, name))
+        car:cars(
+          id, season_id, team_id, chassis_name, event_name,
+          driver:drivers(id, name),
+          team:teams(name),
+          season:seasons(year)
+        )
       `)
       .eq('id', modelId)
       .maybeSingle();
@@ -139,6 +145,14 @@ export async function POST(request: NextRequest) {
             chassis_name: car.chassis_name,
             driver_id: targetDriverId,
             event_name: targetEventName,
+            // Set at creation so moved-to cars get a readable URL too
+            slug: buildCarSlug({
+              year: (car.season as any)?.year,
+              team: (car.team as any)?.name,
+              chassis: car.chassis_name,
+              driver: resolvedTarget.name,
+              event: targetEventName,
+            }),
           })
           .select('id, chassis_name, event_name, driver:drivers(name)')
           .single();

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { eventMatches, chassisMatches } from '@/lib/eventName';
 import { resolveDriver } from '@/lib/driverName';
+import { buildCarSlug } from '@/lib/carSlug';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -171,7 +172,11 @@ export async function POST(request: Request) {
       });
     }
 
-    // Step 5: Create car
+    // Step 5: Create car.
+    // The slug is set at creation, not backfilled later — otherwise every new
+    // car ships with slug: null and falls back to a UUID URL until someone
+    // notices. The column has a unique index, so a genuine collision surfaces
+    // here as 23505 rather than producing two cars fighting over one URL.
     const { data: car, error: carError } = await supabase
       .from('cars')
       .insert({
@@ -180,6 +185,13 @@ export async function POST(request: Request) {
         chassis_name: normalizedChassis,
         driver_id: driverId,
         event_name: eventName,
+        slug: buildCarSlug({
+          year,
+          team: teams?.[0]?.name || team,
+          chassis: normalizedChassis,
+          driver: resolvedDriver.name,
+          event: eventName,
+        }),
       })
       .select(CAR_SELECT)
       .single();

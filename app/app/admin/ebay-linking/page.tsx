@@ -41,10 +41,14 @@ interface DriverGroup {
 }
 
 interface F1Car {
+  /** Synthetic display key: "year-team-chassis". NOT a database id. */
   id: string;
   year: number;
   team: string;
   chassis: string; // e.g., "W15", "RB20", "SF-24"
+  /** The real car UUIDs in this chassis group — use these for API calls.
+   *  Optional only because loadMockData() predates it. */
+  carIds?: string[];
   driverGroups: DriverGroup[]; // Models grouped by driver
 }
 
@@ -3941,12 +3945,21 @@ export default function EbayLinkingAdmin() {
                     <button
                       onClick={async (e) => {
                         e.stopPropagation();
-                        if (confirm(`Delete ${car.year} ${car.team} ${car.chassis} and all its models?\n\nThis will permanently delete ${totalModels} model(s).`)) {
+                        // car.id is a display key, not a database id — the real
+                        // UUIDs live in carIds. Without them there's nothing to
+                        // delete, so say that rather than sending a bad request.
+                        if (!car.carIds?.length) {
+                          alert('❌ No car records found for this group — try refreshing the page.');
+                          return;
+                        }
+                        if (confirm(`Delete ${car.year} ${car.team} ${car.chassis} and all its models?\n\nThis permanently deletes ${car.carIds.length} car record(s) and ${totalModels} model(s).`)) {
                           try {
                             const response = await fetch('/api/admin/delete-car', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ carId: car.id }),
+                              // car.id is the synthetic "year-team-chassis"
+                              // display key; carIds holds the real UUIDs.
+                              body: JSON.stringify({ carIds: car.carIds }),
                             });
 
                             if (response.ok) {
