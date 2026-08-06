@@ -108,7 +108,8 @@ export default function ModelDetailPage() {
 
         // Transform to expected format
         const driver = data.car?.driver;
-        const imageUrl = data.image_url || '/placeholder.jpg';
+        // No placeholder.jpg exists; empty string lets the UI show its own fallback
+        const imageUrl = data.image_url || '';
         const transformedModel = {
           id: data.id,
           name: data.description || `${data.car?.chassis_name} - ${driver?.name}`,

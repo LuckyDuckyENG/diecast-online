@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import TeamColorFallback from '../../components/TeamColorFallback';
 
 import { useState } from 'react';
 import Navbar from '../../components/Navbar';
@@ -56,6 +57,7 @@ export default function CarDetail({
   // Build title with event name as PRIMARY identifier
   const eventName = carData.event_name || 'Grand Prix';
   const masterTitle = `${eventName} - ${carData.chassis_name} - ${driver?.name} - ${carData.season?.year}`;
+  const heroImage = variants.find((v: any) => v.image_url)?.image_url || null;
 
   // Filter variants by scale AND manufacturer
   let filteredVariants = variants;
@@ -109,11 +111,20 @@ export default function CarDetail({
           <div className="flex gap-8">
             {/* Main Image */}
             <div className="w-[400px] h-[300px] bg-[var(--surface)] rounded-lg overflow-hidden">
-              <img
-                src={variants.find((v: any) => v.image_url)?.image_url || '/placeholder.jpg'}
-                alt={masterTitle}
-                className="w-full h-full object-cover"
-              />
+              {/* Fall back to the team-coloured panel rather than a placeholder
+                  file — /placeholder.jpg never existed, so a car with no image
+                  rendered a broken-image icon. Matches what ModelCard does. */}
+              {heroImage ? (
+                <img src={heroImage} alt={masterTitle} className="w-full h-full object-cover" />
+              ) : (
+                <TeamColorFallback
+                  teamName={carData.team?.name || ''}
+                  liveryName={carData.chassis_name || ''}
+                  primaryColor={carData.team?.primary_color || '#cf2f2a'}
+                  textColor={carData.team?.text_color || '#ffffff'}
+                  eventName={eventName}
+                />
+              )}
             </div>
 
             {/* Key Details */}
