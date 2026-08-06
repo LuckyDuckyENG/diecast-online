@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import { useState } from 'react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -35,11 +37,13 @@ export default function CarDetail({
   variants,
   urlParam,
   related,
+  hubLinks,
 }: {
   car: any;
   variants: CarVariant[];
   urlParam: string;
   related: RelatedGroup[];
+  hubLinks: { driver: string | null; team: string | null; season: string | null };
 }) {
   const [selectedManufacturer, setSelectedManufacturer] = useState<string>('all');
   const [selectedScale, setSelectedScale] = useState<string>('all');
@@ -78,7 +82,11 @@ export default function CarDetail({
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
     { label: 'Browse', href: '/browse' },
-    { label: carData.team?.name || 'Team', href: `/browse?team=${encodeURIComponent(carData.team?.name || '')}` },
+    // Prefer the team hub over a ?team= filter — query-param URLs aren't indexed
+    {
+      label: carData.team?.name || 'Team',
+      href: hubLinks.team || `/browse?team=${encodeURIComponent(carData.team?.name || '')}`,
+    },
     { label: masterTitle, href: `/cars/${carId}` },
   ];
 
@@ -111,17 +119,47 @@ export default function CarDetail({
             {/* Key Details */}
             <div className="flex-1">
               <div className="grid grid-cols-2 gap-4">
+                {/* Linked to their hub pages where one exists, so a visitor can
+                    go from one car to everything by that driver, team or season.
+                    Also gives crawlers a path upward, not just sideways. */}
                 <div>
                   <p className="text-sm text-[var(--text-tertiary)] mb-1">Driver</p>
-                  <p className="font-bold text-[var(--text-primary)]">{driver?.name || 'Unknown'}</p>
+                  {hubLinks.driver ? (
+                    <Link
+                      href={hubLinks.driver}
+                      className="font-bold text-[var(--accent)] hover:underline"
+                    >
+                      {driver?.name}
+                    </Link>
+                  ) : (
+                    <p className="font-bold text-[var(--text-primary)]">{driver?.name || 'Unknown'}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-[var(--text-tertiary)] mb-1">Team</p>
-                  <p className="font-bold text-[var(--text-primary)]">{carData.team?.name || 'Unknown'}</p>
+                  {hubLinks.team ? (
+                    <Link
+                      href={hubLinks.team}
+                      className="font-bold text-[var(--accent)] hover:underline"
+                    >
+                      {carData.team?.name}
+                    </Link>
+                  ) : (
+                    <p className="font-bold text-[var(--text-primary)]">{carData.team?.name || 'Unknown'}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-[var(--text-tertiary)] mb-1">Season</p>
-                  <p className="font-bold text-[var(--text-primary)]">{carData.season?.year || 'Unknown'}</p>
+                  {hubLinks.season ? (
+                    <Link
+                      href={hubLinks.season}
+                      className="font-bold text-[var(--accent)] hover:underline"
+                    >
+                      {carData.season?.year}
+                    </Link>
+                  ) : (
+                    <p className="font-bold text-[var(--text-primary)]">{carData.season?.year || 'Unknown'}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-[var(--text-tertiary)] mb-1">Available Scales</p>

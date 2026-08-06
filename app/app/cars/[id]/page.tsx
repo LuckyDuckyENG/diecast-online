@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import CarDetail from './CarDetail';
 import { getCarPageData, getAllCarSlugs, carTitle } from '@/lib/carPageData';
 import { getRelatedCars } from '@/lib/relatedCars';
+import { getHubSlugs } from '@/lib/hubData';
+import { slugify, teamSlug } from '@/lib/carSlug';
 
 /**
  * Car detail page — server rendered.
@@ -81,12 +83,26 @@ export default async function MasterCarPage({ params }: Props) {
   // client-rendered, so without these there are no crawlable links to any car.
   const related = await getRelatedCars(data.car);
 
+  // Only link up to hubs that actually exist — getHubSlugs applies the
+  // minimum-cars threshold, so a driver with two models has no page to link to.
+  const hubs = await getHubSlugs();
+  const driverSlug = slugify(data.car.driver?.name || '');
+  const tSlug = teamSlug(data.car.team?.name);
+  const year = String(data.car.season?.year || '');
+
+  const hubLinks = {
+    driver: hubs.drivers.includes(driverSlug) ? `/drivers/${driverSlug}` : null,
+    team: hubs.teams.includes(tSlug) ? `/teams/${tSlug}` : null,
+    season: hubs.seasons.includes(year) ? `/seasons/${year}` : null,
+  };
+
   return (
     <CarDetail
       car={data.car}
       variants={data.variants}
       urlParam={id}
       related={related}
+      hubLinks={hubLinks}
     />
   );
 }

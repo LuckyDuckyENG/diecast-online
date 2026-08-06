@@ -47,12 +47,18 @@ export interface CarSlugParts {
   event?: string | null;
 }
 
-export function buildCarSlug(parts: CarSlugParts): string {
-  const teamKey = canonicalTeam(parts.team);
-  const team = TEAM_SLUGS[teamKey] || parts.team || '';
+/**
+ * Short, searchable slug for a team: "Mercedes-AMG Petronas" -> "mercedes".
+ * Used for both car slugs and /teams/[slug] hub URLs, so the two agree.
+ */
+export function teamSlug(name?: string | null): string {
+  const key = canonicalTeam(name);
+  return TEAM_SLUGS[key] || slugify(name || '');
+}
 
+export function buildCarSlug(parts: CarSlugParts): string {
   return slugify(
-    [parts.year, team, parts.chassis, parts.driver, parts.event]
+    [parts.year, teamSlug(parts.team), parts.chassis, parts.driver, parts.event]
       .filter(Boolean)
       .join(' ')
   );

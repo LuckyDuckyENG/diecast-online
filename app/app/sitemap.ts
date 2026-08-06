@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { supabase } from '@/lib/supabase';
+import { getHubSlugs } from '@/lib/hubData';
 
 /**
  * Sitemap, generated from the database so it can't drift.
@@ -55,7 +56,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }));
 
-  console.log(`🗺️ Sitemap: ${staticRoutes.length} static + ${carRoutes.length} car pages`);
+  // Hub pages. getHubSlugs already applies the minimum-cars threshold, so only
+  // hubs substantial enough to be worth landing on are submitted.
+  const { drivers, teams, seasons } = await getHubSlugs();
 
-  return [...staticRoutes, ...carRoutes];
+  const hubRoutes: MetadataRoute.Sitemap = [
+    ...seasons.map(year => ({
+      url: `${SITE_URL}/seasons/${year}`,
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    })),
+    ...teams.map(slug => ({
+      url: `${SITE_URL}/teams/${slug}`,
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    })),
+    ...drivers.map(slug => ({
+      url: `${SITE_URL}/drivers/${slug}`,
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    })),
+  ];
+
+  console.log(
+    `🗺️ Sitemap: ${staticRoutes.length} static + ${hubRoutes.length} hubs + ${carRoutes.length} car pages`
+  );
+
+  return [...staticRoutes, ...hubRoutes, ...carRoutes];
 }
