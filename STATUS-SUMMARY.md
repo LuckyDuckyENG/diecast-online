@@ -1,110 +1,114 @@
-# Status Summary — last updated 2026-08-03
+# Status Summary — last updated 2026-08-06
 
-> This is the handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** —
-> it describes the old scraper-first approach that was abandoned.
+> Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
+> the scraper-first approach that was abandoned.
 
 ## Where things stand
 
 ```
-cars 158  |  models 239  |  retailer links 104  |  retailers 21  |  drivers 30
-seasons: 2023 (92 cars) + 2024 (66 cars)      models with an image: 12/239
+cars 164  |  models 245  |  retailer links 162  |  retailers ~24  |  drivers 30
+seasons: 2023 (98 cars) + 2024 (66)     slugs: 164/164
+browse shows 96 cars  |  87 of those have an image  |  models with an image 95/245
 ```
 
-Live on Vercel at diecasts.app. `main` is pushed and building. Production shares the
-same database, so data changes appear there immediately without a deploy.
+Live on Vercel at diecasts.app. Migrations 007–011 all applied. `npm run build`
+passes, `tsc --noEmit` clean. **1 commit unpushed.**
 
-Migrations 007–011 are all **applied**. `npm run build` passes and `tsc --noEmit`
-is clean.
-
-## ⚠️ The one genuinely outstanding item
+## ⚠️ The one item with real-world risk
 
 **The leaked `service_role` key is still valid.** `.env.local` was committed in the
-initial commit and pushed to a *public* GitHub repo.
+initial commit and pushed to a public GitHub repo.
 
-1. `SUPABASE_SERVICE_ROLE_KEY` → new `sb_secret_...` — **DONE** (local + Vercel)
-2. `NEXT_PUBLIC_SUPABASE_ANON_KEY` → new `sb_publishable_...` — **NOT DONE**
+1. `SUPABASE_SERVICE_ROLE_KEY` → `sb_secret_...` — **DONE** (local + Vercel)
+2. `NEXT_PUBLIC_SUPABASE_ANON_KEY` → `sb_publishable_...` — **NOT DONE**
 3. Redeploy, confirm `/browse` loads
-4. **Disable legacy keys** — this is what actually kills the leaked key
+4. **Disable legacy keys** — the step that actually kills the leaked key
 
-Do not do step 4 before step 2: public pages query Supabase from the browser with the
-anon key, so disabling legacy first blanks the live site. The publishable key already
-exists in Settings → API Keys (it was created alongside the secret key — there is no
-separate "create" button for it). Also worth rotating: eBay and Exa keys.
+Do not do 4 before 2: public pages query Supabase from the browser with the anon key,
+so disabling legacy first blanks the live site. The publishable key already exists in
+Settings → API Keys (created alongside the secret key; there is no separate button).
+eBay and Exa keys were also in that file.
 
-## Done since the last update
+## SEO — done
 
-**2023 imported.** 92 cars, 129 models, zero errors. `sync-csv.js` now takes a file
-path argument (it had 2024 hardcoded) and parses quoted CSV fields properly.
-19 cars have no models — the rows where no SKU was found yet, kept deliberately as a
-worklist visible in the admin backend.
+The whole public site was client-rendered, so crawlers received HTML containing none
+of its content, all 164 cars shared one `<title>`, URLs were UUIDs, and there was not
+one crawlable link between pages.
 
-**Duplicate drivers fixed, and the leak that caused them.** `"Esteban Ocon "`,
-`"Nico Hülkenberg"`, `"Sergio Pérez"` were separate rows from the real ones, splitting
-one driver's cars across two identities. Root cause: `.ilike()` lookups miss on a
-trailing space or accent, and the caller then created a "new" driver; comparisons used
-a `[^a-z0-9]` strip that *deletes* accented characters (`pérez` → `prez`).
-`resolveDriver()` in `lib/driverName.ts` is now the single lookup-or-create for all
-three routes that touch drivers. Verified: creating a car for "Sergio Pérez" now
-resolves to the existing driver and existing car.
+| | Before | After |
+|---|---|---|
+| Content in car page HTML | none | full |
+| Unique titles | 1 | 188 (164 cars + 24 hubs) |
+| Links to cars from /browse | 0 | 96 |
+| Links between car pages | 0 | ~16 each |
+| Indexable driver/team pages | 0 | 24 |
+| Sitemap URLs | 0 | 127 |
+| Prerendered pages | 41 | 231 |
 
-**Readable URLs.** `/cars/2024-red-bull-rb20-max-verstappen-chinese-gp` instead of a
-UUID. Slug stored in a column with a unique index (migration 011), all 158 backfilled.
-Routing accepts slug *or* UUID, resolving against the stored column, so old links keep
-working permanently. Browse and search link to slugs.
+**Readable URLs** — `cars.slug`, unique index, built from season + team + chassis +
+driver + event. Routing accepts slug *or* UUID against the stored column, so old links
+never break. Set at creation, not backfilled.
 
-## Next up — SEO, agreed but not started
+**Server rendering** — car and browse pages. Data in `lib/carPageData.ts` and
+`lib/browseData.ts`, using the **anon key** (RLS allows SELECT only, so a page bug
+can't write). Interactive filters stay client-side on props. `generateStaticParams`
+prerenders; `revalidate = 3600`.
 
-**The finding that matters:** every public page is `'use client'` and fetches in the
-browser, so the HTML a crawler receives contains **zero** of the content. A car page
-has no mention of its own car. All 158 pages share one `<title>`, because a client
-component cannot export `generateMetadata`.
+**Per-page metadata** — title, description built from that car's own manufacturers,
+scales and cheapest price, canonical, Open Graph.
 
-The plan, in order:
+**Internal linking** — related cars along four relationships (same chassis, same race,
+same driver other seasons, same team+season as fallback). Only cars with a retailer are
+suggested: a third of links previously landed on "no retailers found". Car pages also
+link *up* to their hubs, and the breadcrumb team link points at the hub rather than a
+`?team=` filter.
 
-1. **Server-render `cars/[id]`** — server component fetching the car, `generateMetadata()`
-   for unique titles, `generateStaticParams()` to prerender, `revalidate = 3600`. Keep
-   the scale/manufacturer filter as a small client component taking props.
-2. **Browse and home** — same pattern.
-3. **`sitemap.ts` + `robots.ts`** from the database; `noindex` on `/search`.
-4. **Later:** JSON-LD Product/Offer, gated on the freshness rules so a stale price is
-   never marked up.
+**Hub pages** — `/drivers/[slug]`, `/teams/[slug]`, `/seasons/[year]`. 13 + 9 + 2 = 24.
+Only subjects with ≥ `MIN_CARS_FOR_HUB` (3) buyable cars qualify; the rest 404 rather
+than being thin. Each carries a data-generated summary, not just a grid. These target
+"Max Verstappen diecast" — previously unservable, since filters produced unindexable
+`?driver=` URLs.
 
-Decisions already made: use the **publishable** key server-side, not the service key
-(RLS grants anon SELECT, which is all a public page needs). Strategy is **long-tail
-product pages** — retailers own the broad terms, but none of them can answer "every
-manufacturer and scale for this car, with prices side by side".
+**Discovery** — `sitemap.ts` and `robots.ts` generated from the database. Only cars with
+a retailer are submitted (96 of 164). `/admin`, `/api/`, `/search` disallowed.
 
-Worth knowing: retailer product pages are *not* weak. Their titles carry scale, year,
-driver, event and manufacturer, and they ship JSON-LD. The winnable gap is aggregation,
-not out-optimising them per SKU.
+## SEO — not done
+
+- **Structured data** (Product/Offer JSON-LD) — the last meaningful code item. Must be
+  gated on the freshness rules so a stale or out-of-stock price is never marked up.
+- **Home page** still client-rendered. Low value; it's a brand page, not a search target.
 
 ## Known soft spots
 
-- **Only 12 of 239 models have an image**, and `/placeholder.jpg` 404s, so imageless
-  cards show a broken-image icon. Images are easy to add from the admin side. This is
-  strategic, not cosmetic: thin aggregation pages are exactly what search engines filter.
-- **Currency rates are hardcoded and undated** (`lib/currency.ts`). They decide which
+- **9 of 96 browse cars have no image**; 7 are linked only to `Miniatures-minichamps`,
+  whose pages the image extraction can't read. They now render the team-colour panel
+  rather than a broken image.
+- **Currency rates hardcoded and undated** (`lib/currency.ts`). They decide which
   retailer looks cheapest.
 - **Duplicate retailer rows**: `Miniatures-minichamps` (AU/AUD) and `Miniatures Minichamps`
-  (US/USD) are one EU shop. Also a junk retailer named `Dc`. And `110242101` is labelled
-  AUD 148.72 on a EUR shop.
-- **`cars.driver_id` / `cars.event_name` are nullable**, so the composite UNIQUE does not
+  (US/USD) are one EU shop. Also a junk retailer named `Dc`. `110242101` is labelled AUD
+  on a EUR shop.
+- **6 junk rows in `teams`** with 0 cars. `pickTeam()` ranks by car count so they can't
+  win a lookup, but they still pollute hub slugs.
+- **`cars.driver_id` / `cars.event_name` are nullable**, so the composite UNIQUE doesn't
   block a NULL-keyed duplicate. Guarded in application code only.
-- **3 links fail every refresh** (403s or no published price) — they age visibly by design.
-- **1 quarantined price**: an Anthony's pre-order returning 5000 against a stored 399.99.
-- 18 cars with zero models (the 2023 SKU worklist).
-- ~41 uncommitted files remain: one-off repair scripts targeting the old schema (all
-  dead — `CLEAN-SLATE.js`, `fix-merge-disaster.js` etc. cannot run), scraper `.ts` files,
-  `diecast-site-homepage-fixes/`, `.claude/settings.local.json`.
+- 68 cars have no retailer — excluded from browse, sitemap and related links, reachable
+  only by direct URL. Reverses automatically when one gets a link.
+- A few hub slugs fall back to the long form (`/teams/haas-f1-team`).
+- Season cars read "at the Season" in descriptions.
+- ~26 uncommitted files: scraper `.ts` scripts, `diecast-site-homepage-fixes/`.
 
-## Two traps worth remembering
+## Traps worth remembering
 
 - **`tsc --noEmit` is not the deploy gate.** `next build` type-checks unreachable code
-  too; a type error in a block after an early `return` failed the deploy.
-- **Never run `npm run build` while the dev server is running.** In Next 16 the
-  production build writes to `.next/` while dev serves from `.next/dev/`, and the
-  collision breaks route registration — every `/api/*` 404s with an HTML page while
-  pages still render. Fix: stop the server, `rm -rf .next`, restart.
+  too; a type error after an early `return` failed a deploy.
+- **Never run `npm run build` while the dev server is running.** The production build
+  writes to `.next/` while dev serves `.next/dev/`; the collision breaks route
+  registration — every `/api/*` 404s with an HTML page while pages still render. Fix:
+  stop the server, `rm -rf .next`, restart. This caught us three times.
+- **Module-scope API clients turn optional env vars into hard build dependencies.**
+  `new Exa(process.env.EXA_API_KEY)` at module scope failed the entire deploy because
+  the key wasn't set on Vercel. Construct per request.
 
 ## Architecture
 
@@ -113,10 +117,10 @@ A car IS the tuple **season + team + chassis + driver + event**, with
 on the car, never on the model. Models cascade-delete with their car.
 
 Retailer links live in `price_history`, keyed by `model_id`, **one current row per
-(model, retailer)** — enforced by a unique constraint. It is current state, not an
-append log: refresh overwrites in place, so there is no price history and no undo.
-`last_checked_at` is stamped only on a *successful* check, so unreadable links age
-visibly. Prices older than 30 days stop being quoted; the retailer link remains.
+(model, retailer)** — enforced by a unique constraint. Current state, not an append log:
+refresh overwrites in place, so there's no price history and no undo. `last_checked_at`
+is stamped only on a successful check *and* when a link is added by hand, so unreadable
+links age visibly. Prices older than 30 days stop being quoted; the retailer link stays.
 
 RLS is on. anon/authenticated get SELECT on the nine tables the public site reads and
 nothing else; `service_role` bypasses RLS, so admin routes are unaffected.
