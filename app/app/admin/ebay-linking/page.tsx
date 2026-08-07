@@ -305,7 +305,7 @@ export default function EbayLinkingAdmin() {
     const loadF1Data = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/admin/get-f1-data');
+        const response = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
         const data = await response.json();
 
         if (data.success) {
@@ -329,7 +329,7 @@ export default function EbayLinkingAdmin() {
   useEffect(() => {
     const loadInventoryCount = async () => {
       try {
-        const response = await fetch('/api/admin/get-inventory-count');
+        const response = await fetch('/api/admin/get-inventory-count', { cache: 'no-store' });
         const data = await response.json();
         if (data.success) {
           setInventoryCount(data.count);
@@ -348,7 +348,7 @@ export default function EbayLinkingAdmin() {
       if (!inventorySidebarOpen) return;
 
       try {
-        const response = await fetch('/api/admin/get-inventory');
+        const response = await fetch('/api/admin/get-inventory', { cache: 'no-store' });
         const data = await response.json();
         if (data.success) {
           setInventoryItems(data.items);
@@ -3054,7 +3054,7 @@ export default function EbayLinkingAdmin() {
     // Pull the updated numbers back into the page
     if (!dryRun) {
       try {
-        const refreshResponse = await fetch('/api/admin/get-f1-data');
+        const refreshResponse = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
         const refreshData = await refreshResponse.json();
         if (refreshData.cars) setF1Cars(refreshData.cars);
       } catch {
@@ -3163,7 +3163,7 @@ export default function EbayLinkingAdmin() {
         setSearchedCar(null);
         setAddModelModalOpen(false);
         // Refresh data
-        const refreshResponse = await fetch('/api/admin/get-f1-data');
+        const refreshResponse = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
         const refreshData = await refreshResponse.json();
         if (refreshData.success) {
           setF1Cars(refreshData.cars);
@@ -3244,7 +3244,7 @@ export default function EbayLinkingAdmin() {
       if (summary.updated > 0) {
         alert(`✅ Price updated! Found ${summary.updated} price change(s)`);
         // Refresh the data to show new prices
-        const refreshResponse = await fetch('/api/admin/get-f1-data');
+        const refreshResponse = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
         const refreshData = await refreshResponse.json();
         if (refreshData.success) {
           setF1Cars(refreshData.cars);
@@ -3315,7 +3315,7 @@ export default function EbayLinkingAdmin() {
       setAddRetailerManualMode(false);
       setAddRetailerModel(null);
 
-      const refreshResponse = await fetch('/api/admin/get-f1-data');
+      const refreshResponse = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
       const refreshData = await refreshResponse.json();
       if (refreshData.success) {
         setF1Cars(refreshData.cars);
@@ -3965,7 +3965,7 @@ export default function EbayLinkingAdmin() {
                             if (response.ok) {
                               alert('✅ Car deleted successfully');
                               // Refresh data
-                              const refreshResponse = await fetch('/api/admin/get-f1-data');
+                              const refreshResponse = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
                               const refreshData = await refreshResponse.json();
                               if (refreshData.success) {
                                 setF1Cars(refreshData.cars);
@@ -4226,7 +4226,7 @@ export default function EbayLinkingAdmin() {
                                                   if (data.success) {
                                                     alert('✅ Price refreshed successfully!');
                                                     // Reload F1 data
-                                                    const refreshResponse = await fetch('/api/admin/get-f1-data');
+                                                    const refreshResponse = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
                                                     const refreshData = await refreshResponse.json();
                                                     if (refreshData.cars) {
                                                       setF1Cars(refreshData.cars);
@@ -4317,7 +4317,7 @@ export default function EbayLinkingAdmin() {
                                                   if (updateData.success) {
                                                     alert('✅ Model image updated!');
                                                     // Reload F1 data
-                                                    const refreshResponse = await fetch('/api/admin/get-f1-data');
+                                                    const refreshResponse = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
                                                     const refreshData = await refreshResponse.json();
                                                     if (refreshData.cars) {
                                                       setF1Cars(refreshData.cars);
@@ -4663,7 +4663,7 @@ export default function EbayLinkingAdmin() {
                   alert(`✅ Model created successfully!\n\n${newModelData.manufacturer} ${newModelData.scale} - ${newModelData.driver}`);
 
                   // Reload F1 data
-                  const f1Response = await fetch('/api/admin/get-f1-data');
+                  const f1Response = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
                   const f1Data = await f1Response.json();
                   if (f1Data.success) {
                     setF1Cars(f1Data.cars);
@@ -4909,7 +4909,7 @@ export default function EbayLinkingAdmin() {
                     alert(`✅ Model created successfully!\n\n${verifyData.manufacturer} ${verifyData.scale} - ${verifyData.driver}`);
 
                     // Refresh F1 data
-                    const refreshResponse = await fetch('/api/admin/get-f1-data');
+                    const refreshResponse = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
                     const refreshData = await refreshResponse.json();
                     if (refreshData.success) {
                       setF1Cars(refreshData.cars);
@@ -4945,7 +4945,7 @@ export default function EbayLinkingAdmin() {
                         alert('✅ Retailer link added to existing model!');
 
                         // Refresh F1 data
-                        const refreshResponse = await fetch('/api/admin/get-f1-data');
+                        const refreshResponse = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
                         const refreshData = await refreshResponse.json();
                         if (refreshData.success) {
                           setF1Cars(refreshData.cars);
@@ -5410,7 +5410,7 @@ export default function EbayLinkingAdmin() {
                             });
 
                             // Refresh F1 cars data
-                            const refreshResponse = await fetch('/api/admin/get-f1-data');
+                            const refreshResponse = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
                             const refreshData = await refreshResponse.json();
                             if (refreshData.success) {
                               setF1Cars(refreshData.cars);
@@ -5898,7 +5898,7 @@ export default function EbayLinkingAdmin() {
                         setEditCarModalOpen(false);
                         setEditingCar(null);
                         // Refresh data
-                        const refreshResponse = await fetch('/api/admin/get-f1-data');
+                        const refreshResponse = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
                         const refreshData = await refreshResponse.json();
                         if (refreshData.cars) {
                           setF1Cars(refreshData.cars);
@@ -5969,7 +5969,7 @@ export default function EbayLinkingAdmin() {
                     setEditingModel(null);
 
                     // Refresh F1 data
-                    const refreshResponse = await fetch('/api/admin/get-f1-data');
+                    const refreshResponse = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
                     const refreshData = await refreshResponse.json();
                     if (refreshData.cars) {
                       setF1Cars(refreshData.cars);
@@ -6256,7 +6256,7 @@ export default function EbayLinkingAdmin() {
                           setEditingModel(null);
 
                           // Refresh F1 data
-                          const refreshResponse = await fetch('/api/admin/get-f1-data');
+                          const refreshResponse = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
                           const refreshData = await refreshResponse.json();
                           if (refreshData.cars) {
                             setF1Cars(refreshData.cars);
@@ -6326,7 +6326,7 @@ export default function EbayLinkingAdmin() {
                     setEditRetailerModalOpen(false);
 
                     // Refresh F1 data
-                    const refreshResponse = await fetch('/api/admin/get-f1-data');
+                    const refreshResponse = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
                     const refreshData = await refreshResponse.json();
                     if (refreshData.cars) {
                       setF1Cars(refreshData.cars);

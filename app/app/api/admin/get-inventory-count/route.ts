@@ -6,6 +6,13 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+/**
+ * Admin data must never be served from a cache. Without this the browser
+ * is free to reuse an earlier response, which is how a freshly added eBay
+ * link kept showing as "Not linked" while the API was returning it.
+ */
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const { count, error } = await supabase
