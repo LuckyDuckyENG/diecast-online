@@ -1,4 +1,5 @@
 import { toAud } from './currency';
+import { chassisMatches } from './eventName';
 
 /**
  * Deciding whether an eBay listing is the model we're looking for.
@@ -113,10 +114,14 @@ export function preJudge(title: string, target: TargetModel): PreVerdict {
   // target agrees on manufacturer, driver, race and scale, so only this
   // catches it. Only reject when the title names a chassis and it isn't ours —
   // a title with no chassis code stays in play.
-  const targetChassis = target.chassis ? squash(target.chassis) : null;
-  if (targetChassis) {
+  if (target.chassis) {
     const titleChassis = chassisIn(title);
-    if (titleChassis.size > 0 && !titleChassis.has(targetChassis)) {
+    // Compared with chassisMatches, not exact equality. The catalogue stores
+    // the same car as both "W14" and "F1 W14"; a title yields "W14", so an
+    // equality check rejected EVERY W14 listing for the "F1 W14" cars —
+    // twelve Mercedes models matching nothing out of a pool of thirty-eight.
+    const agrees = [...titleChassis].some(tc => chassisMatches(tc, target.chassis));
+    if (titleChassis.size > 0 && !agrees) {
       return {
         tier: 'rejected',
         reason: `Listing is ${[...titleChassis].join('/')}, target is ${target.chassis}`,
