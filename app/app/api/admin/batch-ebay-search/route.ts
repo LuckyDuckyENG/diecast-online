@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { toCandidate, type EbayCandidate } from '@/lib/ebayMatch';
-import { groupForSearch, matchGroup, type BatchModel } from '@/lib/ebayBatch';
+import {
+  groupForSearch,
+  matchGroup,
+  type BatchModel,
+  type PriceReference,
+} from '@/lib/ebayBatch';
 import { teamMatches } from '@/lib/teamName';
 import { toAud } from '@/lib/currency';
 
@@ -61,30 +66,61 @@ async function getToken(): Promise<string> {
  * times, which is what a silent truncation looks like. `truncated` reports when
  * eBay still had more, rather than letting a partial answer read as complete.
  */
-const POOL_LIMIT = 200;
+const POOL_LIMIT = 200; // Browse API maximum per request
+const MAX_PAGES = 4; // up to 800 listings per group
 
+async function searchPage(token: string, query: string, marketplace: string, offset: number) {
+  const url = new URL('https://api.ebay.com/buy/browse/v1/item_summary/search');
+  url.searchParams.set('q', query);
+  url.searchParams.set('limit', String(POOL_LIMIT));
+  url.searchParams.set('offset', String(offset));
+
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${token}`, 'X-EBAY-C-MARKETPLACE-ID': marketplace },
+  });
+
+  if (!res.ok) {
+    console.warn(`⚠️ ${marketplace} "${query}" @${offset} failed: ${res.status}`);
+    return null;
+  }
+
+  const body = await res.json();
+  return {
+    items: (body.itemSummaries || []).map((i: any) => toCandidate(i, marketplace)),
+    total: typeof body.total === 'number' ? body.total : 0,
+  };
+}
+
+/**
+ * The whole pool for a query, paged.
+ *
+ * One request caps at 200 and the first live run came back with exactly 200
+ * against a reported 297 — a third of the listings never seen, in a group where
+ * seventeen models were competing for matches out of that pool. Paging is what
+ * makes "no match" mean "eBay does not have it" rather than "it was on page 2".
+ *
+ * MAX_PAGES bounds a runaway query; when it bites, `truncated` says so rather
+ * than letting a partial sweep read as complete.
+ */
 async function searchPool(token: string, query: string) {
   for (const marketplace of ['EBAY_AU', 'EBAY_US']) {
-    const url = new URL('https://api.ebay.com/buy/browse/v1/item_summary/search');
-    url.searchParams.set('q', query);
-    url.searchParams.set('limit', String(POOL_LIMIT));
+    const items: EbayCandidate[] = [];
+    let total = 0;
+    let pages = 0;
 
-    const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${token}`, 'X-EBAY-C-MARKETPLACE-ID': marketplace },
-    });
+    while (pages < MAX_PAGES) {
+      const page = await searchPage(token, query, marketplace, pages * POOL_LIMIT);
+      if (!page) break;
 
-    if (!res.ok) {
-      console.warn(`⚠️ ${marketplace} "${query}" failed: ${res.status}`);
-      continue;
+      total = page.total || total;
+      items.push(...page.items);
+      pages++;
+
+      if (page.items.length < POOL_LIMIT || items.length >= total) break;
     }
 
-    const body = await res.json();
-    const items: EbayCandidate[] = (body.itemSummaries || []).map((i: any) =>
-      toCandidate(i, marketplace)
-    );
     if (items.length) {
-      const total = typeof body.total === 'number' ? body.total : items.length;
-      return { marketplace, items, total, truncated: total > items.length };
+      return { marketplace, items, total: Math.max(total, items.length), truncated: items.length < total };
     }
   }
   return { marketplace: 'EBAY_AU', items: [] as EbayCandidate[], total: 0, truncated: false };
@@ -180,6 +216,44 @@ export async function POST(request: NextRequest) {
     }
 
     const groups = groupForSearch(candidates);
+
+    // What this car already costs, so the outlier guard has a reference that
+    // does not depend on how many models this particular run happens to cover.
+    // Retailer prices anchor it even for a chassis with no eBay links yet.
+    const [{ data: retailPrices }, { data: ebayPrices }] = await Promise.all([
+      supabase.from('price_history').select('model_id, price_aud'),
+      supabase.from('ebay_links').select('model_id, price_aud'),
+    ]);
+
+    const knownPrices = new Map<string, number[]>();
+    for (const row of [...(retailPrices || []), ...(ebayPrices || [])]) {
+      const p = Number(row.price_aud);
+      if (!(p > 0)) continue;
+      if (!knownPrices.has(row.model_id)) knownPrices.set(row.model_id, []);
+      knownPrices.get(row.model_id)!.push(p);
+    }
+
+    // Every model of this chassis by this maker, including ones already linked
+    // and therefore outside `candidates` — they are the best reference we have.
+    const scaleByModel = new Map<string, string>();
+    const groupOfModel = new Map<string, string>();
+    for (const m of inScope) scaleByModel.set(m.id, m.scale || '?');
+    for (const m of (rows || []) as any[]) {
+      const key = [m.car?.season?.year, m.car?.team?.name, m.car?.chassis_name, m.manufacturer?.name].join('|');
+      groupOfModel.set(m.id, key);
+      if (!scaleByModel.has(m.id)) scaleByModel.set(m.id, m.scale || '?');
+    }
+
+    const referenceFor = (groupKey: string): PriceReference => {
+      const ref: PriceReference = new Map();
+      for (const [modelId, prices] of knownPrices) {
+        if (groupOfModel.get(modelId) !== groupKey) continue;
+        const scale = scaleByModel.get(modelId) || '?';
+        if (!ref.has(scale)) ref.set(scale, []);
+        ref.get(scale)!.push(...prices);
+      }
+      return ref;
+    };
     console.log(
       `🔎 batch: ${candidates.length} models -> ${groups.length} searches` +
         `${dryRun ? ' (dry run)' : ''}`
@@ -199,7 +273,7 @@ export async function POST(request: NextRequest) {
 
       // Drop listings already spoken for by a model outside this batch
       const pool = items.filter(i => !linkedItems.has(i.itemId));
-      const result = matchGroup(group, pool);
+      const result = matchGroup(group, pool, referenceFor(group.key));
 
       for (const a of result.assignments) {
         if (a.autoLink) linkedItems.add(a.candidate.itemId);

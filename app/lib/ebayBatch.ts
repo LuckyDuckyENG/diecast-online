@@ -147,7 +147,10 @@ function median(xs: number[]): number {
 const PRICE_OUTLIER_FACTOR = 3;
 const MIN_SAMPLES_FOR_MEDIAN = 3;
 
-function demotePriceOutliers(assignments: Assignment[]): void {
+/** Known AUD prices for a group's models, keyed by scale. */
+export type PriceReference = Map<string, number[]>;
+
+function demotePriceOutliers(assignments: Assignment[], prior?: PriceReference): void {
   const byScale = new Map<string, Assignment[]>();
   for (const a of assignments) {
     if (!a.autoLink || a.candidate.priceAud == null) continue;
@@ -157,8 +160,18 @@ function demotePriceOutliers(assignments: Assignment[]): void {
   }
 
   for (const [scale, group] of byScale) {
-    if (group.length < MIN_SAMPLES_FOR_MEDIAN) continue;
-    const mid = median(group.map(a => a.candidate.priceAud!));
+    // Prices already known for this chassis at this scale — retailer prices and
+    // eBay links from earlier runs. Without them the sample is only what this
+    // run happened to match, so a re-run covering three leftover models had one
+    // sample where the first run had four, and the guard silently stopped
+    // applying. AUD 1293.40 passed as AUTO on exactly that re-run.
+    const samples = [
+      ...(prior?.get(scale) || []),
+      ...group.map(a => a.candidate.priceAud!),
+    ].filter(p => p > 0);
+
+    if (samples.length < MIN_SAMPLES_FOR_MEDIAN) continue;
+    const mid = median(samples);
     if (!(mid > 0)) continue;
 
     for (const a of group) {
@@ -167,7 +180,7 @@ function demotePriceOutliers(assignments: Assignment[]): void {
         a.autoLink = false;
         a.reason =
           `AUD ${price.toFixed(2)} is ${(price / mid).toFixed(1)}x the ${scale} median ` +
-          `of AUD ${mid.toFixed(2)} in this group — SKU matches, price needs a look`;
+          `of AUD ${mid.toFixed(2)} for this car — SKU matches, price needs a look`;
       }
     }
   }
@@ -191,7 +204,11 @@ const targetFor = (m: BatchModel): TargetModel => ({
  * thing telling us these are the same physical offer — so first claim wins,
  * and SKU matches get to claim before anything decided on race name.
  */
-export function matchGroup(group: SearchGroup, candidates: EbayCandidate[]): GroupResult {
+export function matchGroup(
+  group: SearchGroup,
+  candidates: EbayCandidate[],
+  priorPrices?: PriceReference
+): GroupResult {
   const claimed = new Set<string>();
   const assignments: Assignment[] = [];
   const assigned = new Set<string>();
@@ -226,7 +243,7 @@ export function matchGroup(group: SearchGroup, candidates: EbayCandidate[]): Gro
   // A SKU match is certain about *identity*, which says nothing about whether
   // the price is sane. Check that before pass 2, while the sample is purely
   // SKU-matched and therefore trustworthy.
-  demotePriceOutliers(assignments);
+  demotePriceOutliers(assignments, priorPrices);
 
   // --- Pass 2: race and driver both named, no SKU. Review only.
   //

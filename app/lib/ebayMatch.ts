@@ -159,6 +159,23 @@ export interface EbayCandidate {
   seller: string | null;
 }
 
+/**
+ * eBay's itemWebUrl carries the search that found it, so a link stored from a
+ * batch run reads "?_skw=Minichamps+RB19&hash=..." — our internal query, on a
+ * URL shown to visitors. The bare /itm/<id> form is stable and is what a person
+ * would share.
+ */
+function cleanItemUrl(raw?: string | null): string {
+  if (!raw) return '';
+  try {
+    const u = new URL(raw);
+    const m = u.pathname.match(/\/itm\/(\d+)/);
+    return m ? `${u.origin}/itm/${m[1]}` : raw;
+  } catch {
+    return raw;
+  }
+}
+
 /** Normalise one eBay Browse API item_summary into what we store. */
 export function toCandidate(item: any, marketplace: string): EbayCandidate {
   const value = item?.price?.value ? parseFloat(item.price.value) : null;
@@ -167,7 +184,7 @@ export function toCandidate(item: any, marketplace: string): EbayCandidate {
   return {
     itemId: item?.itemId || '',
     title: item?.title || '',
-    url: item?.itemWebUrl || '',
+    url: cleanItemUrl(item?.itemWebUrl),
     imageUrl: item?.image?.imageUrl || item?.thumbnailImages?.[0]?.imageUrl || null,
     price: value,
     currency,
