@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-08-06
+# Status Summary — last updated 2026-08-08
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -6,13 +6,55 @@
 ## Where things stand
 
 ```
-cars 164  |  models 245  |  retailer links 162  |  retailers ~24  |  drivers 30
+cars 164  |  models 247  |  retailer links 199 (167 models)  |  retailers 48  |  drivers 30
+eBay links 24 (all EBAY_AU, 23 auto-linked)  |  ebay_search_log 25
 seasons: 2023 (98 cars) + 2024 (66)     slugs: 164/164
-browse shows 96 cars  |  87 of those have an image  |  models with an image 95/245
+browse shows 96 cars  |  87 of those have an image
 ```
 
-Live on Vercel at diecasts.app. Migrations 007–011 all applied. `npm run build`
-passes, `tsc --noEmit` clean. **1 commit unpushed.**
+Live on Vercel at diecasts.app. Migrations 007–013 all applied. `tsc --noEmit` clean.
+**7 commits unpushed.**
+
+## eBay — the secondary market layer
+
+The insight driving this: *the less likely a model is to be in a shop, the more likely
+it is on eBay.* Most of the 79 models with no retailer are discontinued 2023 cars, which
+is exactly what the secondary market covers. eBay is presented as a secondary market,
+never as a shop price — a discontinued model trades above its original retail.
+
+**Batch search** — `/api/admin/batch-ebay-search`, driven from the panel above
+Refresh All. Scope is season, season+team, or all. **Always dry-run first**; the plan is
+exactly what a live run does.
+
+Models sharing a chassis and manufacturer are served by **one broad search**
+("Minichamps RB19"), and matching assigns listings to models locally. 245 per-model
+searches collapse to ~28. Scale is deliberately *not* in the query — titles write it
+`1:43`, `1/43`, `1.43` — `preJudge` rejects on scale per model instead, which also lets
+both scales share one search. The pool is **paged** to the full result set.
+
+**Only a SKU printed in the title auto-links.** Inside a group every model shares
+chassis, scale, year and manufacturer and differs *only by race*, so the checks that
+make `preJudge` safe discriminate nothing there. A match decided on race name alone is
+reported for review and never writes itself — a wrong link made that way looks
+identical to a right one.
+
+**Price guard on first write.** `refresh-prices` compares against the stored price; a
+first write has no such anchor. Anything more than 3× the median for that car at that
+scale — drawn from retailer prices and existing eBay links, *not* from the current run —
+is demoted to review.
+
+First real run: 2023 Red Bull, 25 models, 2 searches, 22 linked.
+
+### eBay — not done
+
+- **Review queue** for the `event-driver` tier and a "recently auto-added" view
+  (`auto_linked` is recorded for exactly this).
+- **Expiry checking** — nothing notices when a listing sells. `ebay_item_id` is stored
+  for it.
+- The 22 linked before paging came from a partial pool: correct, but a cheaper listing
+  may have existed on page two. The matcher takes the cheapest it *saw*.
+- Remaining 19 scopes not yet run. Expect thinner results for Alpine, Haas, Williams —
+  less AU secondary-market presence.
 
 ## ⚠️ The one item with real-world risk
 
@@ -95,7 +137,10 @@ a retailer are submitted (96 of 164). `/admin`, `/api/`, `/search` disallowed.
 - 68 cars have no retailer — excluded from browse, sitemap and related links, reachable
   only by direct URL. Reverses automatically when one gets a link.
 - A few hub slugs fall back to the long form (`/teams/haas-f1-team`).
-- Season cars read "at the Season" in descriptions.
+- **59 models have `event_name = "Season"`** — a legitimate category (generic
+  season/launch-livery cars), not a data error. They can't use event matching, so eBay
+  matching for them rests entirely on the SKU tier. They also read "at the Season" in
+  descriptions.
 - ~26 uncommitted files: scraper `.ts` scripts, `diecast-site-homepage-fixes/`.
 
 ## Traps worth remembering
@@ -109,6 +154,33 @@ a retailer are submitted (96 of 164). `/admin`, `/api/`, `/search` disallowed.
 - **Module-scope API clients turn optional env vars into hard build dependencies.**
   `new Exa(process.env.EXA_API_KEY)` at module scope failed the entire deploy because
   the key wasn't set on Vercel. Construct per request.
+- **Admin fetches must pass `cache: 'no-store'`.** A saved eBay link kept showing as
+  "Not linked" while the API returned it — the browser was reusing an older response.
+  The admin page fetches `get-f1-data` from **16** places; all now say `no-store`.
+  `export const dynamic = 'force-dynamic'` controls *server* caching and does **not**
+  add a response header, so it does not fix this on its own.
+- **An untyped API response hides missing fields.** `DiecastModel` declared
+  `driver: string`, but `get-f1-data` used the driver name only as a grouping key and
+  never put it on the model. Every eBay search ran without a driver name, and nothing
+  complained because the response was `any`.
+- **A silent cap reads as a complete answer.** The eBay pool limit of 50 returned
+  exactly 50 twice — a truncation, not a result. Always report when more was available.
+- **A guard whose reference comes from the current batch weakens as the batch shrinks.**
+  The price outlier check held back AUD 1293.40 on a 25-model run and passed the same
+  listing on a 3-model re-run, because the sample fell below its minimum. Anchor
+  guards to stored data, not to the run.
+- **Display normalisation breaks scope filters.** The admin shows "Red Bull" for
+  "Red Bull Racing", so an exact-match filter selected nothing — and reported it as
+  "nothing to search", which reads as *done* rather than *matched nothing*. Use
+  `teamMatches()`, and make empty results say which kind of empty they are.
+
+## Next up
+
+1. **Publishable key + disable legacy keys** — the only item with real-world risk.
+2. Run the remaining 19 eBay scopes (dry run, read the plan, link).
+3. Review queue + "recently auto-added" view.
+4. Expiry checking for sold eBay listings.
+5. Structured data (Product/Offer JSON-LD), gated on the freshness rules.
 
 ## Architecture
 
