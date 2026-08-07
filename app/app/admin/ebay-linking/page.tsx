@@ -217,6 +217,19 @@ export default function EbayLinkingAdmin() {
     suspicious: any[];
   } | null>(null);
   const refreshAllCancel = useRef(false);
+
+  // Batch eBay search. One request covers a whole scope — the route groups
+  // models by chassis and manufacturer and issues one eBay search per group,
+  // so there is no per-model progress to stream. It returns a plan instead.
+  const [batchSeason, setBatchSeason] = useState<string>('');
+  const [batchTeam, setBatchTeam] = useState<string>('');
+  const [batchState, setBatchState] = useState<{
+    running: boolean;
+    dryRun: boolean;
+    result: any | null;
+    error: string | null;
+  } | null>(null);
+
   const [isDragging, setIsDragging] = useState(false);
   const [createModelModalOpen, setCreateModelModalOpen] = useState(false);
   const [newModelData, setNewModelData] = useState({
@@ -2779,6 +2792,58 @@ export default function EbayLinkingAdmin() {
     });
   };
 
+  /**
+   * Search eBay for a whole scope at once.
+   *
+   * Always dry-run first. The plan it returns is exactly what a live run would
+   * do, so the review list below is worth reading before committing — the SKU
+   * tier is reliable, but it is still writing links without anyone looking.
+   */
+  const runBatchEbay = async (dryRun: boolean) => {
+    const body: any = { dryRun };
+    if (batchSeason) {
+      body.season = parseInt(batchSeason, 10);
+      if (batchTeam) body.team = batchTeam;
+    } else {
+      body.all = true;
+    }
+
+    if (!dryRun) {
+      const label = batchSeason
+        ? `${batchSeason}${batchTeam ? ' ' + batchTeam : ''}`
+        : 'every unlinked model';
+      const ok = confirm(
+        `Link eBay listings for ${label}?\n\n` +
+        `Only listings whose title contains the model's SKU are linked ` +
+        `automatically. Everything else is reported for you to decide.`
+      );
+      if (!ok) return;
+    }
+
+    setBatchState({ running: true, dryRun, result: null, error: null });
+
+    try {
+      const res = await fetch('/api/admin/batch-ebay-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        cache: 'no-store',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.details || data.error || 'Batch search failed');
+
+      setBatchState({ running: false, dryRun, result: data, error: null });
+
+      if (!dryRun) {
+        const refreshed = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
+        const fresh = await refreshed.json();
+        if (fresh.success) setF1Cars(fresh.cars);
+      }
+    } catch (err: any) {
+      setBatchState({ running: false, dryRun, result: null, error: err.message });
+    }
+  };
+
   const searchEbay = async (model: DiecastModel, car: F1Car) => {
     setLoading(true);
     setSelectedModel(model);
@@ -3805,6 +3870,126 @@ export default function EbayLinkingAdmin() {
               📤 Import to Supabase
             </button>
           </div>
+        </div>
+
+        {/* Batch eBay search */}
+        <div className="mb-6 p-4 rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)]">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="font-semibold text-[var(--text-primary)]">🔎 Batch eBay search</span>
+
+            <select
+              value={batchSeason}
+              onChange={e => { setBatchSeason(e.target.value); setBatchTeam(''); }}
+              className="px-2 py-1 rounded bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm text-[var(--text-primary)]"
+            >
+              <option value="">All seasons</option>
+              {[...new Set(f1Cars.map(c => c.year))].sort((a, b) => b - a).map(y => (
+                <option key={y} value={String(y)}>{y}</option>
+              ))}
+            </select>
+
+            <select
+              value={batchTeam}
+              onChange={e => setBatchTeam(e.target.value)}
+              disabled={!batchSeason}
+              className="px-2 py-1 rounded bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm text-[var(--text-primary)] disabled:opacity-40"
+            >
+              <option value="">All teams</option>
+              {[...new Set(
+                f1Cars.filter(c => String(c.year) === batchSeason).map(c => c.team)
+              )].sort().map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+
+            <button
+              disabled={batchState?.running}
+              onClick={() => runBatchEbay(true)}
+              className="px-3 py-1.5 bg-slate-600 text-white text-sm rounded-lg hover:bg-slate-700 disabled:opacity-50"
+              title="Show exactly what would be linked, without writing anything"
+            >
+              🧪 Dry run
+            </button>
+            <button
+              disabled={batchState?.running}
+              onClick={() => runBatchEbay(false)}
+              className="px-3 py-1.5 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 disabled:opacity-50"
+              title="Link every SKU match in scope"
+            >
+              🔗 Link SKU matches
+            </button>
+
+            {batchState?.running && (
+              <span className="text-sm text-gray-400">Searching eBay…</span>
+            )}
+          </div>
+
+          {batchState?.error && (
+            <div className="mt-3 text-sm text-red-400">❌ {batchState.error}</div>
+          )}
+
+          {batchState?.result && (() => {
+            const r = batchState.result;
+            const review = r.groups.flatMap((g: any) =>
+              g.matches.filter((m: any) => !m.autoLink).map((m: any) => ({ ...m, group: g.label }))
+            );
+            return (
+              <div className="mt-4 text-sm">
+                <div className="mb-2 text-[var(--text-primary)]">
+                  {r.dryRun ? '🧪 Dry run' : '✅ Linked'} — scope <strong>{r.scope}</strong>
+                </div>
+                <div className="flex flex-wrap gap-4 text-gray-400 mb-3">
+                  <span>models in scope: <strong className="text-[var(--text-primary)]">{r.totals.models}</strong></span>
+                  <span>eBay searches: <strong className="text-[var(--text-primary)]">{r.totals.searches}</strong></span>
+                  <span>{r.dryRun ? 'would link' : 'linked'}: <strong className="text-green-400">{r.totals.autoLinked}</strong></span>
+                  <span>needs review: <strong className={r.totals.review ? 'text-yellow-500' : 'text-[var(--text-primary)]'}>{r.totals.review}</strong></span>
+                  <span>no match: <strong className="text-[var(--text-primary)]">{r.totals.unmatched}</strong></span>
+                </div>
+
+                {r.message && <div className="text-gray-400">{r.message}</div>}
+
+                {r.groups.map((g: any) => (
+                  <div key={g.label} className="mb-1 text-xs text-gray-400">
+                    <span className="text-[var(--text-primary)]">{g.label}</span>
+                    {' — '}{g.matches.filter((m: any) => m.autoLink).length}/{g.models} matched
+                    {' · '}pool {g.poolSize}
+                    {g.truncated && (
+                      <span className="text-yellow-500" title={`eBay has ${g.availableOnEbay} listings; only ${g.poolSize} were read`}>
+                        {' '}of {g.availableOnEbay} ⚠
+                      </span>
+                    )}
+                    {' · '}{g.marketplace === 'EBAY_US' ? 'US' : 'AU'}
+                  </div>
+                ))}
+
+                {/* Never auto-linked: a person decides these */}
+                {review.length > 0 && (
+                  <div className="mt-4 border-t border-[var(--border-color)] pt-3">
+                    <div className="font-semibold text-yellow-500 mb-2">
+                      Needs review ({review.length})
+                    </div>
+                    {review.map((m: any) => (
+                      <div key={m.modelId} className="mb-3 pl-2 border-l-2 border-yellow-600/40">
+                        <div className="text-xs text-[var(--text-primary)]">
+                          {m.model} — {m.driver} <span className="text-gray-500">[{m.sku}]</span>
+                        </div>
+                        <div className="text-xs text-gray-400">{m.title}</div>
+                        <div className="text-xs text-gray-500 mb-1">
+                          AUD {m.priceAud?.toFixed(2)} · {m.reason}
+                        </div>
+                        <a
+                          href={m.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-400 hover:underline"
+                        >
+                          View on eBay ↗
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Bulk refresh progress */}

@@ -39,10 +39,19 @@ export interface PreVerdict {
 /** Strip everything but alphanumerics, for comparing SKUs against free text. */
 const squash = (s: string) => s.replace(/[^a-z0-9]/gi, '').toUpperCase();
 
-/** "1:43", "1/43", "1-43" and "143" all mean the same thing in a title. */
+/**
+ * "1:43", "1/43", "1-43" and "1.43" all mean the same thing in a title.
+ *
+ * The dot form is not hypothetical — "Spark 1.18 Red Bull Racing RB19 Max
+ * Verstappen 1st Miami" was matched against a 1:43 model because this missed
+ * it, and a scale that goes undetected cannot be rejected.
+ *
+ * A leading \b keeps prices out: in "41.43" there is no boundary before the 1,
+ * so it does not read as a 1:43.
+ */
 function scalesIn(title: string): Set<string> {
   const found = new Set<string>();
-  for (const m of title.matchAll(/\b1\s*[:\/\-]\s*(12|18|24|43|64)\b/g)) {
+  for (const m of title.matchAll(/\b1\s*[:\/\-.]\s*(12|18|24|43|64)\b/g)) {
     found.add(`1:${m[1]}`);
   }
   return found;
