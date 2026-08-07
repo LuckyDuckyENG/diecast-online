@@ -45,6 +45,25 @@ is demoted to review.
 
 First real run: 2023 Red Bull, 25 models, 2 searches, 22 linked.
 
+### Forecast for the remaining 223 models
+
+Full dry run of every scope, 34 seconds, no writes:
+
+```
+127 auto-link  /  22 review  /  74 no match
+
+Minichamps  143 ->  66 / 14 / 63
+Looksmart    43 ->  32 /  3 /  8
+Spark        37 ->  29 /  5 /  3
+```
+
+Roughly 20 minutes of clicking takes eBay coverage from 24 to ~150 models.
+Reproduce with `{all: true, dryRun: true, recheckAfterDays: 0}`.
+
+Minichamps trailing at 46% is partly genuine — they made far more models than AU
+eBay carries — but a bug hid in exactly that signal once already, so it is worth
+re-checking rather than assumed.
+
 ### eBay — not done
 
 - **Review queue** for the `event-driver` tier and a "recently auto-added" view
@@ -177,10 +196,14 @@ a retailer are submitted (96 of 164). `/admin`, `/api/`, `/search` disallowed.
 ## Next up
 
 1. **Publishable key + disable legacy keys** — the only item with real-world risk.
-2. Run the remaining 19 eBay scopes (dry run, read the plan, link).
-3. Review queue + "recently auto-added" view.
-4. Expiry checking for sold eBay listings.
-5. Structured data (Product/Offer JSON-LD), gated on the freshness rules.
+2. **Normalise `F1 W14` → `W14` in `cars.chassis_name`.** Two spellings of one chassis
+   split it into two eBay searches, and the composite UNIQUE treats them as different
+   cars, so a duplicate can slip through. Matching now tolerates it; the data shouldn't
+   need it to.
+3. Run the remaining eBay scopes (dry run, read the plan, link). ~127 links available.
+4. Review queue + "recently auto-added" view.
+5. Expiry checking for sold eBay listings.
+6. Structured data (Product/Offer JSON-LD), gated on the freshness rules.
 
 ## Architecture
 
