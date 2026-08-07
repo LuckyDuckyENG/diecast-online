@@ -176,6 +176,15 @@ export async function GET(request: NextRequest) {
           name: `${model.manufacturer?.name || 'Unknown'} ${model.scale}`,
           manufacturer: model.manufacturer?.name || 'Unknown',
           scale: model.scale,
+          // The driver was only ever used as the grouping key above, so
+          // model.driver came back undefined on the client and the eBay
+          // search ran without a driver name in it. DiecastModel has always
+          // declared this field; nothing typed the response, so nothing said.
+          driver: modelDriverName,
+          // Needed by preJudge, which uses the chassis code as its sharpest
+          // discriminator — an RB21 listing matches an RB19 target on every
+          // other field.
+          chassis: normalizeChassis(car.chassis_name || ''),
           eventName: car.event_name,
           sku: model.manufacturer_sku || '',
           discoveredFrom: model.discovered_from || null,

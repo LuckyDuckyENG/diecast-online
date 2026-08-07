@@ -24,6 +24,7 @@ interface DiecastModel {
   manufacturer: string;
   scale: string;
   driver: string;
+  chassis?: string; // e.g., "RB19" — used to reject wrong-chassis eBay listings
   eventName: string; // e.g., "Bahrain GP 2024"
   sku?: string;
   discoveredFrom?: string | null; // Retailer name
@@ -59,6 +60,16 @@ interface EbaySearchResult {
   image: string;
   score?: number; // AI confidence score 0-100
   aiReason?: string; // AI reasoning for the score
+  // Set by preJudge on the server. A sku-match is settled without an AI call
+  // and is more reliable than any score, so it must not fall through to the
+  // "no score" branch and render as the least confident option.
+  pre?: { tier: 'sku-match' | 'rejected' | 'needs-judgement'; reason: string };
+  itemId?: string;
+  imageUrl?: string | null;
+  priceValue?: number; // numeric price; `price` is the display string
+  priceAud?: number | null;
+  currency?: string | null;
+  marketplace?: string;
 }
 
 interface RetailerSearchResult {
@@ -176,6 +187,9 @@ function DraggableInventoryItem({ item }: { item: any }) {
 export default function EbayLinkingAdmin() {
   const [f1Cars, setF1Cars] = useState<F1Car[]>([]);
   const [searchResults, setSearchResults] = useState<EbaySearchResult[]>([]);
+  // Why the result list is empty. Without this, "eBay has nothing" and "the
+  // search errored" both render as a blank panel and look like a broken button.
+  const [searchNote, setSearchNote] = useState<string | null>(null);
   const [retailerResults, setRetailerResults] = useState<RetailerSearchResult[]>([]);
   const [selectedModel, setSelectedModel] = useState<DiecastModel | null>(null);
   const [expandedCars, setExpandedCars] = useState<Set<string>>(new Set());
@@ -2769,6 +2783,7 @@ export default function EbayLinkingAdmin() {
     setLoading(true);
     setSelectedModel(model);
     setSearchResults([]);
+    setSearchNote(null);
 
     try {
       // Build weighted search query with most important keywords first
@@ -2787,13 +2802,19 @@ export default function EbayLinkingAdmin() {
 
       console.log('🔍 eBay search query:', searchQuery);
 
-      // Prepare model info for AI filtering
+      // Prepare model info for matching.
+      //
+      // chassis matters as much as anything here: preJudge rejects a listing
+      // whose chassis code contradicts the target, and that is the only check
+      // that separates an RB21 from an RB19 when manufacturer, driver, race
+      // and scale all agree. Omitting it left that check permanently dead.
       const modelInfo = {
         manufacturer: model.manufacturer,
         scale: model.scale,
         team: car.team,
         driver: model.driver,
         eventName: model.eventName || '',
+        chassis: model.chassis || car.chassis || '',
         year: car.year?.toString() || '',
         sku: model.sku || '',
       };
@@ -2812,10 +2833,42 @@ export default function EbayLinkingAdmin() {
       }
 
       const data = await response.json();
-      setSearchResults(data.listings || []);
+
+      // The API speaks the eBay Browse shape (imageUrl, numeric price); this
+      // page has always read .image and a display string. They were never
+      // reconciled, so thumbnails silently fell back to the placeholder and
+      // saved links stored no image at all. Translate once, here.
+      const listings: EbaySearchResult[] = (data.listings || []).map((l: any) => ({
+        ...l,
+        image: l.image ?? l.imageUrl ?? '',
+        priceValue: typeof l.price === 'number' ? l.price : parseFloat(String(l.price ?? '')),
+        price:
+          typeof l.price === 'number'
+            ? `${l.currency || ''} ${l.price.toFixed(2)}`.trim()
+            : String(l.price ?? ''),
+        marketplace: l.marketplace ?? data.marketplace,
+      }));
+
+      setSearchResults(listings);
+
+      if (listings.length === 0) {
+        // Distinguish the two ways this comes back empty. "eBay has nothing"
+        // is real information about a model; "everything was rejected" means
+        // the search terms found the wrong products.
+        if (data.noResults) {
+          setSearchNote(`No listings on ${data.marketplace === 'EBAY_US' ? 'eBay US' : 'eBay AU'} for this model.`);
+        } else if (data.rejectedCount > 0) {
+          setSearchNote(
+            `${data.rejectedCount} listing${data.rejectedCount === 1 ? '' : 's'} found, all ruled out ` +
+            `on scale, chassis or year.`
+          );
+        } else {
+          setSearchNote('No matching listings.');
+        }
+      }
     } catch (error) {
       console.error('Error searching eBay:', error);
-      alert('Failed to search eBay. Check console for details.');
+      setSearchNote('Search failed — check the console.');
     } finally {
       setLoading(false);
     }
@@ -2833,9 +2886,18 @@ export default function EbayLinkingAdmin() {
           modelId: model.id,
           carId: carId,
           ebayUrl: listing.url,
-          ebayPrice: listing.price,
+          // The numeric value, not the "AUD 410.40" display string
+          ebayPrice: listing.priceValue ?? listing.price,
           ebayTitle: listing.title,
           ebayImage: listing.image,
+          // Without these the API fell back to USD for anything saved from
+          // this page, so an AUD 410.40 listing was stored with a price_aud
+          // converted as though it were US dollars.
+          marketplace: listing.marketplace,
+          currency: listing.currency,
+          ebayItemId: listing.itemId,
+          // Saved by hand from this page, so a person did look at it
+          autoLinked: false,
         }),
       });
 
@@ -4373,6 +4435,13 @@ export default function EbayLinkingAdmin() {
                               )}
                             </div>
 
+                            {/* Why there are no results, when there are none */}
+                            {selectedModel?.id === model.id && searchResults.length === 0 && searchNote && (
+                              <div className="mt-3 border-t border-[var(--border-color)] pt-3">
+                                <span className="text-xs text-gray-400">🔍 {searchNote}</span>
+                              </div>
+                            )}
+
                             {/* Search Results */}
                             {selectedModel?.id === model.id && searchResults.length > 0 && (
                               <div className="mt-3 border-t border-[var(--border-color)] pt-3">
@@ -4397,15 +4466,31 @@ export default function EbayLinkingAdmin() {
                                         <div className="text-xs font-semibold text-green-400">
                                           {result.price}
                                         </div>
-                                        {result.score !== undefined && (
+                                        {result.pre?.tier === 'sku-match' ? (
+                                          <div className="text-xs text-green-400 mt-1">
+                                            🎯 {result.pre.reason}
+                                            {result.marketplace === 'EBAY_US' && ' • from eBay US'}
+                                          </div>
+                                        ) : result.score !== undefined ? (
                                           <div className="text-xs text-gray-400 mt-1">
                                             🤖 Score: {result.score} {result.aiReason && `• ${result.aiReason}`}
+                                            {result.marketplace === 'EBAY_US' && ' • from eBay US'}
                                           </div>
-                                        )}
+                                        ) : null}
                                       </div>
 
+                                      {/* The seller printed the SKU. Nothing an AI score says beats that. */}
+                                      {result.pre?.tier === 'sku-match' && (
+                                        <button
+                                          onClick={() => saveEbayLink(car.id, model, result)}
+                                          className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                                        >
+                                          ✓ Link Now
+                                        </button>
+                                      )}
+
                                       {/* High confidence (90+): Direct "Select" button */}
-                                      {result.score !== undefined && result.score >= 90 && (
+                                      {result.pre?.tier !== 'sku-match' && result.score !== undefined && result.score >= 90 && (
                                         <button
                                           onClick={() => saveEbayLink(car.id, model, result)}
                                           className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
@@ -4415,7 +4500,7 @@ export default function EbayLinkingAdmin() {
                                       )}
 
                                       {/* Medium confidence (50-89): "Add to Inventory" button */}
-                                      {result.score !== undefined && result.score >= 50 && result.score < 90 && (
+                                      {result.pre?.tier !== 'sku-match' && result.score !== undefined && result.score >= 50 && result.score < 90 && (
                                         <>
                                           <button
                                             onClick={() => addToInventory(model, result, car)}
@@ -4433,7 +4518,7 @@ export default function EbayLinkingAdmin() {
                                       )}
 
                                       {/* Fallback for no score */}
-                                      {result.score === undefined && (
+                                      {result.pre?.tier !== 'sku-match' && result.score === undefined && (
                                         <button
                                           onClick={() => saveEbayLink(car.id, model, result)}
                                           className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
