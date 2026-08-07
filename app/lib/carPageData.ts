@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { formatAge, shouldHidePrice } from './freshness';
+import { toAud } from './currency';
 import { isUuid } from './carSlug';
 
 /**
@@ -25,6 +26,10 @@ export interface CarRetailer {
   checkedAt: string | null;
   checkedLabel: string;
   priceHidden: boolean;
+  /** eBay, not a shop — one seller's listing on a used/auction market. */
+  isSecondary?: boolean;
+  /** EBAY_AU / EBAY_US, so the page can distinguish local from imported. */
+  marketplace?: string | null;
 }
 
 export interface CarVariant {
@@ -139,28 +144,37 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
 
     const ebayLink = ebayByModel.get(variant.id);
     if (ebayLink) {
-      const ebayPrice = parseFloat(ebayLink.ebay_price?.replace(/[^0-9.]/g, '') || '0');
+      const ebayPrice = parseFloat(String(ebayLink.ebay_price ?? '').replace(/[^0-9.]/g, '')) || 0;
       if (ebayPrice > 0) {
-        // eBay links aren't part of the refresh cycle, so freshness comes from
-        // when the listing was last synced. Same staleness rules apply.
-        const ebayCheckedAt = ebayLink.last_updated || null;
+        // Currency used to be hardcoded to USD and priceAUD left unconverted,
+        // which understated every US listing. Both are stored properly now.
+        const ebayCurrency = ebayLink.currency || 'USD';
+        const ebayCheckedAt = ebayLink.last_checked_at || ebayLink.last_updated || null;
+
         retailers.push({
-          name: 'eBay',
+          name: ebayLink.marketplace === 'EBAY_AU' ? 'eBay Australia' : 'eBay',
           price: ebayPrice,
-          currency: 'USD',
-          priceAUD: ebayPrice,
+          currency: ebayCurrency,
+          priceAUD: parseFloat(ebayLink.price_aud) || toAud(ebayPrice, ebayCurrency),
           inStock: true,
           url: ebayLink.ebay_url,
           checkedAt: ebayCheckedAt,
           checkedLabel: formatAge(ebayCheckedAt),
           priceHidden: shouldHidePrice(ebayCheckedAt),
+          isSecondary: true,
+          marketplace: ebayLink.marketplace || null,
         });
       }
     }
 
     // "Cheapest" is the strongest claim on the page, so it may only draw on
     // prices we're still willing to quote: in stock, and verified recently.
-    const quotable = retailers.filter(r => r.inStock && !r.priceHidden);
+    //
+    // eBay is excluded deliberately. It's a used/auction market where a
+    // discontinued model can trade ABOVE its original retail, and a single
+    // seller's asking price isn't a comparison. Letting one listing set
+    // "Lowest Price" would misrepresent both the number and the claim.
+    const quotable = retailers.filter(r => r.inStock && !r.priceHidden && !r.isSecondary);
 
     return {
       ...variant,

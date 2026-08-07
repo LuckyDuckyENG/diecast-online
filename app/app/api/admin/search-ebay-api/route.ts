@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { preJudge, toCandidate, type TargetModel } from '@/lib/ebayMatch';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -117,7 +118,7 @@ function scoreResult(title: string, searchQuery: string): number {
 
 export async function POST(request: NextRequest) {
   try {
-    const { searchQuery, modelInfo } = await request.json();
+    const { searchQuery, modelInfo, marketplaces } = await request.json();
 
     if (!searchQuery) {
       return NextResponse.json({ error: 'Search query required' }, { status: 400 });
@@ -162,57 +163,133 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Got OAuth token');
 
-    // Use Browse API (newer, more reliable than Finding API)
-    const ebayUrl = new URL('https://api.ebay.com/buy/browse/v1/item_summary/search');
-    ebayUrl.searchParams.set('q', searchQuery);
-    ebayUrl.searchParams.set('limit', '100');
+    // Search AU first, fall back to US.
+    //
+    // eBay AU carries a fraction of the inventory: a real query returned 9
+    // results there against 216 in the US. But an AU listing is priced in AUD
+    // with domestic shipping, which for an Australian buyer is a different
+    // proposition to a US auction plus freight and possible GST — so prefer
+    // local when it exists, and label which market each result came from.
+    async function searchMarket(marketplace: string) {
+      const url = new URL('https://api.ebay.com/buy/browse/v1/item_summary/search');
+      url.searchParams.set('q', searchQuery);
+      url.searchParams.set('limit', '50');
 
-    const response = await fetch(ebayUrl.toString(), {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
-      },
-    });
+      const res = await fetch(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'X-EBAY-C-MARKETPLACE-ID': marketplace,
+        },
+      });
 
-    const responseText = await response.text();
-    console.log('📄 eBay API response status:', response.status);
-    console.log('📄 eBay API response (first 500 chars):', responseText.substring(0, 500));
+      if (!res.ok) {
+        console.warn(`⚠️ ${marketplace} search failed: ${res.status}`);
+        return [];
+      }
 
-    if (!response.ok) {
-      throw new Error(`eBay API request failed: ${response.status} - ${responseText.substring(0, 200)}`);
+      const body = await res.json();
+      return (body.itemSummaries || []).map((i: any) => toCandidate(i, marketplace));
     }
 
-    const data = JSON.parse(responseText);
+    const preferred = marketplaces?.length ? marketplaces : ['EBAY_AU', 'EBAY_US'];
+    let candidates: any[] = [];
+    let usedMarket = preferred[0];
 
-    // Parse eBay Browse API response
-    const items = data.itemSummaries || [];
+    for (const market of preferred) {
+      candidates = await searchMarket(market);
+      usedMarket = market;
+      console.log(`🌏 ${market}: ${candidates.length} results`);
+      if (candidates.length > 0) break;
+    }
 
-    const listings = items.map((item: any) => ({
-      title: item.title || '',
-      price: item.price?.value ? `$${item.price.value}` : '',
-      url: item.itemWebUrl || '',
-      image: item.image?.imageUrl || item.thumbnailImages?.[0]?.imageUrl || '',
-    }));
+    if (candidates.length === 0) {
+      // Genuinely nothing on eBay. Worth recording rather than re-searching
+      // this model every week -- "not available anywhere" is real information.
+      console.log('🔍 No results in any marketplace');
+      return NextResponse.json({
+        success: true,
+        marketplace: usedMarket,
+        autoLink: null,
+        listings: [],
+        count: 0,
+        noResults: true,
+      });
+    }
 
-    console.log(`✅ Found ${listings.length} raw listings from eBay API`);
+    // Settle what can be settled without a model call.
+    const target: TargetModel = {
+      sku: modelInfo.sku || null,
+      scale: modelInfo.scale || null,
+      manufacturer: modelInfo.manufacturer || null,
+      driver: modelInfo.driver || null,
+      event: modelInfo.eventName || null,
+      chassis: modelInfo.chassis || null,
+      year: modelInfo.year ? parseInt(String(modelInfo.year), 10) : null,
+    };
 
-    // Use Claude Haiku 4.5 to intelligently score results
-    console.log('🤖 Sending to Claude Haiku 4.5 for AI scoring...');
-    const scoredListings = await scoreResultsWithAI(listings, modelInfo);
+    const judged = candidates.map(c => ({ ...c, pre: preJudge(c.title, target) }));
 
-    // Sort by AI score (highest first)
-    const sortedListings = scoredListings.sort((a, b) => b.score - a.score);
+    const skuMatches = judged.filter(c => c.pre.tier === 'sku-match');
+    const rejected = judged.filter(c => c.pre.tier === 'rejected');
+    const ambiguous = judged.filter(c => c.pre.tier === 'needs-judgement');
 
-    // Filter out low-scoring results (< 50 = likely wrong product)
-    const filteredListings = sortedListings.filter(l => l.score >= 50);
+    console.log(
+      `⚖️ ${skuMatches.length} SKU match, ${rejected.length} rejected outright, ` +
+      `${ambiguous.length} need judgement`
+    );
 
-    console.log(`📊 AI Scores - Top 5: ${sortedListings.slice(0, 5).map(l => `${l.score} (${l.aiReason})`).join(', ')}`);
-    console.log(`🔍 Filtered to ${filteredListings.length} relevant results (score >= 50)`);
+    // The seller printed the SKU — that settles it, cheaper and more reliably
+    // than asking a model. Take the cheapest such listing.
+    if (skuMatches.length > 0) {
+      const best = skuMatches
+        .slice()
+        .sort((a, b) => (a.priceAud ?? Infinity) - (b.priceAud ?? Infinity))[0];
+
+      console.log(`🎯 Auto-link candidate: ${best.title.slice(0, 70)}`);
+
+      return NextResponse.json({
+        success: true,
+        marketplace: usedMarket,
+        autoLink: { ...best, reason: best.pre.reason },
+        listings: skuMatches,
+        count: skuMatches.length,
+        rejectedCount: rejected.length,
+      });
+    }
+
+    // Nothing decisive — spend the AI call on the genuine judgement calls only
+    if (ambiguous.length === 0) {
+      return NextResponse.json({
+        success: true,
+        marketplace: usedMarket,
+        autoLink: null,
+        listings: [],
+        count: 0,
+        rejectedCount: rejected.length,
+        allRejected: true,
+      });
+    }
+
+    console.log(`🤖 Scoring ${ambiguous.length} listings with Claude...`);
+    const scored = await scoreResultsWithAI(
+      ambiguous.map(c => ({ title: c.title, price: c.price ? `$${c.price}` : '', url: c.url, image: c.imageUrl })),
+      modelInfo
+    );
+
+    const merged = ambiguous
+      .map((c, i) => ({ ...c, score: scored[i]?.score ?? 0, aiReason: scored[i]?.aiReason ?? '' }))
+      .sort((a, b) => b.score - a.score)
+      .filter(l => l.score >= 50);
+
+    console.log(`🔍 ${merged.length} listings scored >= 50`);
 
     return NextResponse.json({
       success: true,
-      listings: filteredListings,
-      count: filteredListings.length,
+      marketplace: usedMarket,
+      autoLink: null,
+      listings: merged,
+      count: merged.length,
+      rejectedCount: rejected.length,
     });
   } catch (error: any) {
     console.error('❌ Error searching eBay API:', error.message);

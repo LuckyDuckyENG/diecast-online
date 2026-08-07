@@ -300,7 +300,14 @@ export default function CarDetail({
                                   <span className="font-bold text-[var(--text-primary)]">
                                     {retailer.name}
                                   </span>
-                                  {retailer.inStock ? (
+                                  {retailer.isSecondary ? (
+                                    /* eBay is a used/auction market, not a shop.
+                                       Saying "In Stock" would imply retail
+                                       availability it doesn't have. */
+                                    <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
+                                      Secondary market
+                                    </span>
+                                  ) : retailer.inStock ? (
                                     <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
                                       ✓ In Stock
                                     </span>
@@ -318,7 +325,9 @@ export default function CarDetail({
                                       : 'text-amber-600'
                                   }`}
                                 >
-                                  Price checked {retailer.checkedLabel}
+                                  {retailer.isSecondary
+                                    ? `One seller's listing · checked ${retailer.checkedLabel}`
+                                    : `Price checked ${retailer.checkedLabel}`}
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">
