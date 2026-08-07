@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { toCandidate, type EbayCandidate } from '@/lib/ebayMatch';
 import { groupForSearch, matchGroup, type BatchModel } from '@/lib/ebayBatch';
+import { teamMatches } from '@/lib/teamName';
 import { toAud } from '@/lib/currency';
 
 const supabase = createClient(
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
         .map(s => s.model_id)
     );
 
-    const candidates: BatchModel[] = (rows || [])
+    const inScope: BatchModel[] = (rows || [])
       .map((m: any) => ({
         id: m.id,
         sku: m.manufacturer_sku || null,
@@ -149,17 +150,30 @@ export async function POST(request: NextRequest) {
         team: m.car?.team?.name || null,
         year: m.car?.season?.year ?? null,
       }))
-      .filter(m => !linkedModels.has(m.id))
-      .filter(m => !recentlySearched.has(m.id))
       .filter(m => (all ? true : m.year === season))
-      .filter(m => (team ? m.team === team : true));
+      // Not an equality check. The admin page displays team names run through
+      // its own normalizer -- "Red Bull Racing" is shown as "Red Bull" -- so an
+      // exact match against the stored name silently selects nothing.
+      .filter(m => (team ? teamMatches(m.team, team) : true));
+
+    const candidates = inScope
+      .filter(m => !linkedModels.has(m.id))
+      .filter(m => !recentlySearched.has(m.id));
 
     if (candidates.length === 0) {
+      // "Nothing to do" and "the scope matched nothing" look identical from
+      // the outside and have completely different fixes. Say which.
+      const message =
+        inScope.length === 0
+          ? `No models matched that scope — check the season and team.`
+          : `Nothing to search: all ${inScope.length} model(s) in scope are ` +
+            `already linked or were searched in the last ${recheckAfterDays} days.`;
+
       return NextResponse.json({
         success: true,
         dryRun,
         scope: all ? 'all' : `${season}${team ? ' ' + team : ''}`,
-        message: 'Nothing to search — every model in scope is already linked or recently searched.',
+        message,
         groups: [],
         totals: { models: 0, searches: 0, autoLinked: 0, review: 0, unmatched: 0 },
       });
