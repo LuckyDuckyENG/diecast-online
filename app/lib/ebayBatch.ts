@@ -204,11 +204,47 @@ const targetFor = (m: BatchModel): TargetModel => ({
  * thing telling us these are the same physical offer — so first claim wins,
  * and SKU matches get to claim before anything decided on race name.
  */
+/**
+ * Does the listing assert a race that isn't ours?
+ *
+ * This is the one failure the SKU tier cannot see. If a model's stored SKU is
+ * wrong in a way that points at a DIFFERENT RACE OF THE SAME CAR, then chassis,
+ * scale, year and manufacturer all agree, the SKU matches, and a confident,
+ * plausible, wrong link is written. Nothing else in the pipeline notices.
+ *
+ * Comparing the model's event against the title catches it, but only when the
+ * title actually names a race we recognise — silence is not disagreement, and
+ * 14 of 46 live links have titles that name no race at all.
+ *
+ * Models whose event is "Season" are exempt. There are 59 of them: generic
+ * season-livery cars with no race to contradict. Sellers routinely tie them to
+ * a specific round, so checking them would flag a quarter of the catalogue and
+ * teach you to ignore the warning.
+ */
+function contradictsEvent(
+  title: string,
+  modelEvent: string | null,
+  knownEvents: string[]
+): string | null {
+  if (!modelEvent || /^season$/i.test(modelEvent)) return null;
+  if (eventMatches(modelEvent, title)) return null;
+
+  const named = knownEvents.filter(e => e !== modelEvent && eventMatches(e, title));
+  return named.length ? named.join(' / ') : null;
+}
+
+export interface MatchOptions {
+  priorPrices?: PriceReference;
+  /** Every event name in the catalogue, so a title can be read as naming one. */
+  knownEvents?: string[];
+}
+
 export function matchGroup(
   group: SearchGroup,
   candidates: EbayCandidate[],
-  priorPrices?: PriceReference
+  opts: MatchOptions = {}
 ): GroupResult {
+  const { priorPrices, knownEvents = [] } = opts;
   const claimed = new Set<string>();
   const assignments: Assignment[] = [];
   const assigned = new Set<string>();
@@ -228,14 +264,21 @@ export function matchGroup(
       .sort((a, b) => cheapestFirst(a.c, b.c));
 
     if (hits.length) {
-      claimed.add(idOf(hits[0].c));
+      const best = hits[0];
+      const wrongRace = contradictsEvent(best.c.title, model.event, knownEvents);
+
+      claimed.add(idOf(best.c));
       assigned.add(model.id);
       assignments.push({
         model,
-        candidate: hits[0].c,
+        candidate: best.c,
         tier: 'sku-match',
-        reason: hits[0].v.reason,
-        autoLink: true,
+        // A contradiction means either our SKU is wrong or the seller's title
+        // is. Both are worth a human look, and neither is safe to write blind.
+        reason: wrongRace
+          ? `SKU ${model.sku} matches, but the listing says ${wrongRace} and this model is ${model.event} — one of them is wrong`
+          : best.v.reason,
+        autoLink: !wrongRace,
       });
     }
   }

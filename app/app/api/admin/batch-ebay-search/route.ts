@@ -148,6 +148,13 @@ export async function POST(request: NextRequest) {
 
     if (error) throw new Error(`Model fetch failed: ${error.message}`);
 
+    // Every race the catalogue knows about. Needed so a listing title can be
+    // read as naming a race that is not this model's — the only way to catch a
+    // stored SKU that points at the wrong round of the same car.
+    const knownEvents = [
+      ...new Set((rows || []).map((m: any) => m.car?.event_name).filter(Boolean)),
+    ] as string[];
+
     const [{ data: links }, searchLog] = await Promise.all([
       supabase.from('ebay_links').select('model_id, ebay_item_id'),
       supabase.from('ebay_search_log').select('model_id, searched_at'),
@@ -273,7 +280,10 @@ export async function POST(request: NextRequest) {
 
       // Drop listings already spoken for by a model outside this batch
       const pool = items.filter(i => !linkedItems.has(i.itemId));
-      const result = matchGroup(group, pool, referenceFor(group.key));
+      const result = matchGroup(group, pool, {
+        priorPrices: referenceFor(group.key),
+        knownEvents,
+      });
 
       for (const a of result.assignments) {
         if (a.autoLink) linkedItems.add(a.candidate.itemId);
