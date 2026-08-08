@@ -343,6 +343,10 @@ export async function POST(request: NextRequest) {
           priceAud: a.candidate.priceAud,
           url: a.candidate.url,
           itemId: a.candidate.itemId,
+          // Needed so a review item can be accepted straight from the panel
+          // with everything a link requires, image included.
+          image: a.candidate.imageUrl,
+          marketplace: a.candidate.marketplace,
         })),
         unmatched: result.unmatched.map(m => `${m.scale} ${m.event} (${m.sku})`),
       });

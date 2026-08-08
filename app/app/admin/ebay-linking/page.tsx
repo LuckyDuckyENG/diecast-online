@@ -232,6 +232,10 @@ export default function EbayLinkingAdmin() {
     result: any | null;
     error: string | null;
   } | null>(null);
+  // Review items accepted from the batch panel. Without this the panel reports
+  // matches it gives you no way to act on, and the only route to them is the
+  // per-model search button — the tedium the batch layer exists to remove.
+  const [acceptedReview, setAcceptedReview] = useState<Record<string, 'saving' | 'done' | string>>({});
 
   const [isDragging, setIsDragging] = useState(false);
   const [createModelModalOpen, setCreateModelModalOpen] = useState(false);
@@ -2847,6 +2851,45 @@ export default function EbayLinkingAdmin() {
     }
   };
 
+  /**
+   * Accept one review-tier match from the batch panel.
+   *
+   * These are never written automatically — a match decided on race and driver
+   * rather than a SKU, or one whose price or event looked wrong. Accepting is
+   * the person's judgement, so it is recorded with auto_linked = false and does
+   * not appear in the "added without anyone looking" view.
+   */
+  const acceptReviewMatch = async (m: any) => {
+    setAcceptedReview(prev => ({ ...prev, [m.modelId]: 'saving' }));
+    try {
+      const res = await fetch('/api/admin/save-ebay-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          modelId: m.modelId,
+          ebayUrl: m.url,
+          ebayPrice: m.price,
+          ebayTitle: m.title,
+          ebayImage: m.image,
+          ebayItemId: m.itemId,
+          marketplace: m.marketplace,
+          currency: m.currency,
+          autoLinked: false,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.details || data.error || 'Failed to save');
+
+      setAcceptedReview(prev => ({ ...prev, [m.modelId]: 'done' }));
+
+      const refreshed = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
+      const fresh = await refreshed.json();
+      if (fresh.cars) setF1Cars(fresh.cars);
+    } catch (err: any) {
+      setAcceptedReview(prev => ({ ...prev, [m.modelId]: err.message }));
+    }
+  };
+
   const searchEbay = async (model: DiecastModel, car: F1Car) => {
     setLoading(true);
     setSelectedModel(model);
@@ -4027,14 +4070,34 @@ export default function EbayLinkingAdmin() {
                         <div className="text-xs text-gray-500 mb-1">
                           AUD {m.priceAud?.toFixed(2)} · {m.reason}
                         </div>
-                        <a
-                          href={m.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-400 hover:underline"
-                        >
-                          View on eBay ↗
-                        </a>
+                        <div className="flex items-center gap-3">
+                          <a
+                            href={m.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-400 hover:underline"
+                          >
+                            View on eBay ↗
+                          </a>
+                          {acceptedReview[m.modelId] === 'done' ? (
+                            <span className="text-xs text-green-400">✓ Linked</span>
+                          ) : (
+                            <button
+                              disabled={acceptedReview[m.modelId] === 'saving'}
+                              onClick={() => acceptReviewMatch(m)}
+                              className="px-2 py-0.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50"
+                              title="Accept this match and link it"
+                            >
+                              {acceptedReview[m.modelId] === 'saving' ? 'Linking…' : '✓ Link this'}
+                            </button>
+                          )}
+                          {acceptedReview[m.modelId] &&
+                            !['saving', 'done'].includes(acceptedReview[m.modelId]) && (
+                              <span className="text-xs text-red-400">
+                                ❌ {acceptedReview[m.modelId]}
+                              </span>
+                            )}
+                        </div>
                       </div>
                     ))}
                   </div>
