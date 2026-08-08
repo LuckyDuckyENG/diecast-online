@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { DndContext, DragEndEvent, useDraggable, useDroppable, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { upscaleEbayImage } from '@/lib/ebayImage';
 
 interface RetailerPrice {
   /** price_history row id — lets actions target one retailer link, not all of them */
@@ -29,9 +30,11 @@ interface DiecastModel {
   sku?: string;
   discoveredFrom?: string | null; // Retailer name
   price?: string | null; // Price from retailer
+  imageUrl?: string | null; // the model's own image, if it has one
   ebayLinked?: boolean;
   ebayUrl?: string;
   ebayPrice?: string;
+  ebayImage?: string | null; // listing thumbnail, upscaled before use
   lastUpdated?: string;
   retailerPrices?: RetailerPrice[]; // All retailer prices from price_history table
 }
@@ -3048,6 +3051,55 @@ export default function EbayLinkingAdmin() {
     }
   };
 
+  /**
+   * Use the linked eBay listing's photo as the model image.
+   *
+   * The retailer equivalent has to fetch the product page and dig an image out
+   * of og:image / twitter:image / JSON-LD. Here the Browse API already returned
+   * one and it is stored on the link, so this only upgrades the size and saves.
+   *
+   * Worth knowing what this image IS: a photo of the item the seller is
+   * actually selling, which may be a used model, a stock photo, or a shot with
+   * the box. It is a good fallback for a model that has no image at all — and a
+   * worse choice than a retailer's clean product shot when one exists.
+   */
+  const setEbayImageAsModelImage = async (model: DiecastModel) => {
+    const full = upscaleEbayImage(model.ebayImage);
+    if (!full) {
+      alert('❌ This eBay link has no image stored.');
+      return;
+    }
+
+    const warning = model.imageUrl
+      ? 'This model already has an image. Replace it with the eBay listing photo?\n\n' +
+        'eBay photos are of the actual item being sold, so they can show a used ' +
+        'model or the box. Retailer product shots are usually cleaner.'
+      : 'Use the eBay listing photo as this model image?';
+
+    if (!confirm(`📸 ${warning}`)) return;
+
+    try {
+      const res = await fetch('/api/admin/update-model', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modelId: model.id, imageUrl: full }),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        alert('❌ Failed to update image: ' + (data.error || 'unknown error'));
+        return;
+      }
+
+      const refreshed = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
+      const fresh = await refreshed.json();
+      if (fresh.cars) setF1Cars(fresh.cars);
+    } catch (err) {
+      console.error('Error setting eBay image:', err);
+      alert('❌ Error setting image');
+    }
+  };
+
   const removeEbayLink = async (carId: string, model: DiecastModel) => {
     if (!confirm('Remove eBay link for this model?')) return;
 
@@ -4396,6 +4448,25 @@ export default function EbayLinkingAdmin() {
                                     <span className="text-green-400 font-semibold text-sm">
                                       ✓ eBay Linked
                                     </span>
+                                    {/*
+                                      Same idea as the retailer 📸, but there is
+                                      nothing to fetch: the Browse API already
+                                      gave us the image and it is stored on the
+                                      link. Only the size needs changing.
+                                    */}
+                                    {model.ebayImage && (
+                                      <button
+                                        onClick={() => setEbayImageAsModelImage(model)}
+                                        className="px-2 py-0.5 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                                        title={
+                                          model.imageUrl
+                                            ? 'Replace the model image with the eBay listing photo'
+                                            : 'Use the eBay listing photo as the model image'
+                                        }
+                                      >
+                                        📸 {model.imageUrl ? 'Replace' : 'Use'}
+                                      </button>
+                                    )}
                                   </div>
                                   <div className="text-xs text-[var(--text-secondary)] space-y-1">
                                     <div>

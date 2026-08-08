@@ -187,6 +187,9 @@ export async function GET(request: NextRequest) {
           chassis: normalizeChassis(car.chassis_name || ''),
           eventName: car.event_name,
           sku: model.manufacturer_sku || '',
+          // So the admin can say whether setting an image would REPLACE one
+          // rather than just asking "set image?" and quietly overwriting.
+          imageUrl: model.image_url || null,
           discoveredFrom: model.discovered_from || null,
           price: model.price || null,
           ebayLinked: !!ebayLink,
