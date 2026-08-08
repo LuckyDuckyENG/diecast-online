@@ -49,9 +49,18 @@ export async function attachRetailerLink(
     price: number;
     currency?: string;
     inStock?: boolean;
+    /**
+     * Keep the product_url already on the row, updating only price and stock.
+     *
+     * For the automated retailer sweep. A hand-picked URL may point at a
+     * specific variant or bundle that a SKU match would not reproduce, and
+     * silently replacing it would undo a deliberate choice. Manual callers
+     * leave this off, so pasting a URL still repoints the link.
+     */
+    preserveExistingUrl?: boolean;
   }
 ): Promise<AttachResult> {
-  const { modelId, retailerUrl, price, currency, inStock } = opts;
+  const { modelId, retailerUrl, price, currency, inStock, preserveExistingUrl } = opts;
 
   // A zero or negative price is always a failed extraction, never a real offer.
   // Storing one poisons the comparison — it wins every "cheapest" sort.
@@ -148,15 +157,20 @@ export async function attachRetailerLink(
     // One row per (model, retailer) — update in place if this shop is already linked
     const { data: existingLink } = await supabase
       .from('price_history')
-      .select('id, price')
+      .select('id, price, product_url')
       .eq('model_id', modelId)
       .eq('retailer_id', retailerId)
       .maybeSingle();
 
     if (existingLink) {
+      const patch =
+        preserveExistingUrl && existingLink.product_url
+          ? { ...row, product_url: existingLink.product_url }
+          : row;
+
       const { error } = await supabase
         .from('price_history')
-        .update(row)
+        .update(patch)
         .eq('id', existingLink.id);
 
       if (error) return { ok: false, retailerName, reason: error.message };
