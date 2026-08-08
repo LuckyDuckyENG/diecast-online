@@ -237,6 +237,15 @@ export default function EbayLinkingAdmin() {
   // per-model search button — the tedium the batch layer exists to remove.
   const [acceptedReview, setAcceptedReview] = useState<Record<string, 'saving' | 'done' | string>>({});
 
+  // Retailer feed sweep — discovery and refresh from one download
+  const [sweepRetailers, setSweepRetailers] = useState<any[]>([]);
+  const [sweepTarget, setSweepTarget] = useState<string>('');
+  const [sweepState, setSweepState] = useState<{
+    running: boolean;
+    result: any | null;
+    error: string | null;
+  } | null>(null);
+
   const [isDragging, setIsDragging] = useState(false);
   const [createModelModalOpen, setCreateModelModalOpen] = useState(false);
   const [newModelData, setNewModelData] = useState({
@@ -357,6 +366,15 @@ export default function EbayLinkingAdmin() {
     };
 
     loadF1Data();
+  }, []);
+
+  // Which retailers publish a feed. Probed live rather than hardcoded, so a
+  // shop that switches platform shows up as sweepable without a code change.
+  useEffect(() => {
+    fetch('/api/admin/sweep-retailer', { cache: 'no-store' })
+      .then(r => r.json())
+      .then(d => { if (d.success) setSweepRetailers(d.retailers.filter((r: any) => r.sweepable)); })
+      .catch(() => {});
   }, []);
 
   // Load inventory count
@@ -2890,6 +2908,50 @@ export default function EbayLinkingAdmin() {
     }
   };
 
+  /**
+   * Sweep one retailer's product feed.
+   *
+   * Dry run first, always: it returns exactly what a live run would write.
+   * Unlike the eBay matcher there is no identity review tier — the SKU comes
+   * from a structured field rather than a parsed title — so what needs your eye
+   * is the price column, which is where the guards report.
+   */
+  const runSweep = async (dryRun: boolean) => {
+    if (!sweepTarget) return;
+    const shop = sweepRetailers.find(r => r.id === sweepTarget);
+
+    if (!dryRun) {
+      const ok = confirm(
+        `Apply the sweep for ${shop?.name}?\n\n` +
+        `New links and price/stock changes are written. Pre-orders and price ` +
+        `outliers are held back. Hand-picked product URLs keep their URL and ` +
+        `only get a fresh price.`
+      );
+      if (!ok) return;
+    }
+
+    setSweepState({ running: true, result: null, error: null });
+    try {
+      const res = await fetch('/api/admin/sweep-retailer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ retailerId: sweepTarget, dryRun }),
+        cache: 'no-store',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.details || data.error || 'Sweep failed');
+      setSweepState({ running: false, result: data, error: null });
+
+      if (!dryRun) {
+        const refreshed = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
+        const fresh = await refreshed.json();
+        if (fresh.cars) setF1Cars(fresh.cars);
+      }
+    } catch (err: any) {
+      setSweepState({ running: false, result: null, error: err.message });
+    }
+  };
+
   const searchEbay = async (model: DiecastModel, car: F1Car) => {
     setLoading(true);
     setSelectedModel(model);
@@ -4100,6 +4162,121 @@ export default function EbayLinkingAdmin() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Retailer feed sweep */}
+        <div className="mb-6 p-4 rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)]">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="font-semibold text-[var(--text-primary)]">🏪 Retailer sweep</span>
+
+            <select
+              value={sweepTarget}
+              onChange={e => setSweepTarget(e.target.value)}
+              className="px-2 py-1 rounded bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm text-[var(--text-primary)]"
+            >
+              <option value="">Choose a shop…</option>
+              {sweepRetailers.map(r => (
+                <option key={r.id} value={r.id}>
+                  {r.name} ({r.links} link{r.links === 1 ? '' : 's'})
+                </option>
+              ))}
+            </select>
+
+            <button
+              disabled={!sweepTarget || sweepState?.running}
+              onClick={() => runSweep(true)}
+              className="px-3 py-1.5 bg-slate-600 text-white text-sm rounded-lg hover:bg-slate-700 disabled:opacity-50"
+              title="Download their catalogue and show what would change, writing nothing"
+            >
+              🧪 Dry run
+            </button>
+            <button
+              disabled={!sweepTarget || sweepState?.running}
+              onClick={() => runSweep(false)}
+              className="px-3 py-1.5 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 disabled:opacity-50"
+              title="Write new links and refresh prices and stock"
+            >
+              🏪 Apply sweep
+            </button>
+
+            {sweepState?.running && (
+              <span className="text-sm text-gray-400">
+                Downloading catalogue… this takes about a minute for a large shop
+              </span>
+            )}
+            {sweepRetailers.length > 0 && (
+              <span className="text-xs text-gray-500">
+                {sweepRetailers.length} shops publish a feed; the rest stay manual
+              </span>
+            )}
+          </div>
+
+          {sweepState?.error && (
+            <div className="mt-3 text-sm text-red-400">❌ {sweepState.error}</div>
+          )}
+
+          {sweepState?.result && (() => {
+            const r = sweepState.result;
+            const rows = (a: string) => r.matches.filter((m: any) => m.action === a);
+            const section = (a: string, label: string, colour: string) => {
+              const list = rows(a);
+              if (!list.length) return null;
+              return (
+                <div className="mt-3">
+                  <div className={`font-semibold ${colour} mb-1`}>{label} ({list.length})</div>
+                  {list.map((m: any) => (
+                    <div key={m.modelId + a} className="text-xs mb-1.5 pl-2 border-l-2 border-[var(--border-color)]">
+                      <div className="text-[var(--text-primary)]">
+                        {m.model} <span className="text-gray-500">[{m.sku}]</span>
+                      </div>
+                      <div className="text-gray-400">
+                        {m.price != null ? `AUD ${Number(m.price).toFixed(2)}` : 'no price'}
+                        {' · '}{m.available ? 'in stock' : 'out of stock'}
+                        {' · '}{m.reason}
+                      </div>
+                      <a href={m.url} target="_blank" rel="noopener noreferrer"
+                         className="text-blue-400 hover:underline">View product ↗</a>
+                    </div>
+                  ))}
+                </div>
+              );
+            };
+
+            return (
+              <div className="mt-4 text-sm">
+                <div className="mb-1 text-[var(--text-primary)]">
+                  {r.dryRun ? '🧪 Dry run' : `✅ Applied — ${r.written} link(s) written`} — <strong>{r.retailer}</strong>
+                </div>
+                {r.message && <div className="text-gray-400 mb-2">{r.message}</div>}
+                {r.feed && (
+                  <div className="text-xs text-gray-500 mb-2">
+                    {r.feed.products} products · {r.feed.skus} SKUs · {r.feed.requests} requests · {r.feed.seconds}s
+                    {r.feed.truncated && (
+                      <span className="text-yellow-500"> · ⚠ catalogue truncated, results incomplete</span>
+                    )}
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-4 text-gray-400">
+                  <span>matched: <strong className="text-[var(--text-primary)]">{r.totals.matched}</strong></span>
+                  <span>new: <strong className="text-green-400">{r.totals.new}</strong></span>
+                  <span>price/stock changed: <strong className="text-[var(--text-primary)]">{r.totals.refresh}</strong></span>
+                  <span>unchanged: <strong className="text-[var(--text-primary)]">{r.totals.unchanged}</strong></span>
+                  <span>held back: <strong className={r.totals.hold + r.totals.review ? 'text-yellow-500' : 'text-[var(--text-primary)]'}>{r.totals.hold + r.totals.review}</strong></span>
+                </div>
+
+                {section('new', '🆕 New links', 'text-green-400')}
+                {section('review', '⚠ Price looks wrong — not written', 'text-yellow-500')}
+                {section('hold', '⏸ Pre-order or no price — not written', 'text-yellow-500')}
+                {section('refresh', '♻ Price or stock changed', 'text-[var(--text-primary)]')}
+
+                {r.failures?.length > 0 && (
+                  <div className="mt-3 text-xs text-red-400">
+                    {r.failures.length} write(s) failed: {r.failures.slice(0, 5).join('; ')}
                   </div>
                 )}
               </div>
