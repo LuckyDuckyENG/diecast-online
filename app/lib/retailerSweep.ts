@@ -51,6 +51,13 @@ const HIGH_FACTOR = 3;
 const LOW_FACTOR = 3;
 const MIN_SAMPLES = 5;
 
+/**
+ * How far a refreshed price may move before it stops looking like a price
+ * change and starts looking like a change of currency. Real diecast prices
+ * drift a few percent; USD/AUD is about 50%.
+ */
+const CURRENCY_SHIFT = 0.25;
+
 /** Titles that describe a payment rather than a product. */
 const DEPOSIT_MARKERS = /\b(pre[\s-]?order|deposit|pre[\s-]?sale|coming soon|back[\s-]?order)\b/i;
 
@@ -97,22 +104,23 @@ export function classifyMatches(
       continue;
     }
 
-    if (DEPOSIT_MARKERS.test(variant.title)) {
-      out.push(mk('hold', `Title reads as a pre-order or deposit, not a full price`, false));
-      continue;
-    }
-
     if (mid) {
       if (price > mid * HIGH_FACTOR) {
         out.push(mk('review',
-          `AUD ${price.toFixed(2)} is ${(price / mid).toFixed(1)}x the ${scale} median of AUD ${mid.toFixed(2)}`,
+          `${price.toFixed(2)} is ${(price / mid).toFixed(1)}x the ${scale} median of ${mid.toFixed(2)}`,
           false));
         continue;
       }
+      // A pre-order at a normal price is a real offer; a pre-order at a
+      // fraction of the price is a deposit. The title alone cannot tell them
+      // apart, and treating it as disqualifying withheld ten good links at
+      // Stone Model, where "[Pre-Order]" prefixes ordinary full-price stock.
+      // Anthony's AUD 50.00 deposits are still caught, because they are both.
       if (price * LOW_FACTOR < mid) {
-        out.push(mk('review',
-          `AUD ${price.toFixed(2)} is ${(mid / price).toFixed(1)}x BELOW the ${scale} median of AUD ${mid.toFixed(2)} — often a deposit`,
-          false));
+        const why = DEPOSIT_MARKERS.test(variant.title)
+          ? `${price.toFixed(2)} against a ${scale} median of ${mid.toFixed(2)}, and the title says pre-order — this is a deposit, not the price`
+          : `${price.toFixed(2)} is ${(mid / price).toFixed(1)}x BELOW the ${scale} median of ${mid.toFixed(2)}`;
+        out.push(mk('review', why, false));
         continue;
       }
     }
@@ -125,6 +133,32 @@ export function classifyMatches(
     }
 
     const was = model.existing.price;
+
+    /**
+     * A shop's feed can quote a different currency than the one we stored.
+     *
+     * Shopify presents prices in the currency it infers from the request, so
+     * the same feed read from Australia and from a US server can come back in
+     * different money — with nothing in the response saying which. Stone Model
+     * advertises USD in meta.json, has CAD in our retailers table, and served
+     * AUD to this machine. Three sources, three answers.
+     *
+     * Rather than trust any of them, anchor to what we already stored: a real
+     * price move is a few percent, a currency flip is tens of percent. This is
+     * the same units check that catches a cents/dollars mismatch in
+     * refresh-prices, and it needs no knowledge of the currency at all.
+     */
+    if (was != null && was > 0) {
+      const ratio = price / was;
+      if (ratio > 1 + CURRENCY_SHIFT || ratio < 1 - CURRENCY_SHIFT) {
+        out.push(mk('review',
+          `${was} → ${price.toFixed(2)} is a ${((ratio - 1) * 100).toFixed(0)}% jump. ` +
+          `Too large for a price change — check the shop is quoting the same currency we stored.`,
+          false));
+        continue;
+      }
+    }
+
     const priceSame = was != null && Math.abs(was - price) < 0.005;
     const stockSame = model.existing.inStock === variant.available;
 

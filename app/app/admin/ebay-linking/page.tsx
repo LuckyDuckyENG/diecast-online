@@ -4253,6 +4253,14 @@ export default function EbayLinkingAdmin() {
                   {r.dryRun ? '🧪 Dry run' : `✅ Applied — ${r.written} link(s) written`} — <strong>{r.retailer}</strong>
                 </div>
                 {r.message && <div className="text-gray-400 mb-2">{r.message}</div>}
+                {r.currencyDisputed && (
+                  <div className="mb-2 text-xs text-yellow-500">
+                    ⚠ Currency mismatch: the shop declares <strong>{r.declaredCurrency}</strong>, your
+                    retailer record says <strong>{r.recordedCurrency}</strong>. Prices will be treated as{' '}
+                    <strong>{r.currency}</strong>. Shopify also presents prices in the currency it infers
+                    from the request, so check a product before applying.
+                  </div>
+                )}
                 {r.feed && (
                   <div className="text-xs text-gray-500 mb-2">
                     {r.feed.products} products · {r.feed.skus} SKUs · {r.feed.requests} requests · {r.feed.seconds}s

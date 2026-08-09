@@ -56,6 +56,31 @@ const num = (v: any): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
+/**
+ * The currency a shop says it trades in, from /meta.json.
+ *
+ * Worth reading because the stored retailer record can be wrong and quietly
+ * corrupt every price: Stone Model is recorded as CAD, advertises USD here,
+ * and served AUD to an Australian request. Treat this as better evidence than
+ * the database, but not as proof — Shopify presents prices in the currency it
+ * infers from the request, and says nothing about it in products.json. The
+ * real protection is the stored-price anchor in retailerSweep.
+ */
+export async function shopCurrency(host: string): Promise<string | null> {
+  try {
+    const res = await fetch(`https://${host}/meta.json`, {
+      redirect: 'follow',
+      headers: { 'User-Agent': USER_AGENT },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) return null;
+    const body = await res.json();
+    return typeof body?.currency === 'string' ? body.currency : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Is this host a Shopify store with a readable feed? One cheap request. */
 export async function isShopify(host: string): Promise<boolean> {
   try {

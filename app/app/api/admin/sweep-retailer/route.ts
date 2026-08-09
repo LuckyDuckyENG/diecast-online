@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { fetchShopifyFeed, isShopify } from '@/lib/shopifyFeed';
+import { fetchShopifyFeed, isShopify, shopCurrency } from '@/lib/shopifyFeed';
 import { classifyMatches, type SweepModel } from '@/lib/retailerSweep';
 import { attachRetailerLink } from '@/lib/retailerLink';
 
@@ -101,6 +101,8 @@ export async function POST(request: NextRequest) {
 
     const host = retailer.url.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     const t0 = Date.now();
+
+    const declared = await shopCurrency(host);
     const feed = await fetchShopifyFeed(host);
 
     if (feed.bySku.size === 0) {
@@ -126,12 +128,37 @@ export async function POST(request: NextRequest) {
 
     const { data: existingRows } = await supabase
       .from('price_history')
-      .select('model_id, price, in_stock, product_url, price_aud, retailer_id');
+      .select('model_id, price, in_stock, product_url, price_aud, currency, retailer_id');
 
     const here = new Map<string, any>();
     for (const row of existingRows || []) {
       if (row.retailer_id === retailerId) here.set(row.model_id, row);
     }
+
+    /**
+     * Which currency the feed's numbers are in.
+     *
+     * Nothing in the feed says. products.json carries no currency, and
+     * meta.json reports the shop's BASE currency, not what it presented to this
+     * request — Shopify converts by inferred location. Stone Model advertises
+     * USD, is recorded as CAD, and served numbers matching our stored AUD
+     * prices to within 1%. Believing meta.json would have inflated every one of
+     * its prices by about half.
+     *
+     * So prefer what is already on the rows: those prices were read from the
+     * rendered page and checked by a person. Fall back to the shop's
+     * declaration only when this retailer has no history to learn from.
+     */
+    const currencyVotes = new Map<string, number>();
+    for (const row of here.values()) {
+      if (row.currency) currencyVotes.set(row.currency, (currencyVotes.get(row.currency) || 0) + 1);
+    }
+    const establishedCurrency =
+      [...currencyVotes.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+
+    const currency = establishedCurrency || declared || retailer.currency || 'AUD';
+    const currencyDisputed =
+      !!declared && !!establishedCurrency && declared !== establishedCurrency;
 
     // Prices we already trust for this scale, so the outlier check has a
     // reference that does not depend on what this one sweep happened to match.
@@ -189,7 +216,7 @@ export async function POST(request: NextRequest) {
           modelId: m.model.id,
           retailerUrl: m.variant.productUrl,
           price: m.variant.price!,
-          currency: retailer.currency || 'AUD',
+          currency,
           inStock: m.variant.available,
           // A hand-picked URL may point at a specific variant or bundle that a
           // SKU match would not reproduce. Refresh its price, keep its link.
@@ -205,6 +232,11 @@ export async function POST(request: NextRequest) {
       dryRun,
       retailer: retailer.name,
       host,
+      currency,
+      currencyDisputed,
+      declaredCurrency: declared,
+      recordedCurrency: retailer.currency,
+      establishedCurrency,
       feed: {
         products: feed.products,
         variants: feed.variants,
