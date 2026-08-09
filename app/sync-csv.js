@@ -1,6 +1,7 @@
 require('dotenv').config({path: '.env.local'});
 const {createClient} = require('@supabase/supabase-js');
 const fs = require('fs');
+const { buildSlugFromParts } = require('./slug-util');
 const path = require('path');
 
 const supabase = createClient(
@@ -172,7 +173,18 @@ async function syncCSV(dryRun = false, csvArg = null) {
             chassis_name: row.chassis_name,
             driver_id: driver.id,
             event_name: row.event_name,
-            notes: row.notes
+            notes: row.notes,
+            // Without this every imported car keeps a NULL slug and its page
+            // falls back to a UUID URL, undoing migration 011 and the SEO work
+            // for the whole import. Rules live in slug-util.js, shared with
+            // backfill-car-slugs.js so the two cannot drift.
+            slug: buildSlugFromParts({
+              year: row.year,
+              team: team.name,
+              chassis: row.chassis_name,
+              driver: driver.name,
+              event: row.event_name
+            })
           })
           .select('id')
           .single();

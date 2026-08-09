@@ -15,41 +15,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Mirrors lib/carSlug.ts + lib/teamName.ts. Kept in plain JS so this runs
-// without a TypeScript step; the app imports the .ts version.
-const TEAM_PATTERNS = [
-  [/williams/, 'williams'],
-  [/mclaren/, 'mclaren'],
-  [/aston\s*martin/, 'aston-martin'],
-  [/alpine/, 'alpine'],
-  [/haas/, 'haas'],
-  [/sauber|stake|kick/, 'sauber'],
-  [/alfa\s*romeo/, 'alfa-romeo'],
-  [/ferrari/, 'ferrari'],
-  [/red\s*bull/, 'red-bull'],
-  [/alphatauri/, 'alphatauri'],
-  [/visa\s*cash\s*app|racing\s*bulls|(^|[^a-z])rb([^a-z]|$)/, 'rb'],
-  [/mercedes/, 'mercedes'],   // last: powers several other teams
-];
-
-const teamSlug = name => {
-  const s = (name || '').toLowerCase();
-  for (const [re, slug] of TEAM_PATTERNS) if (re.test(s)) return slug;
-  return name || '';
-};
-
-const slugify = t =>
-  t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-
-const buildSlug = c =>
-  slugify([
-    c.season?.year,
-    teamSlug(c.team?.name),
-    c.chassis_name,
-    c.driver?.name,
-    c.event_name,
-  ].filter(Boolean).join(' '));
+// Slug rules live in slug-util.js so the importer and this backfill cannot
+// drift apart. See the note there.
+const { buildSlug } = require('./slug-util');
 
 (async () => {
   const dryRun = process.argv.includes('--dry-run');

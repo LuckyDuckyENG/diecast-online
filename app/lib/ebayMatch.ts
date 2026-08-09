@@ -82,8 +82,13 @@ function chassisIn(title: string): Set<string> {
     /\bAT\s?-?\s?(\d{2})\b/gi,        // AT04
     /\bVF\s?-?\s?(\d{2})\b/gi,        // VF-24
     /\bAMR\s?-?\s?(\d{2})\b/gi,       // AMR24
-    /\bA\s?-?\s?(5\d{2})\b/gi,        // A523, A524
-    /\bC\s?-?\s?(4\d)\b/gi,           // C43, C44
+    /\bA\s?-?\s?(5\d{2})\b/gi,        // A523, A524, A522
+    /\bC\s?-?\s?(4\d)\b/gi,           // C43, C44, C42
+    // 2022 additions. Without these the chassis check — the only thing that
+    // separates two cars agreeing on manufacturer, driver, race and scale —
+    // silently never fires for Williams or Ferrari.
+    /\bFW\s?-?\s?(\d{2})\b/gi,        // FW44, FW45, FW46
+    /\bF1\s?-\s?(75)\b/gi,            // F1-75, Ferrari's 2022 car
   ];
   for (const p of patterns) {
     for (const m of title.matchAll(p)) {
