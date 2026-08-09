@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const matches = classifyMatches(pairs, { reference });
+    const matches = classifyMatches(pairs, { reference, currency });
 
     const totals = {
       matched: matches.length,

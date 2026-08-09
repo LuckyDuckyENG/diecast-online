@@ -1,4 +1,5 @@
 import type { FeedVariant } from './shopifyFeed';
+import { toAud } from './currency';
 
 /**
  * Matching a shop's catalogue against ours.
@@ -64,19 +65,34 @@ const DEPOSIT_MARKERS = /\b(pre[\s-]?order|deposit|pre[\s-]?sale|coming soon|bac
 export interface ClassifyOptions {
   /** Known good AUD prices per scale, for the outlier check. */
   reference?: Map<string, number[]>;
+  /**
+   * The currency the feed quotes in.
+   *
+   * Required for the outlier check to mean anything. The reference is built
+   * from price_aud, so comparing a raw feed price against it only works when
+   * the shop happens to trade in AUD. Yuui is Dutch: its EUR 58.03 for a 1:43
+   * was compared against an AUD 183 median and reported as "3.2x BELOW" —
+   * along with 48 other perfectly ordinary European prices. Mini Model Shop's
+   * GBP escaped only because the pound is closer to the dollar.
+   */
+  currency?: string;
 }
 
 export function classifyMatches(
   pairs: { model: SweepModel; variant: FeedVariant }[],
   opts: ClassifyOptions = {}
 ): SweepMatch[] {
+  const cur = opts.currency || 'AUD';
+  /** Feed price in AUD, so it can be compared with the AUD reference. */
+  const aud = (p: number) => toAud(p, cur);
+
   // Build a price reference per scale from this sweep plus anything supplied.
   const byScale = new Map<string, number[]>();
   for (const { model, variant } of pairs) {
     if (variant.price == null || variant.price <= 0) continue;
     const k = model.scale || '?';
     if (!byScale.has(k)) byScale.set(k, []);
-    byScale.get(k)!.push(variant.price);
+    byScale.get(k)!.push(aud(variant.price));
   }
   for (const [scale, prices] of opts.reference || []) {
     if (!byScale.has(scale)) byScale.set(scale, []);
@@ -104,10 +120,13 @@ export function classifyMatches(
       continue;
     }
 
+    const priceAud = aud(price);
+
     if (mid) {
-      if (price > mid * HIGH_FACTOR) {
+      if (priceAud > mid * HIGH_FACTOR) {
         out.push(mk('review',
-          `${price.toFixed(2)} is ${(price / mid).toFixed(1)}x the ${scale} median of ${mid.toFixed(2)}`,
+          `${cur} ${price.toFixed(2)} (AUD ${priceAud.toFixed(2)}) is ` +
+          `${(priceAud / mid).toFixed(1)}x the ${scale} median of AUD ${mid.toFixed(2)}`,
           false));
         continue;
       }
@@ -116,10 +135,10 @@ export function classifyMatches(
       // apart, and treating it as disqualifying withheld ten good links at
       // Stone Model, where "[Pre-Order]" prefixes ordinary full-price stock.
       // Anthony's AUD 50.00 deposits are still caught, because they are both.
-      if (price * LOW_FACTOR < mid) {
+      if (priceAud * LOW_FACTOR < mid) {
         const why = DEPOSIT_MARKERS.test(variant.title)
-          ? `${price.toFixed(2)} against a ${scale} median of ${mid.toFixed(2)}, and the title says pre-order — this is a deposit, not the price`
-          : `${price.toFixed(2)} is ${(mid / price).toFixed(1)}x BELOW the ${scale} median of ${mid.toFixed(2)}`;
+          ? `${cur} ${price.toFixed(2)} against a ${scale} median of AUD ${mid.toFixed(2)}, and the title says pre-order — this is a deposit, not the price`
+          : `${cur} ${price.toFixed(2)} (AUD ${priceAud.toFixed(2)}) is ${(mid / priceAud).toFixed(1)}x BELOW the ${scale} median of AUD ${mid.toFixed(2)}`;
         out.push(mk('review', why, false));
         continue;
       }
@@ -127,7 +146,7 @@ export function classifyMatches(
 
     if (!model.existing) {
       out.push(mk('new',
-        `Not linked to this retailer yet — AUD ${price.toFixed(2)}, ${variant.available ? 'in stock' : 'out of stock'}`,
+        `Not linked to this retailer yet — ${cur} ${price.toFixed(2)}, ${variant.available ? 'in stock' : 'out of stock'}`,
         true));
       continue;
     }
@@ -163,12 +182,12 @@ export function classifyMatches(
     const stockSame = model.existing.inStock === variant.available;
 
     if (priceSame && stockSame) {
-      out.push(mk('unchanged', `AUD ${price.toFixed(2)}, unchanged`, false));
+      out.push(mk('unchanged', `${cur} ${price.toFixed(2)}, unchanged`, false));
       continue;
     }
 
     const bits: string[] = [];
-    if (!priceSame) bits.push(`AUD ${was ?? '?'} → ${price.toFixed(2)}`);
+    if (!priceSame) bits.push(`${cur} ${was ?? '?'} → ${price.toFixed(2)}`);
     if (!stockSame) bits.push(variant.available ? 'back in stock' : 'now out of stock');
     out.push(mk('refresh', bits.join(', '), true));
   }

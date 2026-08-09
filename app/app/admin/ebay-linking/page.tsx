@@ -4235,7 +4235,9 @@ export default function EbayLinkingAdmin() {
                         {m.model} <span className="text-gray-500">[{m.sku}]</span>
                       </div>
                       <div className="text-gray-400">
-                        {m.price != null ? `AUD ${Number(m.price).toFixed(2)}` : 'no price'}
+                        {/* The shop's own currency, not AUD. Hardcoding AUD here
+                            showed Yuui's euros as dollars. */}
+                        {m.price != null ? `${r.currency} ${Number(m.price).toFixed(2)}` : 'no price'}
                         {' · '}{m.available ? 'in stock' : 'out of stock'}
                         {' · '}{m.reason}
                       </div>
