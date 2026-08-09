@@ -6,15 +6,16 @@
 ## Where things stand
 
 ```
-cars 247  |  models 375  |  retailer links 369  |  retailers 48  |  drivers 31
-eBay links 62 (all EBAY_AU)  |  models buyable 245/375  |  cars visible 161/247
+cars 247  |  models 375  |  retailer links 506 (262 in stock)  |  retailers 48  |  drivers 31
+eBay links 62 (all EBAY_AU)  |  models buyable 281/375  |  cars visible 184/247
 seasons: 2022 (83) + 2023 (98) + 2024 (66)     slugs: 247/247
-models with 2+ retailers 105  |  with 3+ 25
-per season visible: 2022 31/83 · 2023 73/98 · 2024 57/66
+models with 2+ retailers 161  |  3+ 52  |  4+ 10
+per season visible: 2022 52/83 · 2023 75/98 · 2024 57/66
+currencies in play: AUD, EUR, GBP, USD
 ```
 
 Live on Vercel at diecasts.app. Migrations 007–013 all applied. `tsc --noEmit` clean.
-**17 commits unpushed.**
+**20 commits unpushed.**
 
 ## Retailer sweep — feed instead of scraping
 
@@ -63,20 +64,39 @@ If it were AUD they would be selling at 58% of everyone else, which isn't
 credible. This is by hand today and **should be built into the sweep**: a shop
 with no history currently takes its currency from `meta.json` alone, unanchored.
 
-### Sweep — not done
+### All 23 sweepable shops have now been run
 
-- **Mini Model Shop: 54 matched links never applied** (GBP). Largest single batch
-  outstanding. Horizondiecast's 13 also unapplied.
-- **Motorsport Model Shop** (5) and **Car Model Store** (1): too few shared SKUs
-  to tell an expensive UK shop from a wrong currency. Check a product page.
-- **Metro Hobbies, Hobbyco, RM Toys, Diecast Model Centre** return 10,000–23,000
-  products and **zero matches**, two of them truncated. Either they genuinely
-  carry no F1, or the sweep fails on them. 23,681 products with no match is
-  suspicious rather than conclusive.
-- Six shops never dry-run: Modelmatic, AGR Models, Diecasthunter, Auto Zach
-  GameZone, Yuui F1 Models, The Race Works.
-- **GBP now materially affects "cheapest"**, so the hardcoded undated rate in
-  `lib/currency.ts` matters more than it did.
+Retailer links went 199 → 506 in one session. Biggest contributors: Anthony's
+123, Stone Model 90, Yuui (NL) 69, Mini Model Shop (UK) 54, Notjustcollectibles
+37, Downies 27.
+
+**Why the remaining shops return zero**, which is worth as much as the links:
+
+- **Diecast Model Centre, RM Toys, Hobbyco** stock F1 but key it by *internal*
+  SKUs (`BB-109672`, `HJ648006SP`). Unmatchable by design, not a bug.
+- **Metro Hobbies** *does* use manufacturer SKUs (`18S1004`, `S9409`) but stocks
+  only current and forthcoming seasons — RB21, VCARB, a 2026 Cadillac. The one
+  link held there by hand, `18S896` from 2023, is no longer in its feed.
+
+That second one is a **category, not a one-off**: shops selling only new stock
+will never match a back-catalogue index. Older seasons therefore lean further
+onto eBay than 2022 did — worth factoring into any 2021 decision.
+
+**Do not sample a feed to decide whether a shop uses manufacturer SKUs.** Judging
+from the first 100 products called Horizondiecast and Notjustcollectibles
+unmatchable; full sweeps matched 17 and 36. Only the full sweep tells the truth.
+
+### Sweep — still open
+
+- **Foreign shops are not labelled.** Yuui (NL) is a third of AU prices before
+  international shipping, and 69 of its links are out of stock today. Out-of-stock
+  links can't set the headline price (`carPageData` filters on `inStock`), so this
+  is currently harmless — but when a EUR link becomes the cheapest *available*
+  option, showing `retailers.region` on the car page stops it misleading.
+- **`lib/currency.ts` rates are hardcoded and undated**, and now decide which shop
+  looks cheapest across four currencies rather than mostly-AUD.
+- **Shopify caps `products.json` pagination** around 25,000 products, so the very
+  largest shops can't be read in full. Reported as `truncated`, never silent.
 
 ## eBay — the secondary market layer
 
@@ -260,10 +280,8 @@ a retailer are submitted (96 of 164). `/admin`, `/api/`, `/search` disallowed.
 
 1. **Publishable key + disable legacy keys** — the only item with real-world risk,
    and now three sessions old.
-2. **Apply Mini Model Shop's 54 links** (verify £ on a product page first) and
-   Horizondiecast's 13.
-3. **eBay batch on 2022** — 52 of 83 cars still invisible, and discontinued stock is
-   what eBay covers best.
+2. **eBay batch on 2022** — forecast **97 auto-links from 12 searches**, ~20 minutes.
+   The only remaining lever that moves 2022 much past 52/83.
 4. **Normalise `F1 W14` → `W14` in `cars.chassis_name`.** Two spellings of one chassis
    split it into two eBay searches, and the composite UNIQUE treats them as different
    cars, so a duplicate can slip through. Matching now tolerates it; the data shouldn't
