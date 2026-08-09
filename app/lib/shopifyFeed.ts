@@ -21,6 +21,19 @@
 
 const PAGE_SIZE = 250;
 const DELAY_MS = 300;
+
+/**
+ * A page that fails once is usually a timeout or a rate limit, not a missing
+ * page. Metro Hobbies reported 15,000 products and zero matches with the
+ * truncation flag set — one failure partway through, and the rest of the
+ * catalogue was never seen. It carries 161 manufacturer-shaped SKUs in its
+ * first 2,000 products, so "zero matches" was never a safe conclusion.
+ *
+ * Retry with a growing pause before giving up. Failing to fetch and failing to
+ * find are different answers, and only one of them is worth acting on.
+ */
+const PAGE_RETRIES = 3;
+const RETRY_BACKOFF_MS = 1500;
 /**
  * Bounds a runaway feed. Anthony's needs 54 pages, so this is generous — but
  * when it bites, `truncated` says so. A cap that silently returns a partial
@@ -110,21 +123,39 @@ export async function fetchShopifyFeed(rawHost: string): Promise<FeedResult> {
   let truncated = false;
 
   while (page <= MAX_PAGES) {
-    const res = await fetch(`https://${host}/products.json?limit=${PAGE_SIZE}&page=${page}`, {
-      redirect: 'follow',
-      headers: { 'User-Agent': USER_AGENT },
-      signal: AbortSignal.timeout(30000),
-    });
-    requests++;
+    let body: any = null;
 
-    if (!res.ok) {
-      // A mid-sweep failure means we hold a partial catalogue. Say so rather
-      // than letting the caller read missing products as "not stocked".
+    for (let attempt = 1; attempt <= PAGE_RETRIES && body === null; attempt++) {
+      try {
+        const res = await fetch(`https://${host}/products.json?limit=${PAGE_SIZE}&page=${page}`, {
+          redirect: 'follow',
+          headers: { 'User-Agent': USER_AGENT },
+          signal: AbortSignal.timeout(30000),
+        });
+        requests++;
+        if (res.ok) {
+          body = await res.json();
+        } else if (attempt === PAGE_RETRIES) {
+          console.warn(`⚠️ ${host} page ${page}: HTTP ${res.status} after ${attempt} attempts`);
+        }
+      } catch (err: any) {
+        requests++;
+        if (attempt === PAGE_RETRIES) {
+          console.warn(`⚠️ ${host} page ${page}: ${err.name} after ${attempt} attempts`);
+        }
+      }
+      if (body === null && attempt < PAGE_RETRIES) {
+        await new Promise(r => setTimeout(r, RETRY_BACKOFF_MS * attempt));
+      }
+    }
+
+    if (body === null) {
+      // Genuinely could not read this page. We hold a partial catalogue, so say
+      // so rather than letting missing products read as "not stocked".
       truncated = page > 1;
       break;
     }
 
-    const body = await res.json();
     const batch: any[] = body?.products || [];
     if (!batch.length) break;
 
