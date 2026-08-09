@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-08-08
+# Status Summary — last updated 2026-08-10
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -6,14 +6,77 @@
 ## Where things stand
 
 ```
-cars 164  |  models 247  |  retailer links 199 (167 models)  |  retailers 48  |  drivers 30
-eBay links 24 (all EBAY_AU, 23 auto-linked)  |  ebay_search_log 25
-seasons: 2023 (98 cars) + 2024 (66)     slugs: 164/164
-browse shows 96 cars  |  87 of those have an image
+cars 247  |  models 375  |  retailer links 369  |  retailers 48  |  drivers 31
+eBay links 62 (all EBAY_AU)  |  models buyable 245/375  |  cars visible 161/247
+seasons: 2022 (83) + 2023 (98) + 2024 (66)     slugs: 247/247
+models with 2+ retailers 105  |  with 3+ 25
+per season visible: 2022 31/83 · 2023 73/98 · 2024 57/66
 ```
 
 Live on Vercel at diecasts.app. Migrations 007–013 all applied. `tsc --noEmit` clean.
-**7 commits unpushed.**
+**17 commits unpushed.**
+
+## Retailer sweep — feed instead of scraping
+
+Shopify shops publish `/products.json`: the whole catalogue as JSON, 250 per
+request, with SKU, price, availability and images already structured. Measured on
+anthonysdiecasts.com.au — **54 requests, 13,400 products, 60 seconds**. The same
+catalogue one product page at a time is 13,400 requests, about four hours, and is
+what needed a scraping proxy.
+
+The cost stops scaling with the catalogue and scales only with the number of
+retailers, because matching happens in memory against a SKU index. **23 of 48
+retailers expose a feed**; the other 25 are unchanged — `refresh-prices` still
+maintains their links and discovery there stays manual.
+
+One sweep does discovery *and* refresh, since both come from the same download.
+Driven from the 🏪 panel: pick a shop → dry run → read it → apply.
+
+**Identity needs no review tier** — the SKU is a structured field the retailer
+filled in, not a regex over a listing title. All the risk is on price.
+
+### Guards, every one of them earned
+
+- **Both-sided price outliers.** The eBay guard only looked up, because an
+  inflated listing was the failure we'd seen. Sweeping found the mirror image:
+  1:18 models at AUD 50.00, which are pre-order *deposits*. Stored as a price one
+  wins every "cheapest" sort — the same damage a zero does.
+- **A pre-order title alone is not disqualifying.** Anthony's uses "Pre-Order"
+  for AUD 50 deposits; Stone Model uses it for ordinary full-price stock, and the
+  blanket rule withheld ten good links there. A deposit is now a pre-order title
+  **and** a price far below its peers.
+- **Currency comes from the rows already stored**, not from the shop. Nothing in
+  a feed says what currency it is in: `products.json` carries none, and
+  `meta.json` reports the shop's *base* currency, not what it presented to the
+  request — Shopify converts by inferred location. Stone Model advertises USD, was
+  recorded as CAD, and served numbers matching our stored AUD prices to within 1%.
+  Trusting `meta.json` would have inflated every one of its prices by half.
+- **A refreshed price moving more than 25% is held.** Real prices drift a few
+  percent; that size of jump means the shop changed what it is quoting.
+- **Truncation is reported**, never silent.
+
+### Verifying a currency when there is no history
+
+Cross-check shared SKUs against a retailer whose currency is known. Mini Model
+Shop reads £77.99 where Anthony's reads AUD 149.99 — ≈AUD 156, so GBP is right.
+If it were AUD they would be selling at 58% of everyone else, which isn't
+credible. This is by hand today and **should be built into the sweep**: a shop
+with no history currently takes its currency from `meta.json` alone, unanchored.
+
+### Sweep — not done
+
+- **Mini Model Shop: 54 matched links never applied** (GBP). Largest single batch
+  outstanding. Horizondiecast's 13 also unapplied.
+- **Motorsport Model Shop** (5) and **Car Model Store** (1): too few shared SKUs
+  to tell an expensive UK shop from a wrong currency. Check a product page.
+- **Metro Hobbies, Hobbyco, RM Toys, Diecast Model Centre** return 10,000–23,000
+  products and **zero matches**, two of them truncated. Either they genuinely
+  carry no F1, or the sweep fails on them. 23,681 products with no match is
+  suspicious rather than conclusive.
+- Six shops never dry-run: Modelmatic, AGR Models, Diecasthunter, Auto Zach
+  GameZone, Yuui F1 Models, The Race Works.
+- **GBP now materially affects "cheapest"**, so the hardcoded undated rate in
+  `lib/currency.ts` matters more than it did.
 
 ## eBay — the secondary market layer
 
@@ -195,15 +258,38 @@ a retailer are submitted (96 of 164). `/admin`, `/api/`, `/search` disallowed.
 
 ## Next up
 
-1. **Publishable key + disable legacy keys** — the only item with real-world risk.
-2. **Normalise `F1 W14` → `W14` in `cars.chassis_name`.** Two spellings of one chassis
+1. **Publishable key + disable legacy keys** — the only item with real-world risk,
+   and now three sessions old.
+2. **Apply Mini Model Shop's 54 links** (verify £ on a product page first) and
+   Horizondiecast's 13.
+3. **eBay batch on 2022** — 52 of 83 cars still invisible, and discontinued stock is
+   what eBay covers best.
+4. **Normalise `F1 W14` → `W14` in `cars.chassis_name`.** Two spellings of one chassis
    split it into two eBay searches, and the composite UNIQUE treats them as different
    cars, so a duplicate can slip through. Matching now tolerates it; the data shouldn't
    need it to.
-3. Run the remaining eBay scopes (dry run, read the plan, link). ~127 links available.
-4. Review queue + "recently auto-added" view.
-5. Expiry checking for sold eBay listings.
-6. Structured data (Product/Offer JSON-LD), gated on the freshness rules.
+5. Review queue + "recently auto-added" view.
+6. Expiry checking for sold eBay listings.
+7. Structured data (Product/Offer JSON-LD), gated on the freshness rules.
+
+## Data findings worth acting on
+
+- **`18S986`** is stored as *Australian GP*; Anthony's and an eBay listing both call
+  it **Miami GP** ("1st Win"), which is the race Norris actually won first. Two
+  independent sources against one record.
+- **`417220101`** is flagged SKU CONFLICT in the 2022 CSV — one retailer attributes it
+  to Bahrain, another to Saudi Arabia. Imported as Bahrain. Anthony's stocks it; their
+  product title is a third opinion.
+- **`417240124`** is recorded 1:18, but the `417` prefix means 1:43 in **57 of 58**
+  cases. Bottas's equivalent pair is `117240177` (1:18) + `417240177` (1:43).
+- **`127242444`** priced AUD 1074 at Horizondiecast against AUD 292 for `110242444`,
+  the same car and scale at the same shop. May be a genuine limited edition.
+- **Two retailer rows for one shop**: `Miniatures-minichamps` (8 links) and
+  `Miniatures Minichamps` (1). No model is linked at both yet, so it is currently
+  harmless, and neither is Shopify so no sweep can worsen it.
+- Prefixes are **systematic, not noise**: `110`/`117` are both 1:18 lines, `417`/`410`
+  both 1:43, and `112` is a two-car set. Do not treat one-character SKU differences as
+  typos — `110231801` and `112231801` are a single car and a two-car set.
 
 ## Architecture
 
