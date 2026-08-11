@@ -89,6 +89,13 @@ function chassisIn(title: string): Set<string> {
     // silently never fires for Williams or Ferrari.
     /\bFW\s?-?\s?(\d{2})\b/gi,        // FW44, FW45, FW46
     /\bF1\s?-\s?(75)\b/gi,            // F1-75, Ferrari's 2022 car
+    // 2021 cars carry a letter suffix — RB16B, MCL35M, FW43B. The patterns
+    // above end at \b, which a following letter does not provide, so every one
+    // of them went undetected. The bare forms cannot match these either, for
+    // the same reason, so the two sets do not overlap.
+    /\bRB\s?-?\s?(\d{2}[A-Z])\b/gi,   // RB16B
+    /\bMCL\s?-?\s?(\d{2}[A-Z])\b/gi,  // MCL35M
+    /\bFW\s?-?\s?(\d{2}[A-Z])\b/gi,   // FW43B
   ];
   for (const p of patterns) {
     for (const m of title.matchAll(p)) {
