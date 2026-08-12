@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-08-10
+# Status Summary — last updated 2026-08-12
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -6,16 +6,24 @@
 ## Where things stand
 
 ```
-cars 247  |  models 375  |  retailer links 506 (262 in stock)  |  retailers 48  |  drivers 31
-eBay links 62 (all EBAY_AU)  |  models buyable 281/375  |  cars visible 184/247
-seasons: 2022 (83) + 2023 (98) + 2024 (66)     slugs: 247/247
-models with 2+ retailers 161  |  3+ 52  |  4+ 10
-per season visible: 2022 52/83 · 2023 75/98 · 2024 57/66
-currencies in play: AUD, EUR, GBP, USD
+cars 316  |  models 455  |  retailer links 613 (289 in stock)  |  retailers 48  |  drivers 38
+eBay links 326  |  models buyable 406/455  |  images 257/455
+seasons: 2021 (69) + 2022 (83) + 2023 (98) + 2024 (66)     slugs: 316/316
+models with 2+ retailers 186  |  3+ 61      currencies: AUD, EUR, GBP, USD
+```
+
+**Read visibility as a share of cars that CAN be visible.** 50 cars have no models
+at all — CSV rows with no SKU — so they are invisible by construction and drag the
+raw percentage down.
+
+```
+cars visible 253/316  =  95% of the 266 that have models
+   2021  48/50  (96%)      2023  80/86  (93%)
+   2022  66/71  (93%)      2024  59/59  (100%)
 ```
 
 Live on Vercel at diecasts.app. Migrations 007–013 all applied. `tsc --noEmit` clean.
-**20 commits unpushed.**
+**2 commits unpushed.**
 
 ## Retailer sweep — feed instead of scraping
 
@@ -86,6 +94,36 @@ onto eBay than 2022 did — worth factoring into any 2021 decision.
 from the first 100 products called Horizondiecast and Notjustcollectibles
 unmatchable; full sweeps matched 17 and 36. Only the full sweep tells the truth.
 
+### Currency audit, 2026-08-12 — 35 links corrected, 3 deleted
+
+Four non-Shopify shops had wrong currencies, all traceable to one line in
+`attachRetailerLink` that guesses from the domain:
+
+```ts
+currency: hostname.endsWith('.au') ? 'AUD' : hostname.endsWith('.uk') ? 'GBP' : 'USD'
+```
+
+Anything not `.au` or `.uk` becomes USD. `diecastlegends.com` is a UK shop on a
+`.com`, so its rows drifted across three currencies over time. **That guess should
+be removed** — it manufactures confident metadata from nothing. The sweep already
+ignores it in favour of stored rows, but manual link creation still trusts it.
+
+| shop | fixed | effect |
+|---|---|---|
+| LIVECARMODEL | 17 rows AUD → USD | prices were ~50% understated |
+| Diecastlegends | 14 rows → GBP | 4 wrong currency, 10 on a stale 1.9 rate |
+| Miniatures-minichamps | 1 row AUD → EUR | |
+| Tibormodel | 3 rows **deleted**, 1 → EUR | two priced 0, one AUD 10 for a 1:43 |
+
+**How to settle a currency:** read the product page's Product JSON-LD
+(`"priceCurrency"`), which is authoritative. Failing that, compare shared SKUs
+against a shop whose currency is known — a shop pricing at 0.4x everyone else is
+mislabelled, one at 0.8x is just cheaper.
+
+**Tibormodel's zero prices came from its own pages** — naive extraction reads
+`0 €` off them, which is almost certainly how they were created. Its remaining
+2 links are unverified; treat that shop as suspect.
+
 ### Sweep — still open
 
 - **Foreign shops are not labelled.** Yuui (NL) is a third of AU prices before
@@ -97,6 +135,33 @@ unmatchable; full sweeps matched 17 and 36. Only the full sweep tells the truth.
   looks cheapest across four currencies rather than mostly-AUD.
 - **Shopify caps `products.json` pagination** around 25,000 products, so the very
   largest shops can't be read in full. Reported as `truncated`, never silent.
+
+### LIVECARMODEL — validated design, not yet built
+
+BigCommerce, no bulk feed: `/products.json`, WooCommerce and PrestaShop endpoints
+all 404. But `/xmlsitemap.php` is a sitemap index, and that changes the economics.
+
+```
+1. sitemap index -> 7 product sitemaps -> 65,168 URLs        8 requests
+2. slug prefilter against our models                         free, in memory
+3. fetch only the candidates, read Product JSON-LD           ~370 requests, ~5 min
+4. confirm by the page's real SKU, then existing guards apply
+```
+
+**290 of 455 models have a plausible slug; 273 are not yet linked there.** Slugs
+carry scale, manufacturer, year, team, chassis, driver and event, which is enough
+to prefilter — but not to identify. Stage 4 is what makes it safe, and it works:
+of three tested, two confirmed and one was correctly rejected (`410241163` vs the
+page's `410240163` — one digit, a different round).
+
+So matches are **auto-linkable at Shopify-sweep confidence**, not review-tier.
+
+This generalises: **sitemap + slug prefilter + JSON-LD confirm** is not
+BigCommerce-specific and could serve several of the 25 manual shops.
+
+Both sides normalise identically or nothing matches — the first attempt scored 0
+because slugs were flattened to spaces while the query kept `1-18`, and country
+adjectives were folded on one side only.
 
 ## eBay — the secondary market layer
 
@@ -279,16 +344,17 @@ a retailer are submitted (96 of 164). `/admin`, `/api/`, `/search` disallowed.
 ## Next up
 
 1. **Publishable key + disable legacy keys** — the only item with real-world risk,
-   and now three sessions old.
-2. **eBay batch on 2022** — forecast **97 auto-links from 12 searches**, ~20 minutes.
-   The only remaining lever that moves 2022 much past 52/83.
-4. **Normalise `F1 W14` → `W14` in `cars.chassis_name`.** Two spellings of one chassis
-   split it into two eBay searches, and the composite UNIQUE treats them as different
-   cars, so a duplicate can slip through. Matching now tolerates it; the data shouldn't
-   need it to.
-5. Review queue + "recently auto-added" view.
-6. Expiry checking for sold eBay listings.
-7. Structured data (Product/Offer JSON-LD), gated on the freshness rules.
+   and now several sessions old. Create key → add to Vercel → redeploy → confirm
+   `/browse` loads → *then* disable legacy. Reversing that order blanks the site.
+2. **Build the LIVECARMODEL sitemap sweep** — design validated above, 273 links
+   waiting. Biggest remaining retailer lever, roughly two hours.
+3. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
+   problem in the currency audit.
+4. **9 visible cars still have no image**, all 2021.
+5. **2020** if you want another season; retail coverage will be thinner again.
+6. Review queue for the eBay `event-driver` tier, and a "recently auto-added" view.
+7. Expiry checking for sold eBay listings.
+8. Structured data (Product/Offer JSON-LD), gated on the freshness rules.
 
 ## Data findings worth acting on
 
