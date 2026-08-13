@@ -64,7 +64,7 @@ export default function RetailersPage() {
               <strong>To request removal:</strong>
             </p>
             <ol className="space-y-2 mb-4 list-decimal ml-6">
-              <li>Send an email to: <a href="mailto:contact@masterrelease.com" className="text-[var(--accent)] underline hover:no-underline">contact@masterrelease.com</a></li>
+              <li>Send an email to: <a href="mailto:eliasngreen@gmail.com" className="text-[var(--accent)] underline hover:no-underline">eliasngreen@gmail.com</a></li>
               <li>Include your store name and URL</li>
               <li>We will remove all your products and pricing data within 48 hours</li>
             </ol>
@@ -79,7 +79,7 @@ export default function RetailersPage() {
               We're always looking to add more retailers to provide better coverage for collectors. If you sell F1 diecast models and would like to be included, please reach out:
             </p>
             <p className="mb-4">
-              <a href="mailto:contact@masterrelease.com" className="text-[var(--accent)] underline hover:no-underline text-lg font-semibold">contact@masterrelease.com</a>
+              <a href="mailto:eliasngreen@gmail.com" className="text-[var(--accent)] underline hover:no-underline text-lg font-semibold">eliasngreen@gmail.com</a>
             </p>
           </section>
 
@@ -96,7 +96,7 @@ export default function RetailersPage() {
               For any questions about how we display your products, data accuracy, or anything else, please contact us at:
             </p>
             <p className="mb-4">
-              <a href="mailto:contact@masterrelease.com" className="text-[var(--accent)] underline hover:no-underline text-lg font-semibold">contact@masterrelease.com</a>
+              <a href="mailto:eliasngreen@gmail.com" className="text-[var(--accent)] underline hover:no-underline text-lg font-semibold">eliasngreen@gmail.com</a>
             </p>
             <p className="mb-4 text-sm">
               (Diecasts is young and still growing. We're building it in the open with the community and welcome feedback from retailers and collectors alike.)

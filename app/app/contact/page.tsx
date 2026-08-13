@@ -28,8 +28,8 @@ export default function ContactPage() {
               For general inquiries, feedback, retailer questions, or anything else:
             </p>
             <p className="mb-6">
-              <a href="mailto:contact@masterrelease.com" className="text-[var(--accent)] underline hover:no-underline text-2xl font-semibold">
-                contact@masterrelease.com
+              <a href="mailto:eliasngreen@gmail.com" className="text-[var(--accent)] underline hover:no-underline text-2xl font-semibold">
+                eliasngreen@gmail.com
               </a>
             </p>
           </section>
