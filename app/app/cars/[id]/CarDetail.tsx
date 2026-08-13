@@ -99,10 +99,10 @@ export default function CarDetail({
       <div className="max-w-[1240px] mx-auto px-8 py-8">
         <Breadcrumb items={breadcrumbItems} />
 
-        {/* Master Release Header */}
+        {/* Car header */}
         <div className="mt-8 mb-12">
           <p className="text-sm font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-2">
-            Master Release
+            {carData.team?.name || 'Formula 1'}
           </p>
           <h1 className="font-display font-black text-5xl text-[var(--text-primary)] mb-6">
             {masterTitle}

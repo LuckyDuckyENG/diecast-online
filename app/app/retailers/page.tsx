@@ -3,8 +3,8 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 export const metadata: Metadata = {
-  title: 'For Retailers - Master Release',
-  description: 'Information for retailers about Master Release pricing data',
+  title: 'For Retailers - Diecasts',
+  description: 'Information for retailers about Diecasts pricing data',
 };
 
 export default function RetailersPage() {
@@ -19,9 +19,9 @@ export default function RetailersPage() {
 
         <div className="prose prose-lg max-w-none space-y-6 text-[var(--text-secondary)]">
           <section className="mb-8">
-            <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-8 mb-4">Welcome to Master Release</h2>
+            <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-8 mb-4">Welcome to Diecasts</h2>
             <p className="mb-4">
-              Master Release is a free price comparison platform for F1 diecast collectors. We help enthusiasts discover race-winning models and find the best prices across multiple retailers worldwide.
+              Diecasts is a free price comparison platform for F1 diecast collectors. We help enthusiasts discover race-winning models and find the best prices across multiple retailers worldwide.
             </p>
             <p className="mb-4">
               Our goal is to drive more traffic to specialty diecast retailers and grow the F1 collecting community.
@@ -58,7 +58,7 @@ export default function RetailersPage() {
           <section className="mb-8">
             <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">Content Removal Policy</h2>
             <p className="mb-4">
-              We respect your rights as a retailer. If you would like your store removed from Master Release, we will comply immediately.
+              We respect your rights as a retailer. If you would like your store removed from Diecasts, we will comply immediately.
             </p>
             <p className="mb-4">
               <strong>To request removal:</strong>
@@ -99,7 +99,7 @@ export default function RetailersPage() {
               <a href="mailto:contact@masterrelease.com" className="text-[var(--accent)] underline hover:no-underline text-lg font-semibold">contact@masterrelease.com</a>
             </p>
             <p className="mb-4 text-sm">
-              (Note: This is an early version of Master Release. We're building this in the open with the community and welcome feedback from retailers and collectors alike.)
+              (Diecasts is young and still growing. We're building it in the open with the community and welcome feedback from retailers and collectors alike.)
             </p>
           </section>
         </div>

@@ -3,8 +3,8 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy - Master Release',
-  description: 'Privacy Policy for Master Release - F1 Diecast Price Comparison',
+  title: 'Privacy Policy - Diecasts',
+  description: 'Privacy Policy for Diecasts - F1 Diecast Price Comparison',
 };
 
 export default function PrivacyPage() {
@@ -25,11 +25,11 @@ export default function PrivacyPage() {
           <section className="mb-8">
             <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-8 mb-4">1. Information We Collect</h2>
             <p className="mb-4">
-              Master Release is designed to respect your privacy. We collect minimal information:
+              Diecasts is designed to respect your privacy. We collect minimal information:
             </p>
             <ul className="space-y-3 list-disc list-inside mb-4">
               <li><strong>No Personal Information:</strong> We do not collect names, email addresses, or any personally identifiable information</li>
-              <li><strong>No Account Required:</strong> You can use Master Release without creating an account</li>
+              <li><strong>No Account Required:</strong> You can use Diecasts without creating an account</li>
               <li><strong>Basic Analytics:</strong> We may use analytics to understand how visitors use our site (page views, browser type, general location)</li>
               <li><strong>No Tracking:</strong> We do not track users across other websites</li>
             </ul>
@@ -52,7 +52,7 @@ export default function PrivacyPage() {
           <section className="mb-8">
             <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">3. Third-Party Links</h2>
             <p className="mb-4">
-              When you click on retailer links, you will leave Master Release and be subject to the privacy policies of those retailers. We are not responsible for the privacy practices of third-party websites.
+              When you click on retailer links, you will leave Diecasts and be subject to the privacy policies of those retailers. We are not responsible for the privacy practices of third-party websites.
             </p>
           </section>
 
@@ -73,7 +73,7 @@ export default function PrivacyPage() {
           <section className="mb-8">
             <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">6. Children's Privacy</h2>
             <p className="mb-4">
-              Master Release does not knowingly collect any information from children under 13.
+              Diecasts does not knowingly collect any information from children under 13.
             </p>
           </section>
 

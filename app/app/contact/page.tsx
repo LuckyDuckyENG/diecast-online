@@ -3,8 +3,8 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 export const metadata: Metadata = {
-  title: 'Contact - Master Release',
-  description: 'Get in touch with Master Release',
+  title: 'Contact - Diecasts',
+  description: 'Get in touch with Diecasts',
 };
 
 export default function ContactPage() {
@@ -37,7 +37,7 @@ export default function ContactPage() {
           <section className="mb-8">
             <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">For Retailers</h2>
             <p className="mb-4">
-              If you're a retailer and want to learn more about Master Release or request removal of your store, please visit our{' '}
+              If you're a retailer and want to learn more about Diecasts or request removal of your store, please visit our{' '}
               <a href="/retailers" className="text-[var(--accent)] underline hover:no-underline">
                 For Retailers
               </a>{' '}
@@ -48,7 +48,7 @@ export default function ContactPage() {
           <section className="mb-8">
             <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">Early Days</h2>
             <p className="mb-4">
-              Master Release is in early development. We're building this platform for the F1 diecast collecting community and would love your feedback on how we can make it better.
+              Diecasts is built for the F1 diecast collecting community, and we'd love your feedback on how to make it better.
             </p>
           </section>
         </div>

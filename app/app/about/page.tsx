@@ -34,7 +34,7 @@ export default function AboutPage() {
             <li><strong>Price Comparison:</strong> Compare prices across multiple retailers in one place</li>
             <li><strong>Pricing Database:</strong> Track historical prices and availability</li>
             <li><strong>Model Discovery:</strong> Find every scale model from manufacturers like Spark, Minichamps, Looksmart, BBR, and more</li>
-            <li><strong>Growing Catalog:</strong> Starting with 2024 race-winning cars, expanding to the complete F1 diecast universe</li>
+            <li><strong>Growing Catalog:</strong> Four seasons from 2021 to 2024, expanding toward the complete F1 diecast universe</li>
           </ul>
 
           <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">
@@ -54,7 +54,7 @@ export default function AboutPage() {
           </h2>
 
           <p>
-            Diecasts is in early development. We're launching with 2024 race-winning cars and building the foundation for a much larger catalog. If you're a collector who wants to help shape this platform, we'd love to hear from you.
+            Diecasts is young and growing. We currently track four seasons of Formula 1 scale models across dozens of retailers worldwide, and we're adding more all the time. If you're a collector who wants to help shape this platform, we'd love to hear from you.
           </p>
 
           <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">
