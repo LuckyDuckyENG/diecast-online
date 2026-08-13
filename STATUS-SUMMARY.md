@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-08-12
+# Status Summary — last updated 2026-08-13
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -22,8 +22,10 @@ cars visible 253/316  =  95% of the 266 that have models
    2022  66/71  (93%)      2024  59/59  (100%)
 ```
 
-Live on Vercel at diecasts.app. Migrations 007–013 all applied. `tsc --noEmit` clean.
-**2 commits unpushed.**
+Live on Vercel at diecasts.app. Migrations 007–013 all applied. `next build` clean.
+**Submitted to Google Search Console on 2026-08-13** — domain property verified by
+DNS, `sitemap.xml` accepted, **297 pages discovered**. Nothing indexed yet; the
+first useful reading is Pages → discovered vs indexed, in about a week.
 
 ## Retailer sweep — feed instead of scraping
 
@@ -223,20 +225,24 @@ re-checking rather than assumed.
 - Remaining 19 scopes not yet run. Expect thinner results for Alpine, Haas, Williams —
   less AU secondary-market presence.
 
-## ⚠️ The one item with real-world risk
+## Key rotation — done, 2026-08-13
 
-**The leaked `service_role` key is still valid.** `.env.local` was committed in the
-initial commit and pushed to a public GitHub repo.
+`.env.local` was committed in the initial commit and pushed to a **public** repo,
+exposing the `service_role` key plus eBay and Exa credentials. Both Supabase keys
+are now the new format and **the legacy JWTs are disabled**:
 
-1. `SUPABASE_SERVICE_ROLE_KEY` → `sb_secret_...` — **DONE** (local + Vercel)
-2. `NEXT_PUBLIC_SUPABASE_ANON_KEY` → `sb_publishable_...` — **NOT DONE**
-3. Redeploy, confirm `/browse` loads
-4. **Disable legacy keys** — the step that actually kills the leaked key
+```
+NEXT_PUBLIC_SUPABASE_ANON_KEY   sb_publishable_…   reads ok, writes blocked by RLS
+SUPABASE_SERVICE_ROLE_KEY       sb_secret_…        admin routes ok
+leaked legacy JWT               rejected           verified dead
+```
 
-Do not do 4 before 2: public pages query Supabase from the browser with the anon key,
-so disabling legacy first blanks the live site. The publishable key already exists in
-Settings → API Keys (created alongside the secret key; there is no separate button).
-eBay and Exa keys were also in that file.
+Order matters if this is ever repeated: new key into `.env.local` **and** Vercel →
+redeploy → confirm `/browse` loads → *then* disable legacy. Reversing the last two
+blanks the live site. Disabling took ~40 seconds to propagate.
+
+The eBay and Exa credentials in that commit have **not** been rotated. They are
+lower-value than a database key, but they are still in the repo history.
 
 ## SEO — done
 
@@ -343,12 +349,9 @@ a retailer are submitted (96 of 164). `/admin`, `/api/`, `/search` disallowed.
 
 ## Next up
 
-1. **Publishable key + disable legacy keys** — the only item with real-world risk,
-   and now several sessions old. Create key → add to Vercel → redeploy → confirm
-   `/browse` loads → *then* disable legacy. Reversing that order blanks the site.
-2. **Build the LIVECARMODEL sitemap sweep** — design validated above, 273 links
+1. **Build the LIVECARMODEL sitemap sweep** — design validated above, 273 links
    waiting. Biggest remaining retailer lever, roughly two hours.
-3. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
+2. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
    problem in the currency audit.
 4. **9 visible cars still have no image**, all 2021.
 5. **2020** if you want another season; retail coverage will be thinner again.
