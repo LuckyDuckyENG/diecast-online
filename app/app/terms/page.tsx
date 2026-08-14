@@ -61,7 +61,17 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">4. No Warranty</h2>
+            <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">4. Affiliate Links</h2>
+            <p className="mb-4">
+              Some outbound links on Diecasts are affiliate links, currently through the eBay Partner Network. If you follow one of these links and make a purchase, we may earn a small commission from that marketplace at no additional cost to you.
+            </p>
+            <p className="mb-4">
+              This never affects what you pay, and it does not influence which models we list or how prices are ordered. Prices shown are the prices the retailer or seller is asking, and the cheapest option is chosen on price and availability alone. Links that earn us a commission are marked where they appear.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">5. No Warranty</h2>
             <p className="mb-4">
               Diecasts is provided "as is" without any warranties. We make no guarantees about:
             </p>
@@ -74,35 +84,35 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">5. Limitation of Liability</h2>
+            <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">6. Limitation of Liability</h2>
             <p className="mb-4">
               To the maximum extent permitted by law, Diecasts and its operators shall not be liable for any direct, indirect, incidental, or consequential damages arising from your use of this website or reliance on any pricing information.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">6. Intellectual Property</h2>
+            <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">7. Intellectual Property</h2>
             <p className="mb-4">
               Product images and descriptions are owned by their respective manufacturers and retailers. We display this content for informational purposes only under fair use principles. All trademarks belong to their respective owners.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">7. Changes to Terms</h2>
+            <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">8. Changes to Terms</h2>
             <p className="mb-4">
               We may update these terms at any time. Continued use of the website constitutes acceptance of updated terms.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">8. Contact</h2>
+            <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">9. Contact</h2>
             <p className="mb-4">
               For questions about these terms, please visit our <a href="/retailers" className="text-[var(--accent)] underline hover:no-underline">For Retailers</a> page.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">9. Governing Law</h2>
+            <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">10. Governing Law</h2>
             <p className="mb-4">
               These terms are governed by the laws of Australia.
             </p>

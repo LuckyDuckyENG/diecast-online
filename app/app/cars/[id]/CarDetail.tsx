@@ -290,7 +290,9 @@ export default function CarDetail({
                               key={idx}
                               href={retailer.url}
                               target="_blank"
-                              rel="noopener noreferrer"
+                              /* eBay links carry affiliate tracking, so they must be
+                                 declared. Retailer links are not paid and stay plain. */
+                              rel={retailer.isSecondary ? 'sponsored noopener noreferrer' : 'noopener noreferrer'}
                               className={`flex items-center justify-between bg-[var(--background)] px-4 py-2 rounded hover:bg-[var(--surface-hover)] transition-all group ${
                                 !retailer.inStock ? 'opacity-50' : ''
                               }`}
@@ -326,7 +328,7 @@ export default function CarDetail({
                                   }`}
                                 >
                                   {retailer.isSecondary
-                                    ? `One seller's listing · checked ${retailer.checkedLabel}`
+                                    ? `One seller's listing · checked ${retailer.checkedLabel} · we may earn a commission`
                                     : `Price checked ${retailer.checkedLabel}`}
                                 </span>
                               </div>

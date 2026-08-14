@@ -52,7 +52,7 @@ export default function PrivacyPage() {
           <section className="mb-8">
             <h2 className="font-display font-bold text-[32px] text-[var(--text-primary)] mt-12 mb-4">3. Third-Party Links</h2>
             <p className="mb-4">
-              When you click on retailer links, you will leave Diecasts and be subject to the privacy policies of those retailers. We are not responsible for the privacy practices of third-party websites.
+              When you click on retailer links, you will leave Diecasts and be subject to the privacy policies of those retailers. We are not responsible for the privacy practices of third-party websites. Some outbound links — currently those to eBay — are affiliate links, which means the destination receives a tracking parameter identifying Diecasts as the referrer so that any resulting sale can be attributed to us. We do not receive your personal information from these programs, only aggregate reports of clicks and sales.
             </p>
           </section>
 

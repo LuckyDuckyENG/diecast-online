@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { formatAge, shouldHidePrice } from './freshness';
 import { toAud } from './currency';
+import { ebayAffiliateUrl } from './ebayAffiliate';
 import { isUuid } from './carSlug';
 
 /**
@@ -157,7 +158,13 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
           currency: ebayCurrency,
           priceAUD: parseFloat(ebayLink.price_aud) || toAud(ebayPrice, ebayCurrency),
           inStock: true,
-          url: ebayLink.ebay_url,
+          // Affiliate tracking is applied here rather than at render time so
+          // every surface that shows this link gets it. Returns the URL
+          // unchanged when EBAY_CAMPAIGN_ID is not set.
+          url: ebayAffiliateUrl(ebayLink.ebay_url, {
+            marketplace: ebayLink.marketplace,
+            customId: variant.manufacturer_sku,
+          }),
           checkedAt: ebayCheckedAt,
           checkedLabel: formatAge(ebayCheckedAt),
           priceHidden: shouldHidePrice(ebayCheckedAt),
