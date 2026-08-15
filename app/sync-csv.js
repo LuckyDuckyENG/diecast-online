@@ -76,6 +76,11 @@ async function syncCSV(dryRun = false, csvArg = null) {
     // Special case mappings for team name variations
     const teamMappings = {
       'VCARB': ['RB', 'Visa Cash App RB'],
+      // 2025 renamed the team again. No existing row contains the words
+      // "Racing Bulls", so the partial-match fallback finds nothing and every
+      // row for this team fails with an unhelpful "Missing reference".
+      'Racing Bulls': ['RB', 'Visa Cash App RB'],
+      'Sauber': ['Kick Sauber'],
       'Red Bull': ['Red Bull Racing'],
       'Ferrari': ['Scuderia Ferrari', 'Ferrari'],
       'Mercedes': ['Mercedes-AMG Petronas', 'Mercedes', 'Mercedes '],
