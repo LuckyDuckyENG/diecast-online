@@ -309,6 +309,15 @@ export default function CarDetail({
                                     <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
                                       Secondary market
                                     </span>
+                                  ) : retailer.isPreorder ? (
+                                    /* Checked BEFORE inStock: a shop reports a
+                                       pre-order as available, so this would
+                                       otherwise render "In Stock" and promise a
+                                       model that is months away. Blue, because
+                                       amber already means eBay here. */
+                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">
+                                      Pre-order
+                                    </span>
                                   ) : retailer.inStock ? (
                                     <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
                                       ✓ In Stock
@@ -333,7 +342,16 @@ export default function CarDetail({
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <span className={`font-black ${retailer.inStock ? 'text-[var(--accent)]' : 'text-gray-400'}`}>
+                                <span className={`font-black ${
+                                  /* A pre-order price is real but not payable-now.
+                                     The accent colour reads as "buy this", so the
+                                     badge and the colour share the work. */
+                                  retailer.isPreorder
+                                    ? 'text-blue-700'
+                                    : retailer.inStock
+                                      ? 'text-[var(--accent)]'
+                                      : 'text-gray-400'
+                                }`}>
                                   {retailer.priceHidden ? (
                                     <span className="text-sm font-semibold text-[var(--text-tertiary)]">
                                       Check price on site

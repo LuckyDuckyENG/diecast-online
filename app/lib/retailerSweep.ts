@@ -31,6 +31,8 @@ export interface SweepMatch {
   reason: string;
   /** Only 'new' and 'refresh' are written by a live run. */
   write: boolean;
+  /** Shop sells this as not-yet-shipping, at a price we still trust. */
+  isPreorder: boolean;
 }
 
 function median(xs: number[]): number {
@@ -59,8 +61,26 @@ const MIN_SAMPLES = 5;
  */
 const CURRENCY_SHIFT = 0.25;
 
-/** Titles that describe a payment rather than a product. */
-const DEPOSIT_MARKERS = /\b(pre[\s-]?order|deposit|pre[\s-]?sale|coming soon|back[\s-]?order)\b/i;
+/**
+ * Shops that mark an item as not-yet-shipping in the title.
+ *
+ * On its own this says nothing about the price. Anthony's uses "Pre-Order" for
+ * AUD 50 deposits; Stone Model uses it for ordinary full-price stock. The same
+ * wording means two different things, so it only becomes a decision when
+ * combined with the price:
+ *
+ *   pre-order wording + price far below peers  ->  a deposit, refuse it
+ *   pre-order wording + a normal price         ->  a real offer, flag the timing
+ */
+const PREORDER_MARKERS = /\b(pre[\s-]?order|pre[\s-]?sale|coming soon|back[\s-]?order)\b/i;
+
+/** Wording that means a payment rather than a product, whatever the price. */
+const DEPOSIT_MARKERS = /\b(deposit)\b/i;
+
+/** Does the shop present this as not yet shipping? */
+export function looksLikePreorder(title: string): boolean {
+  return PREORDER_MARKERS.test(title) || DEPOSIT_MARKERS.test(title);
+}
 
 export interface ClassifyOptions {
   /** Known good AUD prices per scale, for the outlier check. */
@@ -111,8 +131,9 @@ export function classifyMatches(
     const scale = model.scale || '?';
     const mid = medians.get(scale);
 
+    const preorder = looksLikePreorder(variant.title);
     const mk = (action: SweepAction, reason: string, write: boolean): SweepMatch => ({
-      model, variant, action, reason, write,
+      model, variant, action, reason, write, isPreorder: preorder,
     });
 
     if (price == null || price <= 0) {
@@ -136,7 +157,7 @@ export function classifyMatches(
       // Stone Model, where "[Pre-Order]" prefixes ordinary full-price stock.
       // Anthony's AUD 50.00 deposits are still caught, because they are both.
       if (priceAud * LOW_FACTOR < mid) {
-        const why = DEPOSIT_MARKERS.test(variant.title)
+        const why = looksLikePreorder(variant.title)
           ? `${cur} ${price.toFixed(2)} against a ${scale} median of AUD ${mid.toFixed(2)}, and the title says pre-order — this is a deposit, not the price`
           : `${cur} ${price.toFixed(2)} (AUD ${priceAud.toFixed(2)}) is ${(mid / priceAud).toFixed(1)}x BELOW the ${scale} median of AUD ${mid.toFixed(2)}`;
         out.push(mk('review', why, false));

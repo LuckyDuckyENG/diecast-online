@@ -50,6 +50,12 @@ export async function attachRetailerLink(
     currency?: string;
     inStock?: boolean;
     /**
+     * Retailer sells this as not yet shipping. A separate axis from inStock:
+     * a pre-order is orderable, which Shopify reports as available, but it is
+     * not the same claim as "you can have this next week".
+     */
+    isPreorder?: boolean;
+    /**
      * Keep the product_url already on the row, updating only price and stock.
      *
      * For the automated retailer sweep. A hand-picked URL may point at a
@@ -60,7 +66,7 @@ export async function attachRetailerLink(
     preserveExistingUrl?: boolean;
   }
 ): Promise<AttachResult> {
-  const { modelId, retailerUrl, price, currency, inStock, preserveExistingUrl } = opts;
+  const { modelId, retailerUrl, price, currency, inStock, isPreorder, preserveExistingUrl } = opts;
 
   // A zero or negative price is always a failed extraction, never a real offer.
   // Storing one poisons the comparison — it wins every "cheapest" sort.
@@ -146,6 +152,7 @@ export async function attachRetailerLink(
       currency: selectedCurrency,
       price_aud: priceAud,
       in_stock: inStock !== false,
+      is_preorder: isPreorder === true,
       recorded_at: new Date().toISOString(),
       // Adding a link IS a verification — the price was just read from the
       // live page. Without this the row has last_checked_at NULL, which the

@@ -29,6 +29,8 @@ export interface CarRetailer {
   priceHidden: boolean;
   /** eBay, not a shop — one seller's listing on a used/auction market. */
   isSecondary?: boolean;
+  /** Orderable, but not yet shipping. */
+  isPreorder?: boolean;
   /** EBAY_AU / EBAY_US, so the page can distinguish local from imported. */
   marketplace?: string | null;
 }
@@ -136,6 +138,7 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
           currency: item.currency || 'AUD',
           priceAUD: parseFloat(item.price_aud) || parseFloat(item.price) || 0,
           inStock: item.in_stock !== false,
+          isPreorder: item.is_preorder === true,
           url: item.product_url || item.retailer?.url || '#',
           checkedAt,
           checkedLabel: formatAge(checkedAt),
@@ -181,7 +184,13 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
     // discontinued model can trade ABOVE its original retail, and a single
     // seller's asking price isn't a comparison. Letting one listing set
     // "Lowest Price" would misrepresent both the number and the claim.
-    const quotable = retailers.filter(r => r.inStock && !r.priceHidden && !r.isSecondary);
+    // Pre-orders are excluded too. "From $X" is the strongest claim on the
+    // page and should mean buyable now — a price you cannot receive for months
+    // sitting under that heading is the same overstatement as quoting an
+    // out-of-stock shop. The row still shows its price, badged.
+    const quotable = retailers.filter(
+      r => r.inStock && !r.priceHidden && !r.isSecondary && !r.isPreorder
+    );
 
     return {
       ...variant,

@@ -218,6 +218,7 @@ export async function POST(request: NextRequest) {
           price: m.variant.price!,
           currency,
           inStock: m.variant.available,
+          isPreorder: m.isPreorder,
           // A hand-picked URL may point at a specific variant or bundle that a
           // SKU match would not reproduce. Refresh its price, keep its link.
           preserveExistingUrl: true,
