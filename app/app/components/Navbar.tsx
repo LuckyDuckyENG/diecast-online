@@ -29,7 +29,7 @@ export default function Navbar() {
       className={`sticky top-0 z-50 backdrop-blur-xl bg-white/85 transition-all duration-300 border-b`}
       style={{ borderColor: '#ecebe6' }}
     >
-      <div className="max-w-[1240px] mx-auto px-8 h-[64px] flex items-center justify-between gap-6">
+      <div className="max-w-[1240px] mx-auto px-4 sm:px-8 h-[64px] flex items-center justify-between gap-3 sm:gap-6">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 flex-none">
           {/* Checkered flag icon */}
@@ -83,16 +83,23 @@ export default function Navbar() {
         </div>
 
         {/* Right Side */}
-        <div className="flex items-center gap-3.5 flex-none">
-          <Link href="/login" className="font-semibold text-[15px] transition-colors" style={{ color: '#3a3833' }}>
-            Log in
-          </Link>
+        <div className="flex items-center gap-3 flex-none">
+          {/* Browse lives here as well as in the hidden md: block, because that
+              block takes the search box with it below md — which left a phone
+              visitor with no route into the catalogue at all. */}
           <Link
-            href="/signup"
-            className="font-bold text-[15px] px-5 py-2.5 rounded-[10px] hover:brightness-[0.92] transition-all text-white"
+            href="/browse"
+            className="md:hidden font-bold text-[15px] px-4 py-2 rounded-[10px] text-white hover:brightness-[0.92] transition-all"
             style={{ background: '#cf2f2a' }}
           >
-            Sign up
+            Browse
+          </Link>
+          <Link
+            href="/about"
+            className="md:hidden font-semibold text-[15px] transition-colors"
+            style={{ color: '#3a3833' }}
+          >
+            About
           </Link>
         </div>
       </div>
