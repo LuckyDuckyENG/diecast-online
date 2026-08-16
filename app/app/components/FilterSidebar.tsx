@@ -86,9 +86,9 @@ export default function FilterSidebar({ options, filters, onFilterChange, onClea
 
   return (
     <aside className="w-full lg:w-[250px] lg:flex-none">
-      <div className="lg:sticky lg:top-[88px] bg-white border border-[var(--border-light)] rounded-xl p-5">
+      <div className={`lg:sticky lg:top-[88px] bg-white border border-[var(--border-light)] rounded-xl p-5 ${mobileOpen ? "" : "py-3 lg:py-5"}`}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-5 pb-5 border-b border-[var(--border-light)]">
+        <div className={`flex items-center justify-between lg:mb-5 lg:pb-5 lg:border-b border-[var(--border-light)] ${mobileOpen ? "mb-5 pb-5 border-b" : ""}`}>
           <button
             type="button"
             onClick={() => setMobileOpen(o => !o)}
