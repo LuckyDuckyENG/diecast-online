@@ -11,7 +11,7 @@ interface BreadcrumbProps {
 
 export default function Breadcrumb({ items }: BreadcrumbProps) {
   return (
-    <nav className="flex items-center gap-2 text-sm mb-6">
+    <nav className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm mb-4 sm:mb-6">
       {items.map((item, index) => (
         <div key={item.href} className="flex items-center gap-2">
           {index > 0 && (
@@ -29,7 +29,7 @@ export default function Breadcrumb({ items }: BreadcrumbProps) {
             </svg>
           )}
           {index === items.length - 1 ? (
-            <span className="text-[var(--text-primary)] font-medium">{item.label}</span>
+            <span className="text-[var(--text-primary)] font-medium block max-w-[45vw] sm:max-w-none truncate">{item.label}</span>
           ) : (
             <Link
               href={item.href}

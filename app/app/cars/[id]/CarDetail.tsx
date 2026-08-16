@@ -101,10 +101,10 @@ export default function CarDetail({
 
         {/* Car header */}
         <div className="mt-8 mb-12">
-          <p className="text-sm font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-2">
+          <p className="text-xs sm:text-sm font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-1 sm:mb-2">
             {carData.team?.name || 'Formula 1'}
           </p>
-          <h1 className="font-display font-black text-5xl text-[var(--text-primary)] mb-6">
+          <h1 className="font-display font-black text-[26px] leading-tight sm:text-4xl lg:text-5xl sm:leading-none text-[var(--text-primary)] mb-4 sm:mb-6">
             {masterTitle}
           </h1>
 
