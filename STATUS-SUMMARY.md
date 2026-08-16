@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-08-13
+# Status Summary — last updated 2026-08-16
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -6,26 +6,73 @@
 ## Where things stand
 
 ```
-cars 316  |  models 455  |  retailer links 613 (289 in stock)  |  retailers 48  |  drivers 38
-eBay links 326  |  models buyable 406/455  |  images 257/455
-seasons: 2021 (69) + 2022 (83) + 2023 (98) + 2024 (66)     slugs: 316/316
-models with 2+ retailers 186  |  3+ 61      currencies: AUD, EUR, GBP, USD
+cars 406  |  models 543  |  retailer links 815  |  eBay links 382  |  retailers 48  |  drivers 46
+seasons: 2021 (69) + 2022 (83) + 2023 (98) + 2024 (66) + 2025 (90)     slugs: 406/406
+models buyable 492/543   |   images 326/543   |   currencies: AUD, EUR, GBP, USD
+retailer links by state: 350 in stock · 45 pre-order · 420 out of stock
+models with 2+ retailers 242  |  3+ 98
 ```
 
-**Read visibility as a share of cars that CAN be visible.** 50 cars have no models
-at all — CSV rows with no SKU — so they are invisible by construction and drag the
-raw percentage down.
+**Read visibility as a share of cars that CAN be visible.** 84 cars have no models
+at all — CSV rows with no SKU — so they are invisible by construction.
 
 ```
-cars visible 253/316  =  95% of the 266 that have models
-   2021  48/50  (96%)      2023  80/86  (93%)
-   2022  66/71  (93%)      2024  59/59  (100%)
+cars visible 308/406  =  96% of the 322 that have models
+   2021 48/50 (96%)   2022 66/71 (93%)   2023 80/86 (93%)
+   2024 59/59 (100%)  2025 55/56 (98%)
 ```
 
-Live on Vercel at diecasts.app. Migrations 007–013 all applied. `next build` clean.
-**Submitted to Google Search Console on 2026-08-13** — domain property verified by
-DNS, `sitemap.xml` accepted, **297 pages discovered**. Nothing indexed yet; the
-first useful reading is Pages → discovered vs indexed, in about a week.
+**Every visible car has an image.**
+
+Live on Vercel at diecasts.app. Migrations 007–014 applied. `next build` clean.
+**Submitted to Google Search Console 2026-08-13** — domain verified by DNS,
+sitemap accepted, 297 pages discovered (now ~390 after 2025).
+**eBay Partner Network live** — campaign 5339190001, tracking on all eBay links.
+
+## Pre-order is a third state
+
+`in_stock` is a boolean, so "orderable but not shipping for months" had nowhere to
+live and landed as **In Stock**. Shopify reports a pre-order as available, so the
+sweep believed it. Migration 014 adds `is_preorder`.
+
+**Pre-order and deposit are different things**, and the wording alone cannot tell
+them apart — Anthony's uses "Pre-Order" for deposits, Stone Model for ordinary
+full-price stock. Only the price separates them:
+
+```
+pre-order wording + price far below peers  ->  a deposit, refused at write time
+pre-order wording + a normal price         ->  a real offer, stored and badged
+```
+
+The first sweep after this shipped proved why it mattered: **Anthony's held back 27
+rows, 25 of them 2025 models at a flat AUD 20 (1:43) or AUD 50 (1:18) deposit.**
+Without the guard those would have been the displayed price on the newest season,
+and each would have won "cheapest" on its car page.
+
+Pre-orders are excluded from the `from $X` headline — that claim should mean
+buyable now — but still shown with their price, badged **blue** (amber already
+means eBay) and with the price in the same blue so a skimmed number cannot read as
+buy-it-now.
+
+## eBay affiliate — live
+
+EPN campaign `5339190001`, AUD, category *Toys, Hobbies & Games* at **3%**, **1-day
+last-click** attribution. Payouts lock 30 days after month end, paid 10 days later
+— six to ten weeks from sale to money.
+
+`lib/ebayAffiliate.ts` builds tracked URLs from the stored item id. Inert unless
+`EBAY_CAMPAIGN_ID` is set, so clearing that one variable switches tracking off
+everywhere. Built from a link EPN's own generator produced, not from documentation;
+the `amdata` blob it appends is item-specific and deliberately not reproduced.
+
+`customid` carries the model SKU, so EPN reports say *which model* converted.
+
+A marketplace with no known `mkrid` gets an **untracked** link rather than a guessed
+one — a wrong rotation id loses attribution silently, which is worse than none.
+Only `EBAY_AU` is confirmed. For US listings, generate one US link in EPN and add it.
+
+`rel="sponsored"` on eBay links only; retailer links are not paid. Disclosure sits
+inline on each eBay row, in Terms section 4, and in Privacy.
 
 ## Retailer sweep — feed instead of scraping
 
@@ -88,9 +135,11 @@ Retailer links went 199 → 506 in one session. Biggest contributors: Anthony's
   only current and forthcoming seasons — RB21, VCARB, a 2026 Cadillac. The one
   link held there by hand, `18S896` from 2023, is no longer in its feed.
 
-That second one is a **category, not a one-off**: shops selling only new stock
-will never match a back-catalogue index. Older seasons therefore lean further
-onto eBay than 2022 did — worth factoring into any 2021 decision.
+That second one is a **category, not a one-off**, and 2025 confirmed it from the
+other side. Mini Model Shop, the back-catalogue specialist that supplied 54 links
+for 2021, has **zero** 2025 stock. Metro Hobbies, written off as useless across
+four seasons, carries 37. They are mirror images, and which shops are worth
+sweeping depends entirely on how old the season is.
 
 **Do not sample a feed to decide whether a shop uses manufacturer SKUs.** Judging
 from the first 100 products called Horizondiecast and Notjustcollectibles
@@ -349,15 +398,24 @@ a retailer are submitted (96 of 164). `/admin`, `/api/`, `/search` disallowed.
 
 ## Next up
 
-1. **Build the LIVECARMODEL sitemap sweep** — design validated above, 273 links
-   waiting. Biggest remaining retailer lever, roughly two hours.
-2. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
+1. **eBay expiry checking.** 382 links, none re-checked since creation, and nothing
+   notices when a listing sells. `ebay_item_id` is stored on every row precisely
+   so eBay can be asked. This blocks the next item.
+2. **Multiple eBay listings per model.** Today it is one — the cheapest SKU match —
+   so a collector cannot see the spread, and the spread is large: a Spark 1:43 at
+   AUD 1293 next to siblings at 149–266. Needs `UNIQUE (model_id)` from migration
+   012 replaced with `UNIQUE (model_id, ebay_item_id)`, and a bound of 3–5 cheapest
+   rather than "all". **Do expiry checking first** — five times the links without
+   it means five times the dead ones, on the surface where rot is most likely.
+3. **Build the LIVECARMODEL sitemap sweep** — design validated below, 273 links
+   waiting, roughly two hours.
+4. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
    problem in the currency audit.
-4. **9 visible cars still have no image**, all 2021.
-5. **2020** if you want another season; retail coverage will be thinner again.
+5. **2020**, if you want another season. Retail coverage will be thin: back-catalogue
+   specialists only, so it leans on eBay the way 2021 did.
 6. Review queue for the eBay `event-driver` tier, and a "recently auto-added" view.
-7. Expiry checking for sold eBay listings.
-8. Structured data (Product/Offer JSON-LD), gated on the freshness rules.
+7. Structured data (Product/Offer JSON-LD), gated on the freshness rules.
+8. Rotate the eBay and Exa credentials still sitting in the repo history.
 
 ## Data findings worth acting on
 
