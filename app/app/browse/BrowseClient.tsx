@@ -102,9 +102,8 @@ function BrowseContent({ initialModels }: { initialModels: Model[] }) {
     // Apply filters
     if (filters.years.length > 0) {
       results = results.filter((model) => {
-        if (filters.years.includes('Older')) {
-          return filters.years.includes(String(model.year)) || model.year < 2018;
-        }
+        // "Older" was an option in the hardcoded list and no longer exists —
+        // the years now come from the data, so every one of them is real.
         return filters.years.includes(String(model.year));
       });
     }
@@ -153,11 +152,33 @@ function BrowseContent({ initialModels }: { initialModels: Model[] }) {
     return results;
   }, [models, filters, sortBy]);
 
+  /**
+   * Filter options come from the models on the page, not a hardcoded list.
+   *
+   * The hardcoded one had drifted badly: no 2025 at all, so the newest season
+   * could not be filtered to; 2020/2019/2018/"Older" which the catalogue does
+   * not contain; and ten of forty-six drivers, missing AlphaTauri and Alfa
+   * Romeo entirely so 2021-2023 could not be filtered by team. Deriving them
+   * means the lists cannot go stale again.
+   */
+  const filterOptions = useMemo(() => {
+    const uniq = (xs: (string | undefined)[]) =>
+      [...new Set(xs.filter((x): x is string => !!x))];
+    return {
+      years: uniq(initialModels.map(m => m.year ? String(m.year) : undefined))
+        .sort((a, b) => Number(b) - Number(a)),
+      teams: uniq(initialModels.map(m => m.team)).sort(),
+      drivers: uniq(initialModels.map(m => m.driver)).sort(),
+      scales: uniq(initialModels.map(m => m.scale)).sort(),
+      manufacturers: uniq(initialModels.map(m => m.manufacturer)).sort(),
+    };
+  }, [initialModels]);
+
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <Navbar />
 
-      <div className="max-w-[1440px] mx-auto px-8 py-8">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-8">
         {/* Breadcrumb */}
         <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Browse', href: '/browse' }]} />
 
@@ -176,9 +197,10 @@ function BrowseContent({ initialModels }: { initialModels: Model[] }) {
         </div>
 
         {/* Main Content */}
-        <div className="flex gap-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Sidebar */}
           <FilterSidebar
+            options={filterOptions}
             filters={filters}
             onFilterChange={handleFilterChange}
             onClearAll={handleClearAll}

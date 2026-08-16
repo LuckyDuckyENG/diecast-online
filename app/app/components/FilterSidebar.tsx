@@ -4,47 +4,21 @@ import { useState } from 'react';
 import { FilterOptions } from '@/lib/types';
 
 interface FilterSidebarProps {
+  /** Derived from the models on the page, so the lists cannot go stale. */
+  options: FilterOptionLists;
   filters: FilterOptions;
   onFilterChange: (filters: FilterOptions) => void;
   onClearAll: () => void;
 }
 
-const FILTER_DATA = {
-  years: ['2024', '2023', '2022', '2021', '2020', '2019', '2018', 'Older'],
-  teams: [
-    'Ferrari',
-    'Red Bull Racing',
-    'Mercedes-AMG Petronas',
-    'McLaren',
-    'Alpine',
-    'Aston Martin',
-    'Williams',
-    'Haas',
-    'Kick Sauber',
-    'RB',
-  ],
-  drivers: [
-    'Lewis Hamilton',
-    'Max Verstappen',
-    'Charles Leclerc',
-    'Lando Norris',
-    'Carlos Sainz',
-    'Fernando Alonso',
-    'George Russell',
-    'Sergio Perez',
-    'Oscar Piastri',
-    'Lance Stroll',
-  ],
-  scales: ['1:43', '1:18', '1:64'],
-  manufacturers: [
-    'Spark',
-    'Minichamps',
-    'Looksmart',
-    'BBR',
-    'GP Replicas',
-    'Bizarre',
-  ],
-};
+export interface FilterOptionLists {
+  years: string[];
+  teams: string[];
+  drivers: string[];
+  scales: string[];
+  manufacturers: string[];
+}
+
 
 interface FilterSectionProps {
   title: string;
@@ -83,7 +57,7 @@ function FilterSection({ title, defaultOpen = true, children }: FilterSectionPro
   );
 }
 
-export default function FilterSidebar({ filters, onFilterChange, onClearAll }: FilterSidebarProps) {
+export default function FilterSidebar({ options, filters, onFilterChange, onClearAll }: FilterSidebarProps) {
   const toggleArrayFilter = (key: keyof FilterOptions, value: string) => {
     const currentValues = filters[key] as string[];
     const newValues = currentValues.includes(value)
@@ -100,12 +74,30 @@ export default function FilterSidebar({ filters, onFilterChange, onClearAll }: F
     filters.scales.length > 0 ||
     filters.manufacturers.length > 0;
 
+  /**
+   * Collapsed by default on small screens.
+   *
+   * Stacking the sidebar above the grid is necessary — at a fixed 250px beside
+   * a flex row it left about 30px for the cars on a phone — but stacking alone
+   * would mean scrolling past thirty checkboxes before seeing a single model.
+   * On lg and up the class list forces it open, so desktop is unchanged.
+   */
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
-    <aside className="w-[250px] flex-none">
-      <div className="sticky top-[88px] bg-white border border-[var(--border-light)] rounded-xl p-5">
+    <aside className="w-full lg:w-[250px] lg:flex-none">
+      <div className="lg:sticky lg:top-[88px] bg-white border border-[var(--border-light)] rounded-xl p-5">
         {/* Header */}
         <div className="flex items-center justify-between mb-5 pb-5 border-b border-[var(--border-light)]">
-          <h2 className="font-display font-bold text-base text-[var(--text-primary)]">Filters</h2>
+          <button
+            type="button"
+            onClick={() => setMobileOpen(o => !o)}
+            className="flex items-center gap-2 lg:cursor-default"
+            aria-expanded={mobileOpen}
+          >
+            <h2 className="font-display font-bold text-base text-[var(--text-primary)]">Filters</h2>
+            <span className={`lg:hidden transition-transform ${mobileOpen ? 'rotate-180' : ''}`}>▾</span>
+          </button>
           {hasActiveFilters && (
             <button
               onClick={onClearAll}
@@ -116,9 +108,10 @@ export default function FilterSidebar({ filters, onFilterChange, onClearAll }: F
           )}
         </div>
 
+        <div className={`${mobileOpen ? 'block' : 'hidden'} lg:block`}>
         {/* Year */}
         <FilterSection title="Year">
-          {FILTER_DATA.years.map((year) => (
+          {options.years.map((year) => (
             <label key={year} className="flex items-center gap-2.5 cursor-pointer group">
               <input
                 type="checkbox"
@@ -135,7 +128,7 @@ export default function FilterSidebar({ filters, onFilterChange, onClearAll }: F
 
         {/* Team */}
         <FilterSection title="Team">
-          {FILTER_DATA.teams.map((team) => (
+          {options.teams.map((team) => (
             <label key={team} className="flex items-center gap-2.5 cursor-pointer group">
               <input
                 type="checkbox"
@@ -152,7 +145,7 @@ export default function FilterSidebar({ filters, onFilterChange, onClearAll }: F
 
         {/* Driver */}
         <FilterSection title="Driver">
-          {FILTER_DATA.drivers.map((driver) => (
+          {options.drivers.map((driver) => (
             <label key={driver} className="flex items-center gap-2.5 cursor-pointer group">
               <input
                 type="checkbox"
@@ -169,7 +162,7 @@ export default function FilterSidebar({ filters, onFilterChange, onClearAll }: F
 
         {/* Scale */}
         <FilterSection title="Scale">
-          {FILTER_DATA.scales.map((scale) => (
+          {options.scales.map((scale) => (
             <label key={scale} className="flex items-center gap-2.5 cursor-pointer group">
               <input
                 type="checkbox"
@@ -186,7 +179,7 @@ export default function FilterSidebar({ filters, onFilterChange, onClearAll }: F
 
         {/* Manufacturer */}
         <FilterSection title="Manufacturer">
-          {FILTER_DATA.manufacturers.map((manufacturer) => (
+          {options.manufacturers.map((manufacturer) => (
             <label key={manufacturer} className="flex items-center gap-2.5 cursor-pointer group">
               <input
                 type="checkbox"
@@ -200,6 +193,7 @@ export default function FilterSidebar({ filters, onFilterChange, onClearAll }: F
             </label>
           ))}
         </FilterSection>
+        </div>
       </div>
     </aside>
   );
