@@ -218,13 +218,13 @@ export default function CarDetail({
             </div>
           )}
 
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-display font-black text-3xl text-[var(--text-primary)]">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <h2 className="font-display font-black text-2xl sm:text-3xl text-[var(--text-primary)]">
               Versions ({filteredVariants.length})
             </h2>
 
             {/* Manufacturer Filter */}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setSelectedManufacturer('all')}
                 className={`px-4 py-2 rounded-lg font-bold transition-all ${
@@ -256,9 +256,9 @@ export default function CarDetail({
             {filteredVariants.map((variant: any) => (
               <div
                 key={variant.id}
-                className="bg-[var(--surface)] rounded-lg p-6 border border-[var(--border)] hover:border-[var(--accent)] transition-all"
+                className="bg-[var(--surface)] rounded-lg p-4 sm:p-6 border border-[var(--border)] hover:border-[var(--accent)] transition-all"
               >
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col-reverse sm:flex-row sm:items-start sm:justify-between gap-4">
                   {/* Manufacturer Info */}
                   <div className="flex-1">
                     <div className="mb-4">
@@ -293,12 +293,12 @@ export default function CarDetail({
                               /* eBay links carry affiliate tracking, so they must be
                                  declared. Retailer links are not paid and stay plain. */
                               rel={retailer.isSecondary ? 'sponsored noopener noreferrer' : 'noopener noreferrer'}
-                              className={`flex items-center justify-between bg-[var(--background)] px-4 py-2 rounded hover:bg-[var(--surface-hover)] transition-all group ${
+                              className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 bg-[var(--background)] px-3 sm:px-4 py-2 rounded hover:bg-[var(--surface-hover)] transition-all group ${
                                 !retailer.inStock ? 'opacity-50' : ''
                               }`}
                             >
-                              <div className="flex flex-col gap-0.5">
-                                <div className="flex items-center gap-2">
+                              <div className="flex flex-col gap-0.5 min-w-0">
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                   <span className="font-bold text-[var(--text-primary)]">
                                     {retailer.name}
                                   </span>
@@ -341,8 +341,8 @@ export default function CarDetail({
                                     : `Price checked ${retailer.checkedLabel}`}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`font-black ${
+                              <div className="flex items-center gap-2 sm:justify-end w-full sm:w-auto shrink-0">
+                                <span className={`whitespace-nowrap font-black ${
                                   /* A pre-order price is real but not payable-now.
                                      The accent colour reads as "buy this", so the
                                      badge and the colour share the work. */
@@ -384,9 +384,9 @@ export default function CarDetail({
 
                   {/* Lowest Price Badge */}
                   {variant.lowestPrice && (
-                    <div className="ml-6 text-right">
+                    <div className="sm:ml-6 sm:text-right shrink-0">
                       <p className="text-xs text-[var(--text-tertiary)] mb-1">Lowest Price</p>
-                      <p className="font-black text-3xl text-[var(--accent)]">
+                      <p className="font-black text-2xl sm:text-3xl text-[var(--accent)] whitespace-nowrap">
                         AUD {parseFloat(variant.lowestPrice).toFixed(2)}
                       </p>
                     </div>
