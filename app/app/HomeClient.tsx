@@ -78,13 +78,13 @@ export default function HomeClient({
       {/* Hero */}
       <header style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(to bottom, #f6f5f1, #f1efe9)' }}>
         <div style={{ position: 'absolute', right: '-60px', top: '-40px', width: '420px', height: '420px', background: 'repeating-linear-gradient(45deg, rgba(26,25,22,0.045) 0px, rgba(26,25,22,0.045) 22px, transparent 22px, transparent 44px)', transform: 'skewX(-12deg)' }} />
-        <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '72px 32px 56px', display: 'grid', gridTemplateColumns: '1fr 340px', gap: '64px', position: 'relative' }}>
+        <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '72px 32px 56px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '64px', position: 'relative' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '22px', animation: 'fadeUp 0.7s ease both' }}>
               <span style={{ width: '28px', height: '2px', background: '#cf2f2a' }} />
               <span style={{ color: '#cf2f2a', fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: '13px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>The Scale Model Catalogue</span>
             </div>
-            <h1 style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 900, fontSize: '62px', lineHeight: '1.02', letterSpacing: '-0.03em', margin: '0 0 18px', animation: 'fadeUp 0.7s ease 0.08s both' }}>
+            <h1 style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 900, fontSize: 'clamp(34px, 7vw, 62px)', lineHeight: '1.02', letterSpacing: '-0.03em', margin: '0 0 18px', animation: 'fadeUp 0.7s ease 0.08s both' }}>
               Every F1 model<br />ever made.<br />
               <span style={{ fontStyle: 'italic', color: '#cf2f2a' }}>In one place.</span>
             </h1>
@@ -160,7 +160,7 @@ export default function HomeClient({
           <h2 style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 800, fontSize: '28px', letterSpacing: '-0.02em', margin: 0 }}>Browse by driver</h2>
           <Link href="/browse" style={{ color: '#cf2f2a', fontWeight: 600, fontSize: '14px', textDecoration: 'none' }}>All drivers →</Link>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '14px' }}>
           {drivers.map((driver, i) => (
             <Link
               key={i}
@@ -209,7 +209,7 @@ export default function HomeClient({
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           {/* Row 1 */}
-          <div data-reveal="row1" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '18px', ...getRevealStyles('row1'), transition: 'opacity 0.7s ease 0s, transform 0.7s ease 0s' }}>
+          <div data-reveal="row1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '18px', ...getRevealStyles('row1'), transition: 'opacity 0.7s ease 0s, transform 0.7s ease 0s' }}>
             {latestCars.slice(0, 4).map((car) => (
               <Link
                 key={car.id}
@@ -249,7 +249,7 @@ export default function HomeClient({
           </div>
 
           {/* Row 2 */}
-          <div data-reveal="row2" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '18px', ...getRevealStyles('row2'), transition: 'opacity 0.7s ease 0.12s, transform 0.7s ease 0.12s' }}>
+          <div data-reveal="row2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '18px', ...getRevealStyles('row2'), transition: 'opacity 0.7s ease 0.12s, transform 0.7s ease 0.12s' }}>
             {latestCars.slice(4, 8).map((car) => (
               <Link
                 key={car.id}
@@ -290,7 +290,7 @@ export default function HomeClient({
 
           {/* Row 3 with fade-out CTA */}
           <div data-reveal="row3" style={{ position: 'relative', ...getRevealStyles('row3'), transition: 'opacity 0.7s ease, transform 0.7s ease' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '18px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '18px' }}>
               {latestCars.slice(8, 12).map((car) => (
                 <div key={car.id} style={{ background: '#fff', border: '1px solid #e6e4de', borderRadius: '16px', overflow: 'hidden' }}>
                   <span style={{ display: 'block', height: '4px', background: car.teamColor }} />

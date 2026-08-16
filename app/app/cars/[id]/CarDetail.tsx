@@ -108,9 +108,9 @@ export default function CarDetail({
             {masterTitle}
           </h1>
 
-          <div className="flex gap-8">
+          <div className="flex flex-col md:flex-row gap-8">
             {/* Main Image */}
-            <div className="w-[400px] h-[300px] bg-[var(--surface)] rounded-lg overflow-hidden">
+            <div className="w-full md:w-[400px] h-[260px] md:h-[300px] bg-[var(--surface)] rounded-lg overflow-hidden shrink-0">
               {/* Fall back to the team-coloured panel rather than a placeholder
                   file — /placeholder.jpg never existed, so a car with no image
                   rendered a broken-image icon. Matches what ModelCard does. */}
@@ -129,7 +129,7 @@ export default function CarDetail({
 
             {/* Key Details */}
             <div className="flex-1">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Linked to their hub pages where one exists, so a visitor can
                     go from one car to everything by that driver, team or season.
                     Also gives crawlers a path upward, not just sideways. */}
