@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { fetchShopifyFeed, isShopify, shopCurrency } from '@/lib/shopifyFeed';
+import { fetchSitemapFeed, sitemapShopFor, type CandidateModel } from '@/lib/sitemapFeed';
 import { classifyMatches, type SweepModel } from '@/lib/retailerSweep';
 import { attachRetailerLink } from '@/lib/retailerLink';
+import { selectAll } from '@/lib/selectAll';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,6 +37,9 @@ interface Body {
   dryRun?: boolean;
 }
 
+const readAll = <T = any>(table: string, columns: string) =>
+  selectAll<T>(supabase, table, columns);
+
 export async function GET() {
   try {
     const { data: retailers, error } = await supabase
@@ -42,7 +47,8 @@ export async function GET() {
       .select('id, name, url, region');
     if (error) throw new Error(error.message);
 
-    const { data: links } = await supabase.from('price_history').select('retailer_id');
+    // Every link, not the first 1000 — these become the counts in the dropdown.
+    const links = await readAll<any>('price_history', 'retailer_id');
     const counts = new Map<string, number>();
     for (const l of links || []) {
       counts.set(l.retailer_id, (counts.get(l.retailer_id) || 0) + 1);
@@ -61,7 +67,11 @@ export async function GET() {
             host,
             region: r.region,
             links: counts.get(r.id) || 0,
-            sweepable: await isShopify(host),
+            // Two ways to read a shop now. A sitemap shop has no bulk feed but
+            // publishes every product URL, which is enough to narrow before
+            // fetching. Checked first because it needs no network call.
+            sweepable: !!sitemapShopFor(host) || (await isShopify(host)),
+            via: sitemapShopFor(host) ? 'sitemap' : 'shopify',
           };
         })
     );
@@ -103,7 +113,31 @@ export async function POST(request: NextRequest) {
     const t0 = Date.now();
 
     const declared = await shopCurrency(host);
-    const feed = await fetchShopifyFeed(host);
+
+    const sitemapShop = sitemapShopFor(host);
+
+    // The models have to be loaded before the feed for a sitemap shop: the
+    // prefilter is what turns 65,000 URLs into a few hundred product fetches,
+    // and it needs to know what we are looking for.
+    const models = await readAll(
+      'models',
+      'id, scale, manufacturer_sku, manufacturer:manufacturers(name), ' +
+        'car:cars(event_name, chassis_name, driver:drivers(name), season:seasons(year))'
+    );
+
+    const feed = sitemapShop
+      ? await fetchSitemapFeed(
+          host,
+          (models || []).map((m: any): CandidateModel => ({
+            sku: m.manufacturer_sku || '',
+            scale: m.scale || null,
+            manufacturer: m.manufacturer?.name || null,
+            driver: m.car?.driver?.name || null,
+            event: m.car?.event_name || null,
+            year: m.car?.season?.year ?? null,
+          })).filter(m => m.sku)
+        )
+      : await fetchShopifyFeed(host);
 
     if (feed.bySku.size === 0) {
       return NextResponse.json({
@@ -111,24 +145,18 @@ export async function POST(request: NextRequest) {
         dryRun,
         retailer: retailer.name,
         message:
-          `${host} returned no product feed. Only Shopify shops expose one; ` +
-          `this retailer has to be maintained by hand.`,
+          `${host} returned nothing readable. Shopify shops expose /products.json ` +
+          `and a few others publish a sitemap we can narrow; this retailer does ` +
+          `neither, so it has to be maintained by hand.`,
         totals: { matched: 0, new: 0, refresh: 0, unchanged: 0, review: 0, hold: 0 },
         matches: [],
       });
     }
 
-    const { data: models, error: mErr } = await supabase
-      .from('models')
-      .select(
-        'id, scale, manufacturer_sku, manufacturer:manufacturers(name), ' +
-          'car:cars(event_name, chassis_name, driver:drivers(name), season:seasons(year))'
-      );
-    if (mErr) throw new Error(mErr.message);
-
-    const { data: existingRows } = await supabase
-      .from('price_history')
-      .select('model_id, price, in_stock, product_url, price_aud, currency, retailer_id');
+    const existingRows = await readAll(
+      'price_history',
+      'model_id, price, in_stock, product_url, price_aud, currency, retailer_id'
+    );
 
     const here = new Map<string, any>();
     for (const row of existingRows || []) {
@@ -233,6 +261,7 @@ export async function POST(request: NextRequest) {
       dryRun,
       retailer: retailer.name,
       host,
+      via: sitemapShop ? 'sitemap' : 'shopify',
       currency,
       currencyDisputed,
       declaredCurrency: declared,

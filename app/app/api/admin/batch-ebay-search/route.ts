@@ -9,6 +9,7 @@ import {
 } from '@/lib/ebayBatch';
 import { teamMatches } from '@/lib/teamName';
 import { toAud } from '@/lib/currency';
+import { selectAll } from '@/lib/selectAll';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -227,9 +228,9 @@ export async function POST(request: NextRequest) {
     // What this car already costs, so the outlier guard has a reference that
     // does not depend on how many models this particular run happens to cover.
     // Retailer prices anchor it even for a chassis with no eBay links yet.
-    const [{ data: retailPrices }, { data: ebayPrices }] = await Promise.all([
-      supabase.from('price_history').select('model_id, price_aud'),
-      supabase.from('ebay_links').select('model_id, price_aud'),
+    const [retailPrices, ebayPrices] = await Promise.all([
+      selectAll<any>(supabase, 'price_history', 'model_id, price_aud'),
+      selectAll<any>(supabase, 'ebay_links', 'model_id, price_aud'),
     ]);
 
     const knownPrices = new Map<string, number[]>();

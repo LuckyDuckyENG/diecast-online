@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { supabase } from '@/lib/supabase';
 import { getHubSlugs } from '@/lib/hubData';
+import { selectAll } from '@/lib/selectAll';
 
 /**
  * Sitemap, generated from the database so it can't drift.
@@ -29,11 +30,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Only cars a visitor can actually do something with. A page listing no
   // retailer is a dead end, and submitting thin pages en masse is exactly what
   // search engines treat as low-quality aggregation.
-  const [{ data: cars }, { data: models }, { data: prices }, { data: ebay }] = await Promise.all([
+  const [{ data: cars }, { data: models }, prices, ebay] = await Promise.all([
     supabase.from('cars').select('id, slug, created_at').not('slug', 'is', null),
     supabase.from('models').select('id, car_id'),
-    supabase.from('price_history').select('model_id'),
-    supabase.from('ebay_links').select('model_id'),
+    selectAll<any>(supabase, 'price_history', 'model_id'),
+    selectAll<any>(supabase, 'ebay_links', 'model_id'),
   ]);
 
   const sellable = new Set<string>([
