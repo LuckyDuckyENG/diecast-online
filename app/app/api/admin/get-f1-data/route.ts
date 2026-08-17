@@ -88,11 +88,25 @@ export async function GET(request: NextRequest) {
       console.warn('⚠️ Warning fetching price history:', err.message);
     }
 
-    // Build a map of eBay links by model_id for quick lookup
-    const ebayLinksMap = new Map();
+    /**
+     * Every eBay listing for a model, cheapest first.
+     *
+     * This was a Map<id, link> built with a plain .set() per row, so once
+     * migration 015 let a model hold several listings the last row read won and
+     * the admin displayed an arbitrary one — in practice the DEAREST, which is
+     * the exact number this feature exists to stop quoting. 417231511 showed
+     * 426.45 while holding a 152.23.
+     */
+    const ebayLinksMap = new Map<string, any[]>();
     ebayLinks?.forEach((link) => {
-      ebayLinksMap.set(link.model_id, link);
+      if (!ebayLinksMap.has(link.model_id)) ebayLinksMap.set(link.model_id, []);
+      ebayLinksMap.get(link.model_id)!.push(link);
     });
+    for (const list of ebayLinksMap.values()) {
+      list.sort(
+        (a, b) => (parseFloat(a.price_aud) || Infinity) - (parseFloat(b.price_aud) || Infinity)
+      );
+    }
 
     console.log(`📊 Fetched ${ebayLinks?.length || 0} eBay links`);
     if (ebayLinks && ebayLinks.length > 0) {
@@ -163,11 +177,17 @@ export async function GET(request: NextRequest) {
           chassisData.driverGroups.set(modelDriverName, []);
         }
 
-        const ebayLink = ebayLinksMap.get(model.id);
+        const ebayListings = ebayLinksMap.get(model.id) || [];
+        // The cheapest stands in for the old single-link fields, so anything
+        // still reading ebayPrice/ebayUrl gets the best offer rather than a
+        // random one. ebayListings carries the rest.
+        const ebayLink = ebayListings[0];
         const pricesForModel = priceHistoryMap.get(model.id) || [];
 
-        if (ebayLink) {
-          console.log(`✅ Model ${model.id} has eBay link:`, ebayLink.ebay_url);
+        if (ebayListings.length) {
+          console.log(
+            `✅ Model ${model.id} has ${ebayListings.length} eBay listing(s), cheapest ${ebayLink.ebay_price}`
+          );
         }
 
         chassisData.driverGroups.get(modelDriverName).push({
@@ -197,6 +217,24 @@ export async function GET(request: NextRequest) {
           ebayTitle: ebayLink?.ebay_title,
           ebayImage: ebayLink?.ebay_image,
           lastUpdated: ebayLink?.last_updated,
+          // All of them, cheapest first, so the panel can show the spread and
+          // let a single listing be removed without dropping the rest.
+          ebayCount: ebayListings.length,
+          ebayListings: ebayListings.map((l: any) => ({
+            itemId: l.ebay_item_id,
+            url: l.ebay_url,
+            price: l.ebay_price,
+            priceAud: l.price_aud,
+            currency: l.currency,
+            title: l.ebay_title,
+            // Needed so the panel can show the thumbnail beside the button that
+            // takes it -- picking a photo off a price-sorted list without seeing
+            // the photos is guesswork.
+            image: l.ebay_image || null,
+            condition: l.item_condition || null,
+            seller: l.seller || null,
+            autoLinked: l.auto_linked === true,
+          })),
           retailerPrices: pricesForModel.map((price: any) => ({
             // The price_history row id. Without it the per-row refresh button
             // sent priceHistoryId: undefined and silently refreshed every

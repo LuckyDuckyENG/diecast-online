@@ -36,6 +36,26 @@ interface DiecastModel {
   ebayPrice?: string;
   ebayImage?: string | null; // listing thumbnail, upscaled before use
   lastUpdated?: string;
+  /**
+   * Every eBay listing on this model, cheapest first.
+   *
+   * ebayUrl/ebayPrice above are the CHEAPEST of these, kept so older code paths
+   * still read the best offer rather than an arbitrary one. Before migration 015
+   * there was only ever one listing and those fields were the whole story.
+   */
+  ebayCount?: number;
+  ebayListings?: {
+    itemId: string;
+    url: string;
+    price: string | null;
+    priceAud: number | null;
+    currency: string | null;
+    title: string | null;
+    image: string | null;
+    condition: string | null;
+    seller: string | null;
+    autoLinked: boolean;
+  }[];
   retailerPrices?: RetailerPrice[]; // All retailer prices from price_history table
 }
 
@@ -220,6 +240,28 @@ export default function EbayLinkingAdmin() {
     suspicious: any[];
   } | null>(null);
   const refreshAllCancel = useRef(false);
+
+  /**
+   * Bulk eBay refresh. Same batched shape as the retailer one and for the same
+   * reason, plus one extra: it is what keeps eBay prices quotable at all. The
+   * site refuses to show a price older than 30 days, and nothing has ever
+   * re-checked an eBay link, so the first of them goes quiet on 2026-09-06.
+   */
+  const [refreshEbayState, setRefreshEbayState] = useState<{
+    running: boolean;
+    dryRun: boolean;
+    done: number;
+    total: number;
+    updated: number;
+    unchanged: number;
+    soldOut: number;
+    dead: number;
+    failed: number;
+    observations: number;
+    backfilled: number;
+    suspicious: any[];
+  } | null>(null);
+  const refreshEbayCancel = useRef(false);
 
   // Batch eBay search. One request covers a whole scope — the route groups
   // models by chassis and manufacturer and issues one eBay search per group,
@@ -3184,19 +3226,33 @@ export default function EbayLinkingAdmin() {
    * actually selling, which may be a used model, a stock photo, or a shot with
    * the box. It is a good fallback for a model that has no image at all — and a
    * worse choice than a retailer's clean product shot when one exists.
+   *
+   * `source` names WHICH listing to take the photo from. A model can hold
+   * several listings now, and a single unlabelled button above a list of three
+   * gave no way to tell what you were about to get — it silently used whichever
+   * was cheapest, which is the wrong axis entirely: the cheapest seller is not
+   * the best photographer. Pass the listing explicitly, and say whose photo it
+   * is in the confirm.
    */
-  const setEbayImageAsModelImage = async (model: DiecastModel) => {
-    const full = upscaleEbayImage(model.ebayImage);
+  const setEbayImageAsModelImage = async (
+    model: DiecastModel,
+    source?: { image?: string | null; seller?: string | null; price?: string | null }
+  ) => {
+    const full = upscaleEbayImage(source ? source.image : model.ebayImage);
     if (!full) {
-      alert('❌ This eBay link has no image stored.');
+      alert('❌ That eBay listing has no image stored.');
       return;
     }
 
+    const whose = source?.seller
+      ? `${source.seller}${source.price ? ` (${source.price})` : ''}`
+      : 'this eBay listing';
+
     const warning = model.imageUrl
-      ? 'This model already has an image. Replace it with the eBay listing photo?\n\n' +
+      ? `This model already has an image. Replace it with the photo from ${whose}?\n\n` +
         'eBay photos are of the actual item being sold, so they can show a used ' +
         'model or the box. Retailer product shots are usually cleaner.'
-      : 'Use the eBay listing photo as this model image?';
+      : `Use the photo from ${whose} as this model image?`;
 
     if (!confirm(`📸 ${warning}`)) return;
 
@@ -3268,6 +3324,108 @@ export default function EbayLinkingAdmin() {
     } catch (error) {
       console.error('Error removing eBay link:', error);
       alert('❌ Failed to remove eBay link');
+    }
+  };
+
+  /**
+   * Walk every eBay listing in batches.
+   *
+   * Oldest-checked first, so stopping part-way has still rescued the links
+   * closest to going stale rather than an arbitrary slice.
+   */
+  const runRefreshEbay = async (dryRun: boolean) => {
+    refreshEbayCancel.current = false;
+
+    let ids: string[] = [];
+    try {
+      const planRes = await fetch('/api/admin/refresh-ebay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: true }),
+      });
+      const planData = await planRes.json();
+      if (!planData.success) throw new Error(planData.details || planData.error || 'Could not build plan');
+      ids = planData.ids || [];
+    } catch (error: any) {
+      alert('❌ Could not start eBay refresh: ' + error.message);
+      return;
+    }
+
+    if (ids.length === 0) {
+      alert('No eBay listings to refresh.');
+      return;
+    }
+
+    if (
+      !dryRun &&
+      !confirm(
+        `Refresh ${ids.length} eBay listing(s)?
+
+` +
+          `Prices only change on the row when they move more than 2% — smaller ` +
+          `moves are eBay's daily currency conversion, not repricing.
+
+` +
+          `Listings that no longer exist are DELETED. eBay returns the same 404 ` +
+          `for sold, expired and delisted, so they cannot be labelled — but the ` +
+          `price is kept in the observation history.
+
+` +
+          `Roughly ${Math.ceil((ids.length * 0.4) / 60)} minutes. You can stop at any point.`
+      )
+    ) {
+      return;
+    }
+
+    const totals = {
+      done: 0, updated: 0, unchanged: 0, soldOut: 0, dead: 0,
+      failed: 0, observations: 0, backfilled: 0, suspicious: [] as any[],
+    };
+    setRefreshEbayState({ running: true, dryRun, total: ids.length, ...totals });
+
+    for (let i = 0; i < ids.length; i += REFRESH_BATCH_SIZE) {
+      if (refreshEbayCancel.current) break;
+      const batch = ids.slice(i, i + REFRESH_BATCH_SIZE);
+
+      try {
+        const res = await fetch('/api/admin/refresh-ebay', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ebayLinkIds: batch, dryRun }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          totals.updated += data.summary?.updated || 0;
+          totals.unchanged += data.summary?.unchanged || 0;
+          totals.soldOut += data.summary?.soldOut || 0;
+          totals.dead += data.summary?.dead || 0;
+          totals.failed += data.summary?.failed || 0;
+          totals.observations += data.summary?.observations || 0;
+          totals.backfilled += data.summary?.backfilled || 0;
+          if (data.suspicious?.length) totals.suspicious.push(...data.suspicious);
+        } else {
+          // Count a whole failed batch rather than losing track of it
+          totals.failed += batch.length;
+        }
+      } catch {
+        totals.failed += batch.length;
+      }
+
+      totals.done += batch.length;
+      setRefreshEbayState({ running: true, dryRun, total: ids.length, ...totals });
+    }
+
+    setRefreshEbayState({ running: false, dryRun, total: ids.length, ...totals });
+
+    if (!dryRun) {
+      try {
+        const r = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
+        const d = await r.json();
+        if (d.cars) setF1Cars(d.cars);
+      } catch {
+        // The refresh succeeded; a stale view is recoverable
+      }
     }
   };
 
@@ -4017,6 +4175,22 @@ export default function EbayLinkingAdmin() {
               🔄 Refresh All Retailers
             </button>
             <button
+              disabled={refreshEbayState?.running}
+              onClick={() => runRefreshEbay(true)}
+              className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-colors"
+              title="Check every eBay listing and report what would change, without writing anything"
+            >
+              🧪 Dry-run eBay
+            </button>
+            <button
+              disabled={refreshEbayState?.running}
+              onClick={() => runRefreshEbay(false)}
+              className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-colors"
+              title="Re-check every eBay listing: price, sold-out status, and delete listings that no longer exist"
+            >
+              🔁 Refresh eBay
+            </button>
+            <button
               onClick={async () => {
                 const carsWithModels = f1Cars.filter(car => car.driverGroups.flatMap(dg => dg.models).length > 0);
                 const totalModels = carsWithModels.reduce((sum, car) => sum + car.driverGroups.flatMap(dg => dg.models).length, 0);
@@ -4127,10 +4301,14 @@ export default function EbayLinkingAdmin() {
                       </>
                     )}
                   </span>
+                  {/* Counted in LISTINGS, unlike the link count above, because
+                      the review list below is one entry per listing and you
+                      accept them one at a time. A models figure here would not
+                      match the number of things on screen. */}
                   <span>
                     needs review:{' '}
                     <strong className={r.totals.review ? 'text-yellow-500' : 'text-[var(--text-primary)]'}>
-                      {r.totals.review}
+                      {r.totals.reviewListings ?? r.totals.review}
                     </strong>
                   </span>
                   <span>no match: <strong className="text-[var(--text-primary)]">{r.totals.unmatched}</strong></span>
@@ -4141,7 +4319,16 @@ export default function EbayLinkingAdmin() {
                 {r.groups.map((g: any) => (
                   <div key={g.label} className="mb-1 text-xs text-gray-400">
                     <span className="text-[var(--text-primary)]">{g.label}</span>
-                    {' — '}{g.matches.filter((m: any) => m.autoLink).length}/{g.models} matched
+                    {/* Count MODELS against the model total, not listings. The
+                        numerator was g.matches.filter(autoLink).length, which
+                        became a listing count once a model could match several —
+                        so this read "30/19 matched", a fraction above one. */}
+                    {' — '}
+                    {new Set(
+                      g.matches.filter((m: any) => m.autoLink).map((m: any) => m.modelId)
+                    ).size}
+                    /{g.models} models
+                    {' · '}{g.matches.filter((m: any) => m.autoLink).length} listings
                     {' · '}pool {g.poolSize}
                     {g.truncated && (
                       <span className="text-yellow-500" title={`eBay has ${g.availableOnEbay} listings; only ${g.poolSize} were read`}>
@@ -4328,6 +4515,93 @@ export default function EbayLinkingAdmin() {
             );
           })()}
         </div>
+
+        {/* Bulk eBay refresh progress */}
+        {refreshEbayState && (
+          <div className="mb-6 p-4 rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)]">
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-semibold text-[var(--text-primary)]">
+                {refreshEbayState.running
+                  ? `${refreshEbayState.dryRun ? '🧪 Dry-running' : '🔁 Refreshing'} eBay… ${refreshEbayState.done}/${refreshEbayState.total}`
+                  : `${refreshEbayState.dryRun ? '🧪 Dry run' : '✅ eBay refresh'} finished — ${refreshEbayState.done}/${refreshEbayState.total} checked`}
+              </div>
+              {refreshEbayState.running ? (
+                <button
+                  onClick={() => {
+                    refreshEbayCancel.current = true;
+                  }}
+                  className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                  Stop
+                </button>
+              ) : (
+                <button
+                  onClick={() => setRefreshEbayState(null)}
+                  className="px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700"
+                >
+                  Dismiss
+                </button>
+              )}
+            </div>
+
+            <div className="w-full h-2 bg-[var(--border-color)] rounded overflow-hidden mb-3">
+              <div
+                className="h-full bg-amber-500 transition-all"
+                style={{
+                  width: `${refreshEbayState.total ? (refreshEbayState.done / refreshEbayState.total) * 100 : 0}%`,
+                }}
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-5 text-sm text-[var(--text-secondary)]">
+              <span>
+                {refreshEbayState.dryRun ? 'would change' : 'price changed'}:{' '}
+                <strong className="text-[var(--text-primary)]">{refreshEbayState.updated}</strong>
+              </span>
+              {/* Unchanged is the expected majority: measured drift is 0.2% median,
+                  and anything under 2% is currency conversion rather than a
+                  reprice, so it deliberately does not count as a change. */}
+              <span>unchanged: <strong className="text-[var(--text-primary)]">{refreshEbayState.unchanged}</strong></span>
+              <span>
+                sold out:{' '}
+                <strong className={refreshEbayState.soldOut ? 'text-purple-400' : 'text-[var(--text-primary)]'}>
+                  {refreshEbayState.soldOut}
+                </strong>
+              </span>
+              <span>
+                {refreshEbayState.dryRun ? 'would delete (gone)' : 'deleted (gone)'}:{' '}
+                <strong className={refreshEbayState.dead ? 'text-red-400' : 'text-[var(--text-primary)]'}>
+                  {refreshEbayState.dead}
+                </strong>
+              </span>
+              <span>failed: <strong className="text-[var(--text-primary)]">{refreshEbayState.failed}</strong></span>
+              <span>
+                history rows:{' '}
+                <strong className="text-green-400">{refreshEbayState.observations}</strong>
+              </span>
+              {refreshEbayState.backfilled > 0 && (
+                <span>
+                  condition/seller filled in:{' '}
+                  <strong className="text-green-400">{refreshEbayState.backfilled}</strong>
+                </span>
+              )}
+              <span>
+                quarantined:{' '}
+                <strong className={refreshEbayState.suspicious.length ? 'text-yellow-500' : 'text-[var(--text-primary)]'}>
+                  {refreshEbayState.suspicious.length}
+                </strong>
+              </span>
+            </div>
+
+            {refreshEbayState.suspicious.length > 0 && (
+              <div className="mt-3 text-xs text-yellow-500 space-y-1">
+                {refreshEbayState.suspicious.slice(0, 6).map((s: any, i: number) => (
+                  <div key={i}>{s.reason} — {s.url}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Bulk refresh progress */}
         {refreshAllState && (
@@ -4734,12 +5008,16 @@ export default function EbayLinkingAdmin() {
                                       ✓ eBay Linked
                                     </span>
                                     {/*
-                                      Same idea as the retailer 📸, but there is
-                                      nothing to fetch: the Browse API already
-                                      gave us the image and it is stored on the
-                                      link. Only the size needs changing.
+                                      The 📸 lives on each LISTING below, not
+                                      here. One button above a list of three gave
+                                      no way to tell whose photo you were about
+                                      to get, and it silently took the cheapest
+                                      listing's — price order has nothing to do
+                                      with photo quality. It only stays here as a
+                                      fallback for a model whose listings array
+                                      has not loaded.
                                     */}
-                                    {model.ebayImage && (
+                                    {model.ebayImage && !model.ebayListings?.length && (
                                       <button
                                         onClick={() => setEbayImageAsModelImage(model)}
                                         className="px-2 py-0.5 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
@@ -4753,23 +5031,107 @@ export default function EbayLinkingAdmin() {
                                       </button>
                                     )}
                                   </div>
+                                  {/* Every listing, cheapest first.
+                                      This showed one price, and after migration
+                                      015 that was whichever row happened to be
+                                      read last — in practice the dearest, which
+                                      is the number this feature exists to stop
+                                      quoting. Falls back to the old single-price
+                                      display when ebayListings is absent. */}
                                   <div className="text-xs text-[var(--text-secondary)] space-y-1">
-                                    <div>
-                                      Price:{' '}
-                                      <span className="text-[var(--text-primary)]">
-                                        {model.ebayPrice}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <a
-                                        href={model.ebayUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-400 hover:underline"
-                                      >
-                                        View on eBay →
-                                      </a>
-                                    </div>
+                                    {model.ebayListings && model.ebayListings.length > 0 ? (
+                                      <>
+                                        <div>
+                                          {model.ebayListings.length} listing
+                                          {model.ebayListings.length === 1 ? '' : 's'}
+                                          {model.ebayListings.length > 1 && (
+                                            <span className="text-green-400">
+                                              {' '}· cheapest {model.ebayListings[0].price}
+                                            </span>
+                                          )}
+                                        </div>
+                                        {model.ebayListings.map((l: any) => (
+                                          <div key={l.itemId} className="flex items-center gap-2">
+                                            {/* The photo you would actually get,
+                                                shown next to the button that
+                                                takes it. Choosing an image from a
+                                                price-sorted list without seeing
+                                                the images is guesswork. */}
+                                            {l.image ? (
+                                              <img
+                                                src={l.image}
+                                                alt=""
+                                                loading="lazy"
+                                                className="w-8 h-8 object-cover rounded border border-gray-700 shrink-0"
+                                              />
+                                            ) : (
+                                              <span className="w-8 h-8 rounded border border-gray-800 shrink-0" />
+                                            )}
+                                            <span className="text-[var(--text-primary)] tabular-nums">
+                                              {l.price}
+                                            </span>
+                                            {l.condition && (
+                                              <span
+                                                className={
+                                                  /^new$/i.test(l.condition)
+                                                    ? 'text-gray-500'
+                                                    : 'text-purple-400'
+                                                }
+                                              >
+                                                {l.condition}
+                                              </span>
+                                            )}
+                                            {l.seller && (
+                                              <span className="text-gray-500 truncate">
+                                                {l.seller}
+                                              </span>
+                                            )}
+                                            <a
+                                              href={l.url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-400 hover:underline shrink-0"
+                                            >
+                                              view ↗
+                                            </a>
+                                            {l.image && (
+                                              <button
+                                                onClick={() =>
+                                                  setEbayImageAsModelImage(model, {
+                                                    image: l.image,
+                                                    seller: l.seller,
+                                                    price: l.price,
+                                                  })
+                                                }
+                                                className="px-1.5 py-0.5 bg-purple-600 text-white rounded hover:bg-purple-700 shrink-0"
+                                                title={`Use ${l.seller || 'this listing'}'s photo as the model image`}
+                                              >
+                                                📸
+                                              </button>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <div>
+                                          Price:{' '}
+                                          <span className="text-[var(--text-primary)]">
+                                            {model.ebayPrice}
+                                          </span>
+                                        </div>
+                                        <div>
+                                          <a
+                                            href={model.ebayUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-400 hover:underline"
+                                          >
+                                            View on eBay →
+                                          </a>
+                                        </div>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
                               ) : (

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { toAud } from '@/lib/currency';
+import { recordObservations, type Observation } from '@/lib/priceObservation';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -262,7 +263,7 @@ export async function POST(request: NextRequest) {
     // Fetch price history entries to refresh
     let query = supabase
       .from('price_history')
-      .select('id, model_id, product_url, price, currency, retailer_id, in_stock')
+      .select('id, model_id, product_url, price, currency, retailer_id, in_stock, is_preorder')
       .not('product_url', 'is', null);
 
     // A batch of specific entries (how the "Refresh all" button works)
@@ -296,6 +297,8 @@ export async function POST(request: NextRequest) {
     let failed = 0;
     const suspicious: any[] = [];
     const changes: any[] = [];
+    /** Every price successfully read this run, appended to history at the end. */
+    const observations: Observation[] = [];
 
     // Only successful checks stamp last_checked_at, so links we can't read
     // (403s, price-less pages) visibly age instead of looking freshly verified.
@@ -495,6 +498,28 @@ If no price found, return {"price": null}`,
           }
         }
 
+        /**
+         * Record what we just read, whether or not it changed.
+         *
+         * This sits AFTER the minor-units reconciliation and the implausible-read
+         * guard, so the history never inherits a 100x units error or a parsing
+         * failure — price_observations has no overwrite to correct a bad row
+         * with, unlike the row above it.
+         *
+         * The unchanged case is recorded too, and is the most common: a confirmed
+         * unchanged price is a real observation, and a series with gaps wherever
+         * nothing moved would be useless for a range.
+         */
+        observations.push({
+          modelId: entry.model_id,
+          retailerId: entry.retailer_id,
+          price: currentPrice,
+          currency: entry.currency || 'AUD',
+          priceAud: toAud(currentPrice, entry.currency || 'AUD'),
+          inStock,
+          isPreorder: entry.is_preorder ?? null,
+        });
+
         if (priceChanged || stockStatusChanged) {
           // Price or stock changed! Update the existing entry
           if (priceChanged) {
@@ -573,6 +598,15 @@ If no price found, return {"price": null}`,
       );
     }
 
+    // History is the secondary job here: recordObservations swallows its own
+    // failures so a missing table or a bad row can never stop a refresh from
+    // keeping the site's prices fresh.
+    let observationsWritten = observations.length;
+    if (!dryRun && observations.length) {
+      const rec = await recordObservations(supabase, observations);
+      observationsWritten = rec.written;
+    }
+
     return NextResponse.json({
       success: true,
       dryRun: !!dryRun,
@@ -582,6 +616,7 @@ If no price found, return {"price": null}`,
         unchanged,
         failed,
         suspicious: suspicious.length,
+        observations: observationsWritten,
       },
       suspicious,
       // Only populated on a dry run — the list of writes that were skipped
