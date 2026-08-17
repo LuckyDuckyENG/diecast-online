@@ -306,9 +306,31 @@ export default function CarDetail({
                                     /* eBay is a used/auction market, not a shop.
                                        Saying "In Stock" would imply retail
                                        availability it doesn't have. */
-                                    <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
-                                      Secondary market
-                                    </span>
+                                    <>
+                                      <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
+                                        Secondary market
+                                      </span>
+                                      {/* Condition is stated, not judged. A used
+                                          model is often DEARER than a new one here
+                                          — the cheapest listing came from the
+                                          cheapest seller, not the worst item — so
+                                          this is information, not a warning, and
+                                          nothing is excluded on the basis of it.
+                                          Purple because green means in stock,
+                                          amber means eBay and blue means
+                                          pre-order. */}
+                                      {retailer.condition && (
+                                        <span
+                                          className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                                            /^new$/i.test(retailer.condition)
+                                              ? 'bg-gray-100 text-gray-600'
+                                              : 'bg-purple-100 text-purple-700'
+                                          }`}
+                                        >
+                                          {retailer.condition}
+                                        </span>
+                                      )}
+                                    </>
                                   ) : retailer.isPreorder ? (
                                     /* Checked BEFORE inStock: a shop reports a
                                        pre-order as available, so this would
@@ -337,7 +359,12 @@ export default function CarDetail({
                                   }`}
                                 >
                                   {retailer.isSecondary
-                                    ? `One seller's listing · checked ${retailer.checkedLabel} · we may earn a commission`
+                                    ? /* The seller identifies the row. Without it
+                                         several eBay listings on one model all
+                                         render as "eBay Australia" and read as a
+                                         duplicate rather than a choice. */
+                                      `${retailer.seller ? retailer.seller : "One seller's listing"}` +
+                                      ` · checked ${retailer.checkedLabel} · we may earn a commission`
                                     : `Price checked ${retailer.checkedLabel}`}
                                 </span>
                               </div>

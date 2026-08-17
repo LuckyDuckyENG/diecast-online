@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { slugify, teamSlug } from './carSlug';
 import type { Model } from './types';
+import { selectAll } from './selectAll';
 
 /**
  * Hub pages: /drivers/[slug], /teams/[slug], /seasons/[year].
@@ -39,14 +40,17 @@ export interface HubData {
 }
 
 async function loadCatalogue() {
-  const [{ data: cars }, { data: models }, { data: prices }, { data: ebay }] = await Promise.all([
+  // prices and ebay are paged: both tables pass PostgREST's 1000-row cap
+  // (price_history reached 1,151 on 2026-08-17), and a truncated read here
+  // understates which cars are buyable on every hub page, silently.
+  const [{ data: cars }, { data: models }, prices, ebay] = await Promise.all([
     supabase.from('cars').select(`
       id, slug, chassis_name, event_name,
       driver:drivers(name), team:teams(name, primary_color, text_color), season:seasons(year)
     `),
     supabase.from('models').select('id, car_id, image_url, scale, manufacturers(name)'),
-    supabase.from('price_history').select('model_id, price, price_aud, in_stock'),
-    supabase.from('ebay_links').select('model_id'),
+    selectAll<any>(supabase, 'price_history', 'model_id, price, price_aud, in_stock'),
+    selectAll<any>(supabase, 'ebay_links', 'model_id'),
   ]);
 
   const modelsByCar = new Map<string, any[]>();

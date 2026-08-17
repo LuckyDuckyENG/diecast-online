@@ -59,14 +59,23 @@ export default function ModelDetailPage() {
           `)
           .eq('model_id', id);
 
-        // Fetch eBay link data
-        const { data: ebayLink, error: ebayError } = await supabase
+        // Fetch eBay listings, cheapest first.
+        //
+        // This used .single(), which THROWS when a model has more than one row.
+        // Migration 015 made that the normal case, so it was a page that would
+        // have started 500ing as soon as the first model picked up a second
+        // listing.
+        const { data: ebayLinks, error: ebayError } = await supabase
           .from('ebay_links')
           .select('*')
           .eq('model_id', id)
-          .single();
+          .order('price_aud', { ascending: true });
 
-        console.log('🔗 eBay link fetch result:', { ebayLink, ebayError, modelId: id });
+        console.log('🔗 eBay link fetch result:', {
+          count: ebayLinks?.length ?? 0,
+          ebayError,
+          modelId: id,
+        });
 
         // Transform retailer data.
         // Skip rows with no usable price — a 0 is a failed extraction, not an
@@ -83,25 +92,26 @@ export default function ModelDetailPage() {
 
         console.log('💰 Retailers before eBay:', retailers);
 
-        // Add eBay as a retailer if eBay link exists
-        if (ebayLink) {
-          console.log('✅ eBay link exists, processing...');
+        // Every eBay listing becomes a row, cheapest first.
+        for (const ebayLink of ebayLinks || []) {
           const ebayPrice = parseFloat(ebayLink.ebay_price?.replace(/[^0-9.]/g, '') || '0');
-          console.log('💵 Parsed eBay price:', ebayPrice);
-          if (ebayPrice > 0) {
-            console.log('✅ Adding eBay to retailers');
-            retailers.push({
-              name: 'eBay',
-              price: ebayPrice,
-              currency: 'AUD', // Assuming USD in eBay price
-              availability: 'In Stock' as const,
-              url: ebayLink.ebay_url,
-            });
-          } else {
-            console.log('⚠️ eBay price is 0 or invalid');
+          if (!(ebayPrice > 0)) {
+            console.log('⚠️ eBay price is 0 or invalid for item', ebayLink.ebay_item_id);
+            continue;
           }
-        } else {
-          console.log('⚠️ No eBay link found for model:', id);
+          retailers.push({
+            name: ebayLink.seller ? `eBay — ${ebayLink.seller}` : 'eBay',
+            price: ebayPrice,
+            // Was hardcoded to 'AUD' with a comment saying it assumed USD, which
+            // could not both be true. The row records its own currency.
+            currency: ebayLink.currency || 'AUD',
+            availability: 'In Stock' as const,
+            url: ebayLink.ebay_url,
+          });
+        }
+
+        if (!(ebayLinks || []).length) {
+          console.log('⚠️ No eBay listings found for model:', id);
         }
 
         console.log('💰 Final retailers array:', retailers);

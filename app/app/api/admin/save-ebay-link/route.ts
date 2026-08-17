@@ -80,30 +80,74 @@ export async function POST(request: NextRequest) {
 
     const now = new Date().toISOString();
 
-    const { data, error } = await supabase
-      .from('ebay_links')
-      .upsert(
+    /**
+     * The listing id, which is what makes two listings on one model different
+     * things rather than a conflict.
+     *
+     * Derived from the URL when the caller does not supply one. It used to be
+     * stored as `ebayItemId ?? null`, and a NULL here is worse than it looks:
+     * Postgres treats NULLs as distinct, so once (model_id, ebay_item_id) is the
+     * unique key, every id-less save would insert another row instead of
+     * updating one. Every URL we hold carries an extractable id, so there is no
+     * reason to accept a null.
+     */
+    const itemId =
+      ebayItemId ||
+      (String(ebayUrl).match(/\/itm\/(?:[^/]*\/)?(\d{9,15})/) ||
+        String(ebayUrl).match(/[?&]item=(\d{9,15})/) ||
+        [])[1];
+
+    if (!itemId) {
+      return NextResponse.json(
         {
-          model_id: modelId,
-          ebay_url: ebayUrl,
-          ebay_price: ebayPrice != null ? String(ebayPrice) : null,
-          ebay_title: ebayTitle ?? null,
-          ebay_image: ebayImage ?? null,
-          ebay_item_id: ebayItemId ?? null,
-          marketplace: marketplace ?? null,
-          currency: numericPrice > 0 ? usableCurrency : null,
-          price_aud: numericPrice > 0 ? toAud(numericPrice, usableCurrency) : null,
-          // Adding a link IS a verification — the listing was just read.
-          // Without this the row reads as "never checked" and the site
-          // withholds the price, which is what caught out retailer links.
-          last_checked_at: now,
-          last_updated: now,
-          auto_linked: !!autoLinked,
+          error: 'Could not determine the eBay item id',
+          details:
+            'No id was supplied and none could be read from the URL. ' +
+            'An eBay listing URL normally contains /itm/<id>.',
         },
-        { onConflict: 'model_id' }
-      )
-      .select()
-      .single();
+        { status: 422 }
+      );
+    }
+
+    const row = {
+      model_id: modelId,
+      ebay_url: ebayUrl,
+      ebay_price: ebayPrice != null ? String(ebayPrice) : null,
+      ebay_title: ebayTitle ?? null,
+      ebay_image: ebayImage ?? null,
+      ebay_item_id: itemId,
+      marketplace: marketplace ?? null,
+      currency: numericPrice > 0 ? usableCurrency : null,
+      price_aud: numericPrice > 0 ? toAud(numericPrice, usableCurrency) : null,
+      // Adding a link IS a verification — the listing was just read.
+      // Without this the row reads as "never checked" and the site
+      // withholds the price, which is what caught out retailer links.
+      last_checked_at: now,
+      last_updated: now,
+      auto_linked: !!autoLinked,
+    };
+
+    // Look up then write, rather than upserting on a named conflict target.
+    // `onConflict: 'model_id'` needed the UNIQUE (model_id) that migration 015
+    // removes, so an upsert would have tied this route to whichever side of that
+    // migration the database happened to be on. This works either way.
+    const { data: existing, error: findError } = await supabase
+      .from('ebay_links')
+      .select('id')
+      .eq('model_id', modelId)
+      .eq('ebay_item_id', itemId)
+      .maybeSingle();
+
+    if (findError) {
+      return NextResponse.json(
+        { error: 'Failed to look up eBay link', details: findError.message },
+        { status: 500 }
+      );
+    }
+
+    const { data, error } = existing
+      ? await supabase.from('ebay_links').update(row).eq('id', existing.id).select().single()
+      : await supabase.from('ebay_links').insert(row).select().single();
 
     if (error) {
       console.error('❌ Error saving eBay link:', error);
@@ -128,17 +172,35 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * Remove eBay listings from a model.
+ *
+ * Pass `ebayItemId` to remove one listing. Without it this still removes every
+ * listing on the model, which was the only possible meaning when a model could
+ * hold just one — the existing "remove the eBay link" button relies on it.
+ *
+ * The count is returned because those two cases are no longer the same action,
+ * and a caller that meant to drop one listing should be able to notice it
+ * dropped six.
+ */
 export async function DELETE(request: NextRequest) {
   try {
-    const { modelId } = await request.json();
+    const { modelId, ebayItemId } = await request.json();
 
     if (!modelId) {
       return NextResponse.json({ error: 'Missing modelId' }, { status: 400 });
     }
 
-    console.log('🗑️ Removing eBay link for model:', modelId);
+    console.log(
+      ebayItemId
+        ? `🗑️ Removing eBay listing ${ebayItemId} from model ${modelId}`
+        : `🗑️ Removing ALL eBay listings for model ${modelId}`
+    );
 
-    const { error } = await supabase.from('ebay_links').delete().eq('model_id', modelId);
+    let q = supabase.from('ebay_links').delete().eq('model_id', modelId);
+    if (ebayItemId) q = q.eq('ebay_item_id', ebayItemId);
+
+    const { data, error } = await q.select('id');
 
     if (error) {
       console.error('❌ Error removing eBay link:', error);
@@ -148,8 +210,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log('✅ eBay link removed successfully');
-    return NextResponse.json({ success: true });
+    const removed = (data || []).length;
+    console.log(`✅ removed ${removed} eBay listing${removed === 1 ? '' : 's'}`);
+    return NextResponse.json({ success: true, removed });
   } catch (error: any) {
     console.error('💥 Fatal error:', error);
     return NextResponse.json(

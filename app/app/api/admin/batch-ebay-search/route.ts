@@ -156,8 +156,13 @@ export async function POST(request: NextRequest) {
       ...new Set((rows || []).map((m: any) => m.car?.event_name).filter(Boolean)),
     ] as string[];
 
-    const [{ data: links }, searchLog] = await Promise.all([
-      supabase.from('ebay_links').select('model_id, ebay_item_id'),
+    const [links, searchLog] = await Promise.all([
+      // Paged: a model can hold several listings now, so this table will pass
+      // the 1000-row PostgREST cap. Truncating it would silently forget which
+      // items are already spoken for and re-link them to a second model.
+      selectAll<any>(supabase, 'ebay_links', 'model_id, ebay_item_id'),
+      // Deliberately NOT paged — the `.error` below is how a missing table is
+      // detected, and selectAll throws instead. One row per model keeps it small.
       supabase.from('ebay_search_log').select('model_id, searched_at'),
     ]);
 
@@ -200,9 +205,20 @@ export async function POST(request: NextRequest) {
       // exact match against the stored name silently selects nothing.
       .filter(m => (team ? teamMatches(m.team, team) : true));
 
-    const candidates = inScope
-      .filter(m => !linkedModels.has(m.id))
-      .filter(m => !recentlySearched.has(m.id));
+    /**
+     * Already having a listing is no longer a reason to skip a model.
+     *
+     * This used to filter on `!linkedModels.has(m.id)`, which was right when one
+     * link per model was the goal — a linked model was a finished model. Now
+     * that a model holds every listing found for it, that filter would skip the
+     * 382 models that already have exactly one, which are precisely the ones
+     * with a market to discover. The feature would have appeared to do nothing.
+     *
+     * Nothing is re-linked as a result: `linkedItems` drops listings already
+     * stored from the pool, so a re-run sees only the ones we do not have.
+     * Rate limiting stays with `recheckAfterDays`, which is what it is for.
+     */
+    const candidates = inScope.filter(m => !recentlySearched.has(m.id));
 
     if (candidates.length === 0) {
       // "Nothing to do" and "the scope matched nothing" look identical from
@@ -210,8 +226,10 @@ export async function POST(request: NextRequest) {
       const message =
         inScope.length === 0
           ? `No models matched that scope — check the season and team.`
-          : `Nothing to search: all ${inScope.length} model(s) in scope are ` +
-            `already linked or were searched in the last ${recheckAfterDays} days.`;
+          : `Nothing to search: all ${inScope.length} model(s) in scope were ` +
+            `searched in the last ${recheckAfterDays} days. ` +
+            `${inScope.filter(m => linkedModels.has(m.id)).length} of them already ` +
+            `hold at least one listing. Pass recheckAfterDays: 0 to search anyway.`;
 
       return NextResponse.json({
         success: true,
@@ -302,6 +320,11 @@ export async function POST(request: NextRequest) {
             a.candidate.price != null
               ? toAud(a.candidate.price, a.candidate.currency)
               : null,
+          // Both were already read from the API by toCandidate and then thrown
+          // away. Condition is shown as a badge; seller is what dedupes one
+          // shop's repeated listings down to its cheapest.
+          item_condition: a.candidate.condition,
+          seller: a.candidate.seller,
           last_checked_at: new Date().toISOString(),
           last_updated: new Date().toISOString(),
           auto_linked: true,
@@ -356,21 +379,35 @@ export async function POST(request: NextRequest) {
     const autoWrites = writes.filter(w => w._autoLink);
     const review = writes.filter(w => !w._autoLink);
 
+    // A model can now hold several listings, so "how many rows" and "how many
+    // models" are different numbers. Reporting only the row count would read as
+    // a sudden jump in coverage when it is the same cars with more sellers, and
+    // `unmatched` computed as candidates - writes went negative the moment one
+    // model produced two rows.
+    const modelsWith = (rows: typeof writes) => new Set(rows.map(w => w.model_id)).size;
+
     const totals = {
       models: candidates.length,
       searches: groups.length,
-      autoLinked: autoWrites.length,
-      review: review.length,
-      unmatched: candidates.length - writes.length,
+      autoLinked: modelsWith(autoWrites),
+      autoLinkedListings: autoWrites.length,
+      review: modelsWith(review),
+      reviewListings: review.length,
+      unmatched: candidates.length - modelsWith(writes),
     };
 
     if (!dryRun && autoWrites.length) {
       // Only SKU matches are written. Review-tier matches are reported and
       // deliberately left for a person — see lib/ebayBatch.
       const payload = autoWrites.map(({ _tier, _autoLink, ...row }) => row);
+      // Keyed on the listing, not the model — migration 015 replaced
+      // UNIQUE (model_id) with UNIQUE (model_id, ebay_item_id) so a model can
+      // hold every listing found for it rather than one arbitrary winner.
+      // REQUIRES 015 to have been applied; before it, this conflict target does
+      // not exist.
       const { error: writeError } = await supabase
         .from('ebay_links')
-        .upsert(payload, { onConflict: 'model_id' });
+        .upsert(payload, { onConflict: 'model_id,ebay_item_id' });
 
       if (writeError) throw new Error(`Link write failed: ${writeError.message}`);
       console.log(`✅ linked ${payload.length} models`);

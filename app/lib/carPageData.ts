@@ -33,6 +33,17 @@ export interface CarRetailer {
   isPreorder?: boolean;
   /** EBAY_AU / EBAY_US, so the page can distinguish local from imported. */
   marketplace?: string | null;
+  /**
+   * eBay's own condition string (New, Used, ...), shown as a badge.
+   *
+   * Recorded for honesty rather than filtering. Used listings are frequently
+   * DEARER than new ones — AUD 255.70 used against 124.87 new on one model,
+   * because the new one came from a cheaper seller — so "used" is not a signal
+   * that a price is not comparable, and it is not excluded from anything.
+   */
+  condition?: string | null;
+  /** eBay seller username. Listings are deduped to the cheapest per seller. */
+  seller?: string | null;
 }
 
 export interface CarVariant {
@@ -122,8 +133,25 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
     if (!pricesByModel.has(p.model_id)) pricesByModel.set(p.model_id, []);
     pricesByModel.get(p.model_id)!.push(p);
   });
-  const ebayByModel = new Map<string, any>();
-  (allEbay || []).forEach((e: any) => ebayByModel.set(e.model_id, e));
+  /**
+   * Every eBay listing for a model, cheapest first — not one.
+   *
+   * This was `Map<string, any>` with a plain `.set()` per row, so once a model
+   * could hold several listings the last row read silently won and the page
+   * showed an arbitrary seller's price. That is the same defect migration 015
+   * exists to remove, so collapsing it here would have quietly undone the fix.
+   */
+  const ebayByModel = new Map<string, any[]>();
+  (allEbay || []).forEach((e: any) => {
+    if (!ebayByModel.has(e.model_id)) ebayByModel.set(e.model_id, []);
+    ebayByModel.get(e.model_id)!.push(e);
+  });
+  for (const list of ebayByModel.values()) {
+    list.sort(
+      (a: any, b: any) =>
+        (parseFloat(a.price_aud) || Infinity) - (parseFloat(b.price_aud) || Infinity)
+    );
+  }
 
   const variants: CarVariant[] = (modelVariants || []).map((variant: any) => {
     // Skip rows with no usable price — a 0 is a failed extraction, never an
@@ -146,35 +174,36 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
         };
       });
 
-    const ebayLink = ebayByModel.get(variant.id);
-    if (ebayLink) {
+    for (const ebayLink of ebayByModel.get(variant.id) || []) {
       const ebayPrice = parseFloat(String(ebayLink.ebay_price ?? '').replace(/[^0-9.]/g, '')) || 0;
-      if (ebayPrice > 0) {
-        // Currency used to be hardcoded to USD and priceAUD left unconverted,
-        // which understated every US listing. Both are stored properly now.
-        const ebayCurrency = ebayLink.currency || 'USD';
-        const ebayCheckedAt = ebayLink.last_checked_at || ebayLink.last_updated || null;
+      if (!(ebayPrice > 0)) continue;
 
-        retailers.push({
-          name: ebayLink.marketplace === 'EBAY_AU' ? 'eBay Australia' : 'eBay',
-          price: ebayPrice,
-          currency: ebayCurrency,
-          priceAUD: parseFloat(ebayLink.price_aud) || toAud(ebayPrice, ebayCurrency),
-          inStock: true,
-          // Affiliate tracking is applied here rather than at render time so
-          // every surface that shows this link gets it. Returns the URL
-          // unchanged when EBAY_CAMPAIGN_ID is not set.
-          url: ebayAffiliateUrl(ebayLink.ebay_url, {
-            marketplace: ebayLink.marketplace,
-            customId: variant.manufacturer_sku,
-          }),
-          checkedAt: ebayCheckedAt,
-          checkedLabel: formatAge(ebayCheckedAt),
-          priceHidden: shouldHidePrice(ebayCheckedAt),
-          isSecondary: true,
-          marketplace: ebayLink.marketplace || null,
-        });
-      }
+      // Currency used to be hardcoded to USD and priceAUD left unconverted,
+      // which understated every US listing. Both are stored properly now.
+      const ebayCurrency = ebayLink.currency || 'USD';
+      const ebayCheckedAt = ebayLink.last_checked_at || ebayLink.last_updated || null;
+
+      retailers.push({
+        name: ebayLink.marketplace === 'EBAY_AU' ? 'eBay Australia' : 'eBay',
+        price: ebayPrice,
+        currency: ebayCurrency,
+        priceAUD: parseFloat(ebayLink.price_aud) || toAud(ebayPrice, ebayCurrency),
+        inStock: true,
+        // Affiliate tracking is applied here rather than at render time so
+        // every surface that shows this link gets it. Returns the URL
+        // unchanged when EBAY_CAMPAIGN_ID is not set.
+        url: ebayAffiliateUrl(ebayLink.ebay_url, {
+          marketplace: ebayLink.marketplace,
+          customId: variant.manufacturer_sku,
+        }),
+        checkedAt: ebayCheckedAt,
+        checkedLabel: formatAge(ebayCheckedAt),
+        priceHidden: shouldHidePrice(ebayCheckedAt),
+        isSecondary: true,
+        marketplace: ebayLink.marketplace || null,
+        condition: ebayLink.item_condition || null,
+        seller: ebayLink.seller || null,
+      });
     }
 
     // "Cheapest" is the strongest claim on the page, so it may only draw on

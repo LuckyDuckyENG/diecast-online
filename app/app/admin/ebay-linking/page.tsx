@@ -2825,7 +2825,22 @@ export default function EbayLinkingAdmin() {
    * tier is reliable, but it is still writing links without anyone looking.
    */
   const runBatchEbay = async (dryRun: boolean) => {
-    const body: any = { dryRun };
+    const body: any = {
+      dryRun,
+      /**
+       * Search regardless of when this model was last searched.
+       *
+       * The route defaults to 30 days, which was right when one listing per
+       * model was the goal: a searched model was a finished model, and skipping
+       * it saved an API call. A model now holds every listing found for it, so
+       * a re-search is what discovers the other sellers — and with the log
+       * running only days old, the 30-day default would skip every model that
+       * already has a link and report "nothing to search".
+       *
+       * A full pass is around 28 broad searches, so there is nothing to save.
+       */
+      recheckAfterDays: 0,
+    };
     if (batchSeason) {
       body.season = parseInt(batchSeason, 10);
       if (batchTeam) body.team = batchTeam;
@@ -2836,11 +2851,13 @@ export default function EbayLinkingAdmin() {
     if (!dryRun) {
       const label = batchSeason
         ? `${batchSeason}${batchTeam ? ' ' + batchTeam : ''}`
-        : 'every unlinked model';
+        : 'every model';
       const ok = confirm(
         `Link eBay listings for ${label}?\n\n` +
         `Only listings whose title contains the model's SKU are linked ` +
-        `automatically. Everything else is reported for you to decide.`
+        `automatically. Everything else is reported for you to decide.\n\n` +
+        `A model keeps EVERY listing found for it, deduped to the cheapest per ` +
+        `seller, so models that already have one link will gain more.`
       );
       if (!ok) return;
     }
@@ -4096,8 +4113,26 @@ export default function EbayLinkingAdmin() {
                 <div className="flex flex-wrap gap-4 text-gray-400 mb-3">
                   <span>models in scope: <strong className="text-[var(--text-primary)]">{r.totals.models}</strong></span>
                   <span>eBay searches: <strong className="text-[var(--text-primary)]">{r.totals.searches}</strong></span>
-                  <span>{r.dryRun ? 'would link' : 'linked'}: <strong className="text-green-400">{r.totals.autoLinked}</strong></span>
-                  <span>needs review: <strong className={r.totals.review ? 'text-yellow-500' : 'text-[var(--text-primary)]'}>{r.totals.review}</strong></span>
+                  {/* Models and listings are different numbers now that a model
+                      keeps every listing found for it. Showing only the row
+                      count would read as a jump in coverage when it is the same
+                      cars with more sellers. */}
+                  <span>
+                    {r.dryRun ? 'would link' : 'linked'}:{' '}
+                    <strong className="text-green-400">{r.totals.autoLinked}</strong> models
+                    {r.totals.autoLinkedListings != null && (
+                      <>
+                        {' / '}
+                        <strong className="text-green-400">{r.totals.autoLinkedListings}</strong> listings
+                      </>
+                    )}
+                  </span>
+                  <span>
+                    needs review:{' '}
+                    <strong className={r.totals.review ? 'text-yellow-500' : 'text-[var(--text-primary)]'}>
+                      {r.totals.review}
+                    </strong>
+                  </span>
                   <span>no match: <strong className="text-[var(--text-primary)]">{r.totals.unmatched}</strong></span>
                 </div>
 

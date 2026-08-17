@@ -263,21 +263,48 @@ export function matchGroup(
       .filter(x => x.v.tier === 'sku-match')
       .sort((a, b) => cheapestFirst(a.c, b.c));
 
-    if (hits.length) {
-      const best = hits[0];
-      const wrongRace = contradictsEvent(best.c.title, model.event, knownEvents);
+    if (!hits.length) continue;
 
-      claimed.add(idOf(best.c));
-      assigned.add(model.id);
+    /**
+     * Keep EVERY SKU match, not just the cheapest.
+     *
+     * This used to take hits[0] and throw the rest away, which made the site
+     * quote one seller's asking price as if it were the price. The spread is
+     * wide enough that the choice mattered: of 52 models with more than one
+     * listing, 34 had a cheaper one than we displayed, the worst showing
+     * AUD 426.45 for something available at 124.87. The SKU is printed in the
+     * title of every one of these, so identity is equally certain for all of
+     * them — there was never a reason to pick.
+     *
+     * Deduped to the cheapest listing per seller. hobbyland.bg lists the same
+     * model twice at 296.89 and 321.56, and two rows from one shop do not
+     * represent two competing offers. `hits` is already cheapest-first, so the
+     * first sighting of a seller is the one to keep.
+     *
+     * A listing with no seller falls back to its own item id, so missing seller
+     * data cannot collapse several distinct listings into one.
+     */
+    const perSeller = new Map<string, (typeof hits)[number]>();
+    for (const h of hits) {
+      const key = (h.c.seller || ` item:${h.c.itemId}`).toLowerCase();
+      if (!perSeller.has(key)) perSeller.set(key, h);
+    }
+
+    assigned.add(model.id);
+
+    for (const h of perSeller.values()) {
+      const wrongRace = contradictsEvent(h.c.title, model.event, knownEvents);
+
+      claimed.add(idOf(h.c));
       assignments.push({
         model,
-        candidate: best.c,
+        candidate: h.c,
         tier: 'sku-match',
         // A contradiction means either our SKU is wrong or the seller's title
         // is. Both are worth a human look, and neither is safe to write blind.
         reason: wrongRace
           ? `SKU ${model.sku} matches, but the listing says ${wrongRace} and this model is ${model.event} — one of them is wrong`
-          : best.v.reason,
+          : h.v.reason,
         autoLink: !wrongRace,
       });
     }
@@ -293,6 +320,11 @@ export function matchGroup(
   // Requiring BOTH is the point. Every sibling in this group shares the driver
   // for a given race and every one shares the chassis, so either signal alone
   // is satisfied by a dozen wrong listings.
+  //
+  // Deliberately still ONE candidate, unlike pass 1. Pass 1 keeps everything
+  // because a printed SKU makes each listing independently certain; here the
+  // match is inferred from a title, so more rows would just mean more guesses
+  // to check — and a person has to check every one of them by hand.
   for (const model of group.models) {
     if (assigned.has(model.id)) continue;
 

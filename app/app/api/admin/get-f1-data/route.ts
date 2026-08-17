@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { selectAll } from '@/lib/selectAll';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -71,22 +72,20 @@ export async function GET(request: NextRequest) {
       throw new Error(`Failed to fetch models: ${modelsError.message}`);
     }
 
-    // Fetch all eBay links
-    const { data: ebayLinks, error: ebayLinksError } = await supabase
-      .from('ebay_links')
-      .select('*');
+    // Both paged. These drive what the admin believes is already linked, and a
+    // plain .select() stops at 1000 rows without erroring -- which would show
+    // linked models as unlinked and invite duplicate work.
+    const ebayLinks = await selectAll<any>(supabase, 'ebay_links', '*');
 
-    if (ebayLinksError) {
-      throw new Error(`Failed to fetch eBay links: ${ebayLinksError.message}`);
-    }
-
-    // Fetch all retailer price history (this is what frontend uses!)
-    const { data: priceHistory, error: priceHistoryError } = await supabase
-      .from('price_history')
-      .select('*, retailer:retailers(name)');
-
-    if (priceHistoryError) {
-      console.warn('⚠️ Warning fetching price history:', priceHistoryError.message);
+    let priceHistory: any[] = [];
+    try {
+      priceHistory = await selectAll<any>(
+        supabase,
+        'price_history',
+        '*, retailer:retailers(name)'
+      );
+    } catch (err: any) {
+      console.warn('⚠️ Warning fetching price history:', err.message);
     }
 
     // Build a map of eBay links by model_id for quick lookup

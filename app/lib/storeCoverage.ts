@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { selectAll } from './selectAll';
 
 /**
  * Whether /browse hides cars that nobody sells yet.
@@ -20,31 +21,31 @@ export const REQUIRE_RETAILER = process.env.NEXT_PUBLIC_REQUIRE_RETAILER !== 'fa
  * Note: despite the name, price_history holds one CURRENT row per
  * (model, retailer) — refresh-prices updates in place rather than appending —
  * so a plain existence check is correct here.
+ *
+ * BOTH reads must be paged. This decides what appears in the browse grid, and a
+ * plain `.select()` stops at PostgREST's 1000-row cap without erroring — so once
+ * price_history passed 1000 (it reached 1,151 on 2026-08-17) the tail of it
+ * simply stopped counting, and models that ARE buyable quietly vanished from
+ * browse. A truncation here looks exactly like "nobody sells this".
  */
 export async function fetchModelIdsWithStore(): Promise<Set<string>> {
   const ids = new Set<string>();
 
-  const [retailerResult, ebayResult] = await Promise.all([
-    supabase.from('price_history').select('model_id'),
-    supabase.from('ebay_links').select('model_id'),
-  ]);
-
-  if (retailerResult.error) {
-    // Fail loudly-ish: without this the grid would silently empty out.
-    console.error('Error fetching retailer links:', retailerResult.error.message);
-    throw new Error(retailerResult.error.message);
-  }
-  (retailerResult.data || []).forEach((row: any) => {
+  // Retailer links are required — if this read fails the grid would silently
+  // empty out, so let it throw rather than return a plausible-looking subset.
+  const retailerRows = await selectAll<any>(supabase, 'price_history', 'model_id');
+  retailerRows.forEach(row => {
     if (row.model_id) ids.add(row.model_id);
   });
 
   // eBay is optional — never let it take down the grid.
-  if (ebayResult.error) {
-    console.warn('Could not read eBay links:', ebayResult.error.message);
-  } else {
-    (ebayResult.data || []).forEach((row: any) => {
+  try {
+    const ebayRows = await selectAll<any>(supabase, 'ebay_links', 'model_id');
+    ebayRows.forEach(row => {
       if (row.model_id) ids.add(row.model_id);
     });
+  } catch (err: any) {
+    console.warn('Could not read eBay links:', err.message);
   }
 
   return ids;
