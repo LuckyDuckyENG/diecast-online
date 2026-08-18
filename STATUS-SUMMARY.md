@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-08-18
+# Status Summary — last updated 2026-08-19
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -7,7 +7,7 @@
 
 ```
 cars 406  |  models 543  |  retailer links 1151  |  eBay links 429  |  retailers 48  |  drivers 46
-price observations 430 (all eBay so far)  |  eBay links stale: 0
+price observations 1572 (1142 retailer + 430 eBay)  |  links stale: 0 of 1580
 seasons: 2021 (69) + 2022 (83) + 2023 (98) + 2024 (66) + 2025 (90)     slugs: 406/406
 models buyable 502/543   |   images 326/543   |   currencies: AUD, EUR, GBP, USD
 retailer links by state: 638 in stock · 45 pre-order · 487 out of stock
@@ -394,9 +394,15 @@ correct a bad row with.
 sources get deleted routinely, and the observation of a price that WAS real should
 outlive the thing that had it.
 
-**430 rows so far, all from eBay.** `refresh-prices` also records observations
-now, so the retailer series — 1,151 links, most of the eventual data — starts on
-the next Refresh All Retailers. There is nothing worth displaying until several
+**1,572 rows: 1,142 retailer + 430 eBay**, covering 502 of 543 models. The first
+full retailer refresh ran 2026-08-19 — 1,151 checked, 202 prices updated, 940
+unchanged, 8 with no price found, 1 quarantined (an Anthony's pre-order page
+reading AUD 5000 against a stored 399.99; the 5x guard refused it).
+
+**No source has been observed twice yet**, so there is no trend to draw: eBay was
+read on the 17th and retailers on the 18th-19th. A model showing "more than one
+observation" today has several SOURCES at one moment, not a series. The time
+dimension starts on the second run of each job. There is nothing worth displaying until several
 observations exist per model across weeks; a range ("seen between AUD 124 and 426
 over 6 months") is most of the value and needs no new UI concepts.
 
@@ -561,6 +567,14 @@ a retailer are submitted (96 of 164). `/admin`, `/api/`, `/search` disallowed.
   emit several listings per model turned a panel label into "30/19 matched" — the
   numerator had become listings while the denominator stayed models. Guarded against
   it in the totals and then missed it one component away.
+- **The 1000-row cap hides in worklists, not just in counts.** Found in SEVEN
+  places over two days, and the dangerous ones were never the displayed numbers:
+  the sitemap's page list, the sweep's existing-link map, and `refresh-prices`
+  plan mode, which returned exactly 1000 of 1,151 links so a full refresh would
+  have skipped 151 silently — no refresh, no history row, nothing on screen. Caught
+  by noticing "total links to refresh: 1000", a suspiciously round number. Treat
+  any unpaged select that feeds a LIST OF WORK as suspect, not just ones that
+  feed a total.
 - **An audit script is code too.** The first read of the post-sweep numbers reported
   "1000 retailer links" — the cap, not a total — which made a fully successful
   338-row sweep look half-failed and produced wrong coverage figures. Page the

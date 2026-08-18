@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { toAud } from '@/lib/currency';
 import { recordObservations, type Observation } from '@/lib/priceObservation';
+import { selectAll } from '@/lib/selectAll';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -235,18 +236,27 @@ export async function POST(request: NextRequest) {
     // minutes and progress is visible.
     // ------------------------------------------------------------------
     if (plan) {
-      let planQuery = supabase
-        .from('price_history')
-        .select('id, retailer_id')
-        .not('product_url', 'is', null);
-
-      if (modelId) planQuery = planQuery.eq('model_id', modelId);
-      if (retailerId) planQuery = planQuery.eq('retailer_id', retailerId);
-
-      const { data: planRows, error: planError } = await planQuery;
-      if (planError) {
-        throw new Error(`Failed to build refresh plan: ${planError.message}`);
-      }
+      /**
+       * Paged. This is the list of everything the refresh will touch, so a
+       * truncation here is not a slow refresh — it is links that never get
+       * refreshed and never get a history row, with nothing on screen to say so.
+       *
+       * price_history reached 1,151 rows on 2026-08-17 and this select was
+       * capped at PostgREST's silent 1000, so the plan was quietly 151 short.
+       * Caught by noticing "total links to refresh: 1000" — a suspiciously round
+       * number — while sampling before a full run.
+       */
+      const planRows = await selectAll<any>(
+        supabase,
+        'price_history',
+        'id, retailer_id',
+        q => {
+          let built = q.not('product_url', 'is', null);
+          if (modelId) built = built.eq('model_id', modelId);
+          if (retailerId) built = built.eq('retailer_id', retailerId);
+          return built;
+        }
+      );
 
       const ordered = interleaveByRetailer(planRows || []);
       console.log(`📋 Refresh plan: ${ordered.length} link(s) across ${new Set(ordered.map(r => r.retailer_id)).size} retailer(s)`);
