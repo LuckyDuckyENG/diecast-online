@@ -44,6 +44,16 @@ export interface CarRetailer {
   condition?: string | null;
   /** eBay seller username. Listings are deduped to the cheapest per seller. */
   seller?: string | null;
+  /**
+   * Listed, but nothing left to sell.
+   *
+   * A separate axis from inStock, and the only eBay state we can state
+   * truthfully: a listing that has VANISHED returns 404 with no detail — sold,
+   * expired and delisted are identical — but one that is sold out while still up
+   * says so, and its link still works. Kept visible with its price, because for
+   * older models eBay is often the only evidence a model exists at all.
+   */
+  soldOut?: boolean;
 }
 
 export interface CarVariant {
@@ -146,11 +156,15 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
     if (!ebayByModel.has(e.model_id)) ebayByModel.set(e.model_id, []);
     ebayByModel.get(e.model_id)!.push(e);
   });
+  // Buyable first, then cheapest. Sorting on price alone would let a sold-out
+  // listing head the list purely for being cheap, which reads as the best offer
+  // and is the one thing you cannot act on.
+  const isSoldOut = (r: any) => /OUT_OF_STOCK/i.test(r.availability || '');
   for (const list of ebayByModel.values()) {
-    list.sort(
-      (a: any, b: any) =>
-        (parseFloat(a.price_aud) || Infinity) - (parseFloat(b.price_aud) || Infinity)
-    );
+    list.sort((a: any, b: any) => {
+      if (isSoldOut(a) !== isSoldOut(b)) return isSoldOut(a) ? 1 : -1;
+      return (parseFloat(a.price_aud) || Infinity) - (parseFloat(b.price_aud) || Infinity);
+    });
   }
 
   const variants: CarVariant[] = (modelVariants || []).map((variant: any) => {
@@ -203,6 +217,7 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
         marketplace: ebayLink.marketplace || null,
         condition: ebayLink.item_condition || null,
         seller: ebayLink.seller || null,
+        soldOut: isSoldOut(ebayLink),
       });
     }
 

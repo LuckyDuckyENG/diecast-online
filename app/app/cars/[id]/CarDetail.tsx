@@ -310,6 +310,19 @@ export default function CarDetail({
                                       <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
                                         Secondary market
                                       </span>
+                                      {/* Listed, but nothing left. eBay says so
+                                          for a listing still up, which is the
+                                          only stock claim we can make about it —
+                                          a vanished listing returns a bare 404
+                                          and gets deleted instead. Kept visible
+                                          with its price because for older models
+                                          this is often the only evidence the
+                                          model exists. */}
+                                      {retailer.soldOut && (
+                                        <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-bold">
+                                          Sold out
+                                        </span>
+                                      )}
                                       {/* Condition is stated, not judged. A used
                                           model is often DEARER than a new one here
                                           — the cheapest listing came from the
