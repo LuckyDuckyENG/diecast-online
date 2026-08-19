@@ -1,0 +1,66 @@
+team,driver_name,event_name,livery_name,year,manufacturer,sku_1_18,sku_1_43,notes,verification_status
+Alpine,Franco Colapinto,Australian GP,A526,2026,Minichamps,117260143,417260143,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Alpine,Franco Colapinto,Chinese GP,A526,2026,Spark,,S9367,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Alpine,Pierre Gasly,Australian GP,A526,2026,Minichamps,117260110,417260110,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Alpine,Pierre Gasly,Chinese GP,A526,2026,Spark,,S9366,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Alpine,Pierre Gasly,Monaco GP,A526,2026,Spark,,S9342,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Aston Martin,Fernando Alonso,Japanese GP,AMR26,2026,Minichamps,117260314,417260314,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Aston Martin,Fernando Alonso,Japanese GP,AMR26,2026,Spark,,S9368,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Aston Martin,Lance Stroll,Japanese GP,AMR26,2026,Minichamps,117260318,417260318,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Aston Martin,Lance Stroll,Japanese GP,AMR26,2026,Spark,,S9369,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Audi,Gabriel Bortoleto,Australian GP,R26,2026,Minichamps,117260105,417260105,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Audi,Gabriel Bortoleto,Australian GP,R26,2026,Spark,18S1264,S9373,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Audi,Nico Hulkenberg,Australian GP,R26,2026,Minichamps,117260127,417260127,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Audi,Nico Hulkenberg,Australian GP,R26,2026,Spark,18S1263,S9372,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Cadillac,Sergio Perez,Australian GP,MAC-26,2026,Spark,18S1255,S9374,1st Race Spark 1:18 18S1255; 1st Race Spark 1:43 S9374,"CONFIRMED — the same SKU is listed by Anthony's and Stone Model, two independent shops agreeing on a structured field"
+Cadillac,Valtteri Bottas,Australian GP,MAC-26,2026,Spark,18S1256,S9375,1st Race Spark 1:18 18S1256; 1st Race Spark 1:43 S9375,"CONFIRMED — the same SKU is listed by Anthony's and Stone Model, two independent shops agreeing on a structured field"
+Ferrari,Charles Leclerc,Australian GP,SF-26,2026,Looksmart,LS18F1080,LSF1080,,"CONFIRMED — the same SKU is listed by Anthony's and Stone Model, two independent shops agreeing on a structured field"
+Ferrari,Charles Leclerc,Belgian GP,SF-26,2026,Looksmart,LS18F1089,,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Ferrari,Charles Leclerc,British GP,SF-26,2026,Looksmart,LS18F187,LSF1088,Winner Looksmart 1:18 LS18F1087; Winner Looksmart 1:43 LSF1088,"CONFIRMED — the same SKU is listed by Anthony's and Stone Model, two independent shops agreeing on a structured field"
+Ferrari,Charles Leclerc,British GP,SF-26,2026,BBR,BBR2618D16,BBRC332D16,Winner 2026 BBR 1:18 with Leather Base; Winner 2026 BBR 1:43 BBRC332D16,"CONFIRMED — the same SKU is listed by Anthony's and Stone Model, two independent shops agreeing on a structured field"
+Ferrari,Charles Leclerc,Canadian GP,SF-26,2026,Looksmart,LS18F1084,,,SINGLE SOURCE — only Stone Model lists this; SKU is unconfirmed and the car is inferred from one title
+Ferrari,Charles Leclerc,Chinese GP,SF-26,2026,BBR,BBR2618A16DIE,BBRC332A16,,SINGLE SOURCE — only Stone Model lists this; SKU is unconfirmed and the car is inferred from one title
+Ferrari,Charles Leclerc,Japanese GP,SF-26,2026,BBR,BBR2618B16,BBRC332B16,,"SINGLE SOURCE — only Anthony's, Stone Model lists this; SKU is unconfirmed and the car is inferred from one title"
+Ferrari,Charles Leclerc,Japanese GP,SF-26,2026,Looksmart,LS18F1082,LSF1082,3rd Place #16 Leclerc LS18F1082; 3rd Place #16 Leclerc LSF1082,"CONFIRMED — the same SKU is listed by Anthony's and Stone Model and Horizondiecast, two independent shops agreeing on a structured field"
+Ferrari,Lewis Hamilton,Belgian GP,SF-26,2026,Looksmart,LS18F1090,,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Ferrari,Lewis Hamilton,British GP,SF-26,2026,Looksmart,LS18F1088,LSF1089,Podium Looksmart 1:18 LS18F1088; Podium Looksmart 1:43 LSF1089,"CONFIRMED — the same SKU is listed by Anthony's and Stone Model, two independent shops agreeing on a structured field"
+Ferrari,Lewis Hamilton,British GP,SF-26,2026,BBR,BBR2618D44DIE,BBRC332D44,Podium 2026 BBR 1:18 with Leather Base; Podium 2026 BBR 1:43 BBRC332D44,SINGLE SOURCE — only Stone Model lists this; SKU is unconfirmed and the car is inferred from one title
+Ferrari,Lewis Hamilton,Canadian GP,SF-26,2026,Looksmart,LS18F1083,LSF1084,,SINGLE SOURCE — only Stone Model lists this; SKU is unconfirmed and the car is inferred from one title
+Ferrari,Lewis Hamilton,Chinese GP,SF-26,2026,BBR,BBR2618A44DIE,BBRC332A44,,SINGLE SOURCE — only Stone Model lists this; SKU is unconfirmed and the car is inferred from one title
+Ferrari,Lewis Hamilton,Chinese GP,SF-26,2026,Looksmart,LS18F1081,LSF1081,,SINGLE SOURCE — only Stone Model lists this; SKU is unconfirmed and the car is inferred from one title
+Ferrari,Lewis Hamilton,Japanese GP,SF-26,2026,BBR,BBR2618B44,BBRC332B44,,"SINGLE SOURCE — only Anthony's, Stone Model lists this; SKU is unconfirmed and the car is inferred from one title"
+Ferrari,Lewis Hamilton,Japanese GP,SF-26,2026,Looksmart,,LSF1083,,"CONFIRMED — the same SKU is listed by Anthony's and Stone Model, two independent shops agreeing on a structured field"
+Ferrari,Lewis Hamilton,Monaco GP,SF-26,2026,Looksmart,LS18F1085,LSF1086,,"CONFIRMED — the same SKU is listed by Anthony's and Stone Model, two independent shops agreeing on a structured field"
+Haas F1 Team,Esteban Ocon,Australian GP,VF-26,2026,Minichamps,117260131,417260131,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Haas F1 Team,Esteban Ocon,Australian GP,VF-26,2026,Spark,18S1265,S9376,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Haas F1 Team,Oliver Bearman,Australian GP,VF-26,2026,Minichamps,117260187,417260187,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Haas F1 Team,Oliver Bearman,Chinese GP,VF-26,2026,Spark,18S1266,S9377,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+McLaren,Lando Norris,Australian GP,MCL40,2026,Spark,18S1267,S9378,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+McLaren,Lando Norris,British GP,MCL40,2026,Spark,,S9336,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+McLaren,Lando Norris,Miami GP,MCL40,2026,Spark,,S9404,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+McLaren,Lando Norris,Monaco GP,MCL40,2026,Spark,,S9345,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+McLaren,Lando Norris,Monaco GP,MCL40,2026,Minichamps,,537264804,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+McLaren,Oscar Piastri,British GP,MCL40,2026,Spark,,S9337,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+McLaren,Oscar Piastri,Japanese GP,MCL40,2026,Minichamps,,537264581,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+McLaren,Oscar Piastri,Japanese GP,MCL40,2026,Spark,18S1268,S9379,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+McLaren,Oscar Piastri,Miami GP,MCL40,2026,Spark,,S9405,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+McLaren,Oscar Piastri,Monaco GP,MCL40,2026,Spark,,S9346,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+McLaren,Oscar Piastri,Monaco GP,MCL40,2026,Minichamps,,537264881,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Mercedes-AMG Petronas,Andrea Kimi Antonelli,Chinese GP,W17E,2026,Minichamps,117260222,417260212,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Mercedes-AMG Petronas,Andrea Kimi Antonelli,Chinese GP,W17E,2026,Spark,18S1270,S9381,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Mercedes-AMG Petronas,George Russell,Australian GP,W17E,2026,Minichamps,117260163,417260163,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Mercedes-AMG Petronas,George Russell,Australian GP,W17E,2026,Spark,18S1269,S9380,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Racing Bulls,Arvid Lindblad,Australian GP,VCARB-03,2026,Minichamps,117260141,417260141,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Racing Bulls,Arvid Lindblad,Australian GP,VCARB-03,2026,Spark,18S1272,S9383,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Racing Bulls,Arvid Lindblad,Japanese GP,VCARB-03,2026,Spark,18S1262,S9391,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Racing Bulls,Liam Lawson,Australian GP,VCARB-03,2026,Minichamps,117260130,417260130,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Racing Bulls,Liam Lawson,Chinese GP,VCARB-03,2026,Spark,18S1271,S9382,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Racing Bulls,Liam Lawson,Japanese GP,VCARB-03,2026,Spark,18S1261,S9390,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Red Bull Racing,Isack Hadjar,Australian GP,RB22,2026,Minichamps,117260106,417260106,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Red Bull Racing,Isack Hadjar,Chinese GP,RB22,2026,Spark,18S1274,S9385,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Red Bull Racing,Max Verstappen,Australian GP,RB22,2026,Minichamps,117260103,417260103,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Red Bull Racing,Max Verstappen,Australian GP,RB22,2026,Spark,18S1273,S9384,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Williams,Alex Albon,Australian GP,FW48,2026,Minichamps,117260123,417260123,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Williams,Alex Albon,Japanese GP,FW48,2026,Spark,,S9371,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Williams,Carlos Sainz,Australian GP,FW48,2026,Minichamps,117260155,417260155,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
+Williams,Carlos Sainz,Japanese GP,FW48,2026,Spark,,S9370,,SINGLE SOURCE — only Anthony's lists this; SKU is unconfirmed and the car is inferred from one title
