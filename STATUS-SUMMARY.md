@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-08-19
+# Status Summary — last updated 2026-08-20
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -587,6 +587,72 @@ a retailer are submitted (96 of 164). `/admin`, `/api/`, `/search` disallowed.
   "Red Bull Racing", so an exact-match filter selected nothing — and reported it as
   "nothing to search", which reads as *done* rather than *matched nothing*. Use
   `teamMatches()`, and make empty results say which kind of empty they are.
+
+## 2026 — a season built from shop feeds, not a CSV
+
+`app/scripts/build-season-csv.mjs` (commit b85b114). Run:
+
+```
+node scripts/build-season-csv.mjs --year 2026
+```
+
+**Why this exists.** The catalogue is imported from hand-built CSVs, which works
+for a finished season and not for the current one — 2026 is two-thirds run,
+models release continuously, and there is no settled list to transcribe. The
+shops are the live record, and a sweep already downloads them: it matches on SKU
+and discards the rest, and for 2026 that discarded remainder IS the season.
+164 F1 products at Anthony's, 179 at Downies, 60 at Stone Model.
+
+**It writes a CSV, never the database.** Everywhere else a bad match produces a
+wrong price on a real car — visible and fixable. Here it would invent a car that
+never existed, which then attracts its own eBay links and retailer rows and looks
+legitimate forever. The CSV puts a person in between and reuses sync-csv.js.
+
+**Two passes, not one regex per shop.** Anthony's format is rigid, so parse it
+strictly to learn the season's vocabulary (11 chassis + teams, 22 drivers,
+events), then recognise those fields in any shop's title regardless of word
+order. The vocabulary doubles as a fence: a grid is 11 teams of two, so anything
+outside it is self-evidently wrong. That is why 2026 was chosen first and why the
+1990s would not have been.
+
+**Current output: 65 rows, every team with exactly two drivers, 9 cross-confirmed
+by two shops agreeing on a SKU.**
+
+### NOT yet imported — what 2026 still needs
+
+1. **Reference rows sync-csv.js will not create.** It looks up season, team and
+   driver and SKIPS the row if any is missing. Create: **season 2026**, teams
+   **Audi** and **Cadillac**, driver **Arvid Lindblad**. Everything else mapped
+   onto existing names.
+2. **Read the CSV.** `verification_status` marks 9 rows CONFIRMED and 56 SINGLE
+   SOURCE. Then `node sync-csv.js ../f1_2026_models_by_team.csv --dry-run`.
+3. **Spot-check five or six rows against the actual product pages.** Nothing has
+   been verified against an independent source yet. A coherent grid rules out
+   STRUCTURAL error, not a wrong event-to-SKU pairing.
+4. **328 titles matched no fields.** High. Likely Downies/Stone phrasing events
+   in ways the vocabulary never learned from Anthony's, so probably recoverable
+   rather than out of scope. Worth checking before treating 65 as all of 2026.
+
+### Lessons from building it
+
+- **A structural invariant catches what the matcher cannot.** Chassis were
+  matched by substring, and Aston Martin's AMR26 contains Audi's R26 — so every
+  Aston Martin product became an Audi one and **Audi finished with four
+  drivers**. Nothing in the matcher could complain. A two-driver team is what
+  made it visible. Now matched as whole tokens, hyphens folded first so "SF-26"
+  stays one token.
+- **Canonicalise names as the vocabulary is LEARNED, not after.** Fold later and
+  it already contains both "Japan GP" and "Japanese GP", so the same race yields
+  two different cars depending which shop listed it. Also "HAAS" finds no team
+  and drops the row; "Charles LeClerc" creates a second person.
+- **eBay is the wrong verifier for a current season.** 2026 models are unshipped
+  pre-orders with no secondary market, and five-character Spark SKUs like `S9367`
+  collide with sewing patterns and revenue stamps. Cross-shop agreement is the
+  only independent check available here.
+- **Do not hammer the feeds.** Five full catalogue downloads in ten minutes
+  earned an HTTP 429 across four shops, and the empty responses got cached and
+  read as authoritative. The script now refuses to cache an empty feed and says
+  so loudly.
 
 ## Next up
 
