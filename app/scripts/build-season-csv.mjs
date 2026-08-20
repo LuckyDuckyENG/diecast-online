@@ -383,19 +383,22 @@ for (const shop of SHOPS.filter(s => s.structured)) {
     if (team && chassis) {
       chassisToTeam.set(key(chassis), { team: canonicalTeam(team, knownTeams), chassis });
     }
+    // Stored as { spelling, canonical }: MATCH on what the shop wrote, WRITE
+    // what the catalogue says. Storing only the canonical form meant a title
+    // reading "Barcelona GP" was searched for the tokens of "Spanish GP" and
+    // never found — 71 titles lost to an alias table that was built and then
+    // never consulted.
     const d = cleanDriver(p.driver);
     if (d) {
       const canon = canonicalDriver(d, knownDrivers);
-      drivers.set(key(canon), canon);
-      // Index the shop's spelling too, so extraction still recognises
-      // "Charles LeClerc" in a title while writing "Charles Leclerc" out.
-      drivers.set(key(d), canon);
+      drivers.set(key(canon), { spelling: canon, canonical: canon });
+      drivers.set(key(d), { spelling: d, canonical: canon });
     }
     const e = cleanEvent(p.event);
     if (e) {
       const canon = canonicalEvent(e, knownEvents);
-      events.set(key(canon), canon);
-      events.set(key(e), canon);
+      events.set(key(canon), { spelling: canon, canonical: canon });
+      events.set(key(e), { spelling: e, canonical: canon });
     }
   }
 }
@@ -403,8 +406,11 @@ for (const shop of SHOPS.filter(s => s.structured)) {
 console.log(`\nvocabulary learned from the structured feed:`);
 console.log(`  chassis/teams : ${chassisToTeam.size}`);
 for (const { team, chassis } of chassisToTeam.values()) console.log(`      ${chassis.padEnd(12)} ${team}`);
-console.log(`  drivers       : ${drivers.size}  ${[...drivers.values()].join(', ')}`);
-console.log(`  events        : ${events.size}  ${[...events.values()].join(', ')}`);
+console.log(`  drivers       : ${new Set([...drivers.values()].map(v => v.canonical)).size}  ` +
+  `${[...new Set([...drivers.values()].map(v => v.canonical))].join(', ')}`);
+console.log(`  events        : ${new Set([...events.values()].map(v => v.canonical)).size}  ` +
+  `${[...new Set([...events.values()].map(v => v.canonical))].join(', ')}`);
+console.log(`  (matching on ${drivers.size} driver spellings and ${events.size} event spellings)`);
 
 if (!chassisToTeam.size) {
   console.error(`\nNo ${YEAR} chassis found in the structured feed — nothing to match against.`);
@@ -428,6 +434,31 @@ const tokens = s =>
 
 const tokenKey = s => s.toUpperCase().replace(/[-._/]/g, '').replace(/[^A-Z0-9]/g, '');
 
+/**
+ * A chassis code, however the shop spaced it.
+ *
+ *   Anthony's  "VCARB-03"  -> one token VCARB03
+ *   Downies    "VCARB 03"  -> two tokens VCARB, 03
+ *
+ * Hyphens fold away but spaces split, so those two never met and 73 titles were
+ * dropped for naming no chassis at all. Checks the joined form first, then the
+ * letter/digit runs as consecutive tokens.
+ *
+ * Still whole-token, so the AMR26/R26 collision stays fixed: "R26" splits to
+ * R + 26, and no title contains a lone "R" token before "26".
+ */
+function hasChassis(tk, chassis) {
+  const joined = tokenKey(chassis);
+  if (tk.includes(joined)) return true;
+
+  const parts = joined.match(/[A-Z]+|\d+/g) || [];
+  if (parts.length < 2) return false;
+  for (let i = 0; i + parts.length <= tk.length; i++) {
+    if (parts.every((p, j) => tk[i + j] === p)) return true;
+  }
+  return false;
+}
+
 function extract(title) {
   const scale = scaleOf(title);
   if (!scale) return null;
@@ -445,7 +476,7 @@ function extract(title) {
    */
   let found = null;
   for (const [, v] of chassisToTeam) {
-    if (has(tokenKey(v.chassis))) { found = v; break; }
+    if (hasChassis(tk, v.chassis)) { found = v; break; }
   }
   if (!found) return null;
 
@@ -453,12 +484,12 @@ function extract(title) {
   // "Sainz" cannot be found inside some longer word.
   let driver = null;
   for (const [, v] of drivers) {
-    if (tokens(v).every(t => has(t))) { driver = v; break; }
+    if (tokens(v.spelling).every(t => has(t))) { driver = v.canonical; break; }
   }
   if (!driver) {
     for (const [, v] of drivers) {
-      const surname = tokenKey(v.split(/\s+/).pop());
-      if (surname.length > 3 && has(surname)) { driver = v; break; }
+      const surname = tokenKey(v.canonical.split(/\s+/).pop());
+      if (surname.length > 3 && has(surname)) { driver = v.canonical; break; }
     }
   }
   if (!driver) return null;
@@ -468,11 +499,11 @@ function extract(title) {
   let event = null;
   let bestLen = 0;
   for (const [, v] of events) {
-    const et = tokens(v).filter(t => t !== 'GP');
+    const et = tokens(v.spelling).filter(t => t !== 'GP');
     if (!et.length) continue;
     // Longest match wins, so "Spanish Test" is not beaten by "Spanish GP".
     if (et.every(t => has(t)) && et.join('').length > bestLen) {
-      event = v;
+      event = v.canonical;
       bestLen = et.join('').length;
     }
   }
@@ -482,7 +513,33 @@ function extract(title) {
 }
 
 const MANUFACTURERS = ['Minichamps', 'Looksmart', 'Spark', 'BBR', 'Bburago', 'Solido', 'Sparky', 'GP Replicas', 'Amalgam'];
-const mfrOf = title => MANUFACTURERS.find(m => new RegExp(`\\b${m}\\b`, 'i').test(title)) || null;
+/**
+ * Manufacturer from the SKU, for the shops that never name one.
+ *
+ * Anthony's suffixes every title "-- Spark F1". Downies does not: its titles
+ * read "McLaren Mastercard F1 Team MCL40 No.1 Monaco GP 2026 - Lando Norris -
+ * 1:43 Scale Resin Model Car" and name no maker at all. Reading the title alone
+ * therefore threw away every Downies and Stone Model product AFTER matching it
+ * correctly — which is why fixing the chassis and event bugs barely moved the
+ * skip count. The loss was happening one step further down.
+ *
+ * These are the same systematic prefixes the scale check uses, and they are
+ * better evidence than a title anyway: a shop can omit or mistype a maker, but
+ * the SKU came from that maker's own numbering.
+ */
+function mfrFromSku(sku) {
+  const v = String(sku || '').toUpperCase();
+  if (/^LS/.test(v)) return 'Looksmart';
+  if (/^BBR/.test(v)) return 'BBR';
+  if (/^(18S|12S|64S)\d/.test(v)) return 'Spark';
+  if (/^S\d{3,4}$/.test(v)) return 'Spark';
+  if (/^Y\d{3}$/.test(v)) return 'Spark';
+  if (/^(110|117|147|410|417|437|447|537)\d{6}$/.test(v)) return 'Minichamps';
+  return null;
+}
+
+const mfrOf = (title, sku) =>
+  MANUFACTURERS.find(m => new RegExp(`\\b${m}\\b`, 'i').test(title)) || mfrFromSku(sku);
 
 const skipped = { scale: 0, noMatch: 0, badSkuScale: 0, noSku: 0 };
 
@@ -500,7 +557,7 @@ for (const shop of SHOPS) {
     const skuScale = scaleFromSku(v.sku);
     if (skuScale && skuScale !== f.scale) { skipped.badSkuScale++; continue; }
 
-    const manufacturer = mfrOf(v.title);
+    const manufacturer = mfrOf(v.title, v.sku);
     if (!manufacturer) { skipped.noMatch++; continue; }
 
     const rowKey = [f.team, f.chassis, f.driver, f.event, manufacturer].map(key).join('|');
