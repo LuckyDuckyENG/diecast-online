@@ -403,6 +403,40 @@ for (const shop of SHOPS.filter(s => s.structured)) {
   }
 }
 
+/**
+ * Let every shop vote on how a chassis is spelled.
+ *
+ * The vocabulary is bootstrapped from ONE shop, so that shop's idiosyncrasies
+ * become the standard — and it is not always right. Anthony's writes W17E where
+ * Downies and Stone write W17, and the catalogue's own convention across five
+ * seasons is W12, W13, W14, W15, W16. The bootstrap shop was outvoted 66 to 16
+ * and by the site's own history, and still won.
+ *
+ * chassis_name goes into the slug, so this is the difference between
+ * /cars/2026-mercedes-w17-... and a URL that breaks the pattern of every other
+ * season. Cheap to get right before anything is indexed, awkward afterwards.
+ */
+for (const [, v] of chassisToTeam) {
+  const counts = new Map();
+  for (const shop of SHOPS) {
+    for (const item of feeds[shop.name] || []) {
+      if (!item.title.includes(YEAR) || !isF1(item.title)) continue;
+      const tk = tokens(item.title);
+      for (const variant of chassisVariants(v.chassis)) {
+        if (tk.includes(variant)) counts.set(variant, (counts.get(variant) || 0) + 1);
+      }
+    }
+  }
+  const best = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+  if (best && best[0] !== tokenKey(v.chassis)) {
+    console.log(
+      `  chassis spelling: ${v.chassis} -> ${best[0]}  ` +
+        `(${[...counts.entries()].map(([s, n]) => `${s}×${n}`).join(', ')})`
+    );
+    v.chassis = best[0];
+  }
+}
+
 console.log(`\nvocabulary learned from the structured feed:`);
 console.log(`  chassis/teams : ${chassisToTeam.size}`);
 for (const { team, chassis } of chassisToTeam.values()) console.log(`      ${chassis.padEnd(12)} ${team}`);
@@ -429,10 +463,15 @@ const rows = new Map(); // car key -> row
  * Hyphens and dots are removed BEFORE splitting so "SF-26" survives as one
  * token "SF26" rather than becoming "SF" and "26".
  */
-const tokens = s =>
-  s.toUpperCase().replace(/[-._/]/g, '').replace(/[^A-Z0-9]+/g, ' ').trim().split(' ');
+// Function declarations, not const arrows: the chassis-spelling vote runs
+// earlier in the file than this and would otherwise hit the temporal dead zone.
+function tokens(s) {
+  return s.toUpperCase().replace(/[-._/]/g, '').replace(/[^A-Z0-9]+/g, ' ').trim().split(' ');
+}
 
-const tokenKey = s => s.toUpperCase().replace(/[-._/]/g, '').replace(/[^A-Z0-9]/g, '');
+function tokenKey(s) {
+  return s.toUpperCase().replace(/[-._/]/g, '').replace(/[^A-Z0-9]/g, '');
+}
 
 /**
  * A chassis code, however the shop spaced it.
@@ -447,14 +486,34 @@ const tokenKey = s => s.toUpperCase().replace(/[-._/]/g, '').replace(/[^A-Z0-9]/
  * Still whole-token, so the AMR26/R26 collision stays fixed: "R26" splits to
  * R + 26, and no title contains a lone "R" token before "26".
  */
-function hasChassis(tk, chassis) {
+/**
+ * Spellings of one chassis code that mean the same car.
+ *
+ * A trailing letter after a digit is a manufacturer's sub-designation that some
+ * shops keep and others drop. Mercedes' 2026 car is "W17 E Performance":
+ * Anthony's compresses it to W17E, Downies (×44) and Stone (×22) write W17.
+ * Treating those as different chassis cost most of the Mercedes season — the
+ * import produced 3 Mercedes cars against McLaren's 13 — and nothing reported
+ * it, because "no chassis matched" is indistinguishable from "not an F1 car".
+ *
+ * Only stripped when a letter directly follows a digit, so SF26, VCARB03,
+ * AMR26 and MAC26 are untouched.
+ */
+function chassisVariants(chassis) {
   const joined = tokenKey(chassis);
-  if (tk.includes(joined)) return true;
+  const out = [joined];
+  if (/\d[A-Z]$/.test(joined)) out.push(joined.slice(0, -1));
+  return out;
+}
 
-  const parts = joined.match(/[A-Z]+|\d+/g) || [];
-  if (parts.length < 2) return false;
-  for (let i = 0; i + parts.length <= tk.length; i++) {
-    if (parts.every((p, j) => tk[i + j] === p)) return true;
+function hasChassis(tk, chassis) {
+  for (const joined of chassisVariants(chassis)) {
+    if (tk.includes(joined)) return true;
+    const parts = joined.match(/[A-Z]+|\d+/g) || [];
+    if (parts.length < 2) continue;
+    for (let i = 0; i + parts.length <= tk.length; i++) {
+      if (parts.every((p, j) => tk[i + j] === p)) return true;
+    }
   }
   return false;
 }
