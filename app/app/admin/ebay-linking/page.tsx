@@ -382,8 +382,23 @@ export default function EbayLinkingAdmin() {
     newDriverName: '',
   });
 
-  // Generate years from 1995 to 2025
-  const years = Array.from({ length: 31 }, (_, i) => 2025 - i); // 2025 down to 1995
+  /**
+   * Seasons to offer, newest first.
+   *
+   * Was hardcoded `2025 - i` for 31 years, so importing 2026 produced 79 cars
+   * that existed in the database and could not be selected here — and it would
+   * have silently gone stale again every January regardless.
+   *
+   * Derived from three things so it cannot fall behind: whatever seasons the
+   * loaded data actually contains, next calendar year (models for a season go
+   * on sale months before it starts — 2026 stock was listed in 2025), and a
+   * floor of 1995 so empty older seasons stay pickable for adding to.
+   */
+  const years = (() => {
+    const fromData = f1Cars.map(c => c.year).filter(y => Number.isFinite(y));
+    const newest = Math.max(new Date().getFullYear() + 1, ...fromData, 1995);
+    return Array.from({ length: newest - 1995 + 1 }, (_, i) => newest - i);
+  })();
 
   // Load F1 cars from Supabase
   useEffect(() => {
