@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-08-20
+# Status Summary — last updated 2026-08-21
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -6,28 +6,29 @@
 ## Where things stand
 
 ```
-cars 406  |  models 543  |  retailer links 1151  |  eBay links 429  |  retailers 48  |  drivers 46
-price observations 1572 (1142 retailer + 430 eBay)  |  links stale: 0 of 1580
-seasons: 2021 (69) + 2022 (83) + 2023 (98) + 2024 (66) + 2025 (90)     slugs: 406/406
-models buyable 502/543   |   images 326/543   |   currencies: AUD, EUR, GBP, USD
-retailer links by state: 638 in stock · 45 pre-order · 487 out of stock
-models with 2+ retailers 351  |  3+ 192
+cars 489  |  models 730  |  retailer links 1362  |  eBay links 429  |  retailers 48  |  drivers 47
+price observations 1572 (1142 retailer + 430 eBay)
+seasons: 2021 (69) + 2022 (83) + 2023 (98) + 2024 (66) + 2025 (90) + 2026 (83)   slugs: 489/489
+models buyable 683/730   |   images 326/730   |   currencies: AUD, EUR, GBP, USD
+retailer links by state: 629 in stock · 75 pre-order · 678 out of stock
+models with 2+ retailers 382  |  3+ 192
 ```
 
 **Read visibility as a share of cars that CAN be visible.** 84 cars have no models
 at all — CSV rows with no SKU — so they are invisible by construction.
 
 ```
-cars visible 312/406  =  97% of the 322 that have models
-   2021 48/50 (96%)   2022 67/71 (94%)   2023 82/86 (95%)
-   2024 59/59 (100%)  2025 56/56 (100%)
+cars visible 395/489  =  98% of the 404 that have models
+   2021 48/50   2022 67/71   2023 83/86
+   2024 59/59   2025 56/56   2026 82/82
 ```
 
-**4 visible cars now have no image**, which is new — that line used to read "every
-visible car has an image". The LIVECARMODEL sweep made 336 more models buyable, and
-visibility is what pulls a car into browse, so images became the lagging half:
-**176 of the 502 buyable models have no image.** Nothing is broken (they render the
-team-colour panel) but the gap grew rather than shrank.
+**Images are now the clear weak point, and 2026 made it worse.** 357 of the 683
+buyable models have none — 187 of those arrived with 2026, every one of which had
+an image URL sitting in the shop feed that the sweep read, displayed in its dry
+run, and then discarded. `attachRetailerLink` takes no image parameter. Nothing is
+broken (they render the team-colour panel) but this is the largest single quality
+gap in the catalogue and the cheapest to close: see **Next up**.
 
 Live on Vercel at diecasts.app. Migrations 007–017 applied. `next build` clean.
 **Submitted to Google Search Console 2026-08-13** — domain verified by DNS,
@@ -575,6 +576,21 @@ a retailer are submitted (96 of 164). `/admin`, `/api/`, `/search` disallowed.
   by noticing "total links to refresh: 1000", a suspiciously round number. Treat
   any unpaged select that feeds a LIST OF WORK as suspect, not just ones that
   feed a total.
+- **A bootstrap makes one source's quirks into the standard.** The season CSV
+  generator learns its vocabulary from the single most structured shop, so
+  Anthony's "W17E" became canonical over Downies' and Stone's "W17" (61 votes to
+  16) AND over the site's own five-season convention of W12..W16. Worse, it then
+  failed to MATCH the W17 titles, so most of the Mercedes season vanished as "no
+  chassis found" — indistinguishable from "not an F1 car". Where several sources
+  exist, let them vote on the output rather than trusting the one you parsed first.
+- **A structural invariant catches what a matcher cannot report.** Both of that
+  generator's worst bugs were invisible to it and obvious to a human glance: Audi
+  with four drivers (substring collision, AMR26 contains R26) and Mercedes with 3
+  cars against McLaren's 13. A grid is 11 teams of two. Keep a shape you can check.
+- **Hardcoded year ranges rot silently.** The admin's season buttons were
+  `2025 - i` for 31 years, so 79 imported 2026 cars existed in the database and
+  could not be selected. Derive from the data plus next calendar year — models go
+  on sale months before a season starts.
 - **An audit script is code too.** The first read of the post-sweep numbers reported
   "1000 retailer links" — the cap, not a total — which made a fully successful
   338-row sweep look half-failed and produced wrong coverage figures. Page the
@@ -615,61 +631,85 @@ order. The vocabulary doubles as a fence: a grid is 11 teams of two, so anything
 outside it is self-evidently wrong. That is why 2026 was chosen first and why the
 1990s would not have been.
 
-**Current output: 65 rows, every team with exactly two drivers, 9 cross-confirmed
-by two shops agreeing on a SKU.**
+**Imported 2026-08-21: 83 cars, 187 models, 0 errors, no duplicates.**
+118 CSV rows, 66 cross-confirmed by two shops agreeing on a SKU. Swept for prices
+the same day — Downies 178 links, Stone Model 33 — so 180 of 187 models are priced
+and every 2026 car is visible.
 
-### NOT yet imported — what 2026 still needs
+Reference rows had to be created by hand first: sync-csv.js LOOKS UP season, team,
+driver and manufacturer and silently skips the row if any is missing. 2026, Audi
+and Cadillac and Arvid Lindblad did not exist. A "Racing Bulls" team was created
+too and then deleted — sync-csv.js deliberately maps it onto the existing `RB` row,
+which is what keeps a renamed team's cars on one hub page across seasons (see the
+teamMappings table in that file: Ferrari -> Scuderia Ferrari works the same way).
 
-1. **Reference rows sync-csv.js will not create.** It looks up season, team and
-   driver and SKIPS the row if any is missing. Create: **season 2026**, teams
-   **Audi** and **Cadillac**, driver **Arvid Lindblad**. Everything else mapped
-   onto existing names.
-2. **Read the CSV.** `verification_status` marks 9 rows CONFIRMED and 56 SINGLE
-   SOURCE. Then `node sync-csv.js ../f1_2026_models_by_team.csv --dry-run`.
-3. **Spot-check five or six rows against the actual product pages.** Nothing has
-   been verified against an independent source yet. A coherent grid rules out
-   STRUCTURAL error, not a wrong event-to-SKU pairing.
-4. **328 titles matched no fields.** High. Likely Downies/Stone phrasing events
-   in ways the vocabulary never learned from Anthony's, so probably recoverable
-   rather than out of scope. Worth checking before treating 65 as all of 2026.
+### What it took to get from 65 rows to 118
 
-### Lessons from building it
+Three separate causes, found by investigating the skipped titles BEFORE importing
+rather than importing and topping up later:
 
-- **A structural invariant catches what the matcher cannot.** Chassis were
-  matched by substring, and Aston Martin's AMR26 contains Audi's R26 — so every
-  Aston Martin product became an Audi one and **Audi finished with four
-  drivers**. Nothing in the matcher could complain. A two-driver team is what
-  made it visible. Now matched as whole tokens, hyphens folded first so "SF-26"
-  stays one token.
-- **Canonicalise names as the vocabulary is LEARNED, not after.** Fold later and
-  it already contains both "Japan GP" and "Japanese GP", so the same race yields
-  two different cars depending which shop listed it. Also "HAAS" finds no team
-  and drops the row; "Charles LeClerc" creates a second person.
-- **eBay is the wrong verifier for a current season.** 2026 models are unshipped
-  pre-orders with no secondary market, and five-character Spark SKUs like `S9367`
-  collide with sewing patterns and revenue stamps. Cross-shop agreement is the
-  only independent check available here.
-- **Do not hammer the feeds.** Five full catalogue downloads in ten minutes
-  earned an HTTP 429 across four shops, and the empty responses got cached and
-  read as authoritative. The script now refuses to cache an empty feed and says
-  so loudly.
+- **The alias table was built and never consulted.** Events were canonicalised when
+  learned — "Barcelona GP" stored as "Spanish GP" — but extraction searched titles
+  for the tokens of the CANONICAL name. No title says "Spanish GP". Now stores
+  { spelling, canonical }: match what the shop wrote, write what the catalogue says.
+- **Chassis codes with internal spaces never matched.** Anthony's writes VCARB-03,
+  Downies writes VCARB 03; hyphens fold away but spaces split.
+- **The largest loss was one step further down.** Downies titles name no
+  manufacturer at all, so its products were matched CORRECTLY and then discarded
+  for having no maker. Manufacturer now falls back to the SKU prefix, which is
+  better evidence than a title anyway.
+
+### The bug worth remembering: W17E
+
+Mercedes came out of the first import with 3 cars against McLaren's 13, which is
+not a plausible shape for a season. The vocabulary bootstraps from ONE shop, so
+that shop's idiosyncrasies become the standard: Anthony's writes W17E where Downies
+(x44) and Stone (x22) write W17, and the catalogue's own convention across five
+seasons is W12, W13, W14, W15, W16.
+
+It did not merely look wrong. **W17E never MATCHED the titles saying W17**, so most
+of the Mercedes season was skipped as "no chassis found" — which is
+indistinguishable from "not an F1 car". A whole team went missing without a warning.
+
+Now: a trailing letter directly after a digit is treated as the same chassis
+(narrow, so SF26/VCARB03/AMR26/MAC26 are untouched), and every shop votes on the
+spelling that gets written. chassis_name goes into the slug, so this is the
+difference between /cars/2026-mercedes-w17-... and a URL breaking the pattern of
+every other season.
+
+### Still open on 2026
+
+- **113 titles still match nothing**, down from 328. Diminishing, but not zero.
+- **7 of 187 models have no retailer link.**
+- **Zero images.** See Next up — this is the biggest single gap.
+- Anthony's and Horizondiecast not swept. Low value: Anthony's 2026 stock is
+  entirely AUD 20/50 deposits the guard will refuse, Horizondiecast had 13 products.
 
 ## Next up
 
-1. **Apply the remaining eBay scopes.** Only 2023 Red Bull has been run under the
+1. **Make the sweep write images — do this FIRST, it is ~15 minutes and everything
+   after it benefits.** `attachRetailerLink` takes no image parameter, so every
+   sweep reads an image URL from the feed, shows it in the dry run and throws it
+   away. 357 of 683 buyable models have no image and 187 of those are 2026, all
+   with an image waiting in a feed we already downloaded. Pass the URL through and
+   set `models.image_url` ONLY when it is currently null, never overwriting one
+   chosen by hand. Then re-run Downies (30 seconds) to fill 178 of them, and every
+   later sweep fills images for free. Sweeping more shops before this means
+   re-running them all afterwards.
+2. **Apply the remaining eBay scopes.** Only 2023 Red Bull has been run under the
    multiple-listings matcher, which is why just 21 models hold more than one
    listing. 2021, 2022, 2024 and 2025 are still one-listing-per-model and carry
    the 1-in-8 overstatement. Panel sends `recheckAfterDays: 0`, so already-linked
    models are re-searched rather than skipped.
-2. **Run Refresh All Retailers once** — it now records observations, so this is
-   what starts the retailer half of the price history (1,151 links against eBay's
-   429). Nothing else is needed; the insert is already wired in.
-3. **Batch the sweep's writes** before running any sweep from the deployed admin.
+3. **The retailer SWEEP records no price observations.** `refresh-prices` and
+   `refresh-ebay` both append to `price_observations`; the sweep writes through
+   `attachRetailerLink` and does not. So the 211 new 2026 links sit outside the
+   price history until a Refresh All Retailers picks them up. Third write path,
+   two of them recording history — exactly the kind of inconsistency that gets
+   forgotten.
+4. **Batch the sweep's writes** before running any sweep from the deployed admin.
    ~338 sequential `attachRetailerLink` calls, each doing two selects and a write,
    push an apply run past `maxDuration = 300`. Fine locally, times out on Vercel.
-4. **Images are the lagging half now.** 176 of 502 buyable models have none, and 4
-   visible cars have none at all — the first time that has been non-zero. Sweeping
-   makes models visible faster than images get added.
 5. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
    problem in the currency audit.
 6. **8 retailer links whose URL states a different scale than the model** — see Data
