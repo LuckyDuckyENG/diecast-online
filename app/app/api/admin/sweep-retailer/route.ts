@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { fetchShopifyFeed, isShopify, shopCurrency } from '@/lib/shopifyFeed';
 import { fetchSitemapFeed, sitemapShopFor, type CandidateModel } from '@/lib/sitemapFeed';
 import { classifyMatches, type SweepModel } from '@/lib/retailerSweep';
-import { attachRetailerLink, fillMissingModelImage } from '@/lib/retailerLink';
+import { attachRetailerLink, fillMissingModelImage, looksLikePlaceholderImage } from '@/lib/retailerLink';
 import { selectAll } from '@/lib/selectAll';
 
 const supabase = createClient(
@@ -255,7 +255,10 @@ export async function POST(request: NextRequest) {
       ((models || []) as any[]).filter(m => !m.image_url).map(m => m.id)
     );
     for (const m of matches) {
+      // Skipped in the dry-run count too, so the number it predicts is the
+      // number the apply actually fills.
       if (!m.variant.imageUrl || !imageless.has(m.model.id)) continue;
+      if (looksLikePlaceholderImage(m.variant.imageUrl)) continue;
       if (dryRun) {
         imagesFilled++;
       } else if (await fillMissingModelImage(supabase, m.model.id, m.variant.imageUrl)) {

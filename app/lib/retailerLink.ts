@@ -54,12 +54,49 @@ export interface AttachResult {
  *
  * Returns whether it actually filled one, so callers can report a real number.
  */
+/**
+ * A shop's "we have no photo yet" graphic, dressed up as a product image.
+ *
+ * Downies serves `Image_Placeholders_F1_<uuid>.jpg` for unreleased pre-orders,
+ * and the first image-filling sweep stored 183 of them — 174 across 2026, whose
+ * models do not exist to be photographed yet.
+ *
+ * That is WORSE than no image, for two reasons. It replaces the site's own
+ * honest "IMAGE COMING SOON" panel with a stranger's generic graphic. And
+ * because filling only ever touches a NULL, it permanently blocks the real
+ * photo: once a shop publishes one, or another retailer carries a better
+ * picture, nothing will replace the placeholder.
+ *
+ * Detected by filename, which is unsatisfying but is what actually works here.
+ * The tempting general rule — "a real product photo is unique, so an image
+ * reused across models is a placeholder" — does NOT catch this: Downies gives
+ * every placeholder its own UUID, so 183 copies of one graphic are 183 distinct
+ * URLs. Only one URL in the whole catalogue is shared by more than one model.
+ */
+const PLACEHOLDER_IMAGE =
+  /image[_-]?placeholder|placeholder|coming[_-]?soon|no[_-]?image|no[_-]?photo|awaiting[_-]?image|default[_-]?product/i;
+
+export function looksLikePlaceholderImage(url: string): boolean {
+  try {
+    // Only the path, so a shop hosted at placeholder.example.com is not
+    // condemned by its domain.
+    return PLACEHOLDER_IMAGE.test(decodeURIComponent(new URL(url).pathname));
+  } catch {
+    return PLACEHOLDER_IMAGE.test(url);
+  }
+}
+
 export async function fillMissingModelImage(
   supabase: SupabaseClient,
   modelId: string,
   imageUrl?: string | null
 ): Promise<boolean> {
   if (!imageUrl) return false;
+
+  // Leave it NULL rather than storing a placeholder: the site's own panel is
+  // more honest, and a NULL can still be filled later by a shop that has a
+  // real photo.
+  if (looksLikePlaceholderImage(imageUrl)) return false;
 
   const { data, error } = await supabase
     .from('models')
