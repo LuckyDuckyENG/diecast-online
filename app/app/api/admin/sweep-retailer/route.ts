@@ -250,6 +250,10 @@ export async function POST(request: NextRequest) {
           // A hand-picked URL may point at a specific variant or bundle that a
           // SKU match would not reproduce. Refresh its price, keep its link.
           preserveExistingUrl: true,
+          // Fills a missing model image from the shop's photo. Never overwrites
+          // one that exists — the feed already carried this on every variant and
+          // it was being read, displayed in the dry run, and thrown away.
+          imageUrl: m.variant.imageUrl,
         });
         if (res.ok) written++;
         else failures.push(`${m.model.sku}: ${res.reason}`);

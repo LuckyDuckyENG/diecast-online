@@ -64,9 +64,24 @@ export async function attachRetailerLink(
      * leave this off, so pasting a URL still repoints the link.
      */
     preserveExistingUrl?: boolean;
+    /**
+     * The shop's product photo, used as the model image only if it has none.
+     *
+     * Shopify feeds carry an image on every variant. The sweep read it, showed
+     * it in the dry run and then discarded it, because this function had no
+     * parameter for it — so 357 of 683 buyable models have no picture while a
+     * URL for most of them sits in a feed we already download. 187 of those
+     * arrived with 2026 in a single afternoon.
+     *
+     * NEVER overwrites an existing image. A picture already on a model was
+     * either chosen by hand or set from a better source, and a sweep quietly
+     * replacing it would undo that with no way to notice.
+     */
+    imageUrl?: string | null;
   }
 ): Promise<AttachResult> {
-  const { modelId, retailerUrl, price, currency, inStock, isPreorder, preserveExistingUrl } = opts;
+  const { modelId, retailerUrl, price, currency, inStock, isPreorder, preserveExistingUrl, imageUrl } =
+    opts;
 
   // A zero or negative price is always a failed extraction, never a real offer.
   // Storing one poisons the comparison — it wins every "cheapest" sort.
@@ -143,6 +158,29 @@ export async function attachRetailerLink(
 
     const selectedCurrency = currency || 'AUD';
     const priceAud = toAud(price, selectedCurrency);
+
+    /**
+     * Fill in a missing model image from the shop's photo.
+     *
+     * `.is('image_url', null)` does the guarding, so this cannot overwrite an
+     * existing picture even if two sweeps run at once — the condition is
+     * evaluated by Postgres rather than by a read-then-write here, which would
+     * have a gap between the two.
+     *
+     * Failure is logged and ignored: an image is a nice-to-have, and a link
+     * with a correct price and no picture is far better than no link.
+     */
+    if (imageUrl) {
+      const { error: imageError, data: filled } = await supabase
+        .from('models')
+        .update({ image_url: imageUrl })
+        .eq('id', modelId)
+        .is('image_url', null)
+        .select('id');
+
+      if (imageError) console.warn(`⚠️ could not set image for ${modelId}: ${imageError.message}`);
+      else if (filled?.length) console.log(`🖼️ image set from retailer photo`);
+    }
 
     const row = {
       model_id: modelId,
