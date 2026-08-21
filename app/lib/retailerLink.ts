@@ -35,6 +35,48 @@ export interface AttachResult {
 }
 
 /**
+ * Give a model the shop's photo, but only if it has none.
+ *
+ * Separate from attaching a link because the two have nothing to do with each
+ * other, and tying them together made the feature useless: the sweep only calls
+ * attachRetailerLink for rows it intends to WRITE, and an already-linked model
+ * whose price has not moved is classified `unchanged` with `write: false`. So
+ * the first version filled images only for brand-new links — re-running a shop
+ * to pick up images would have filled exactly zero.
+ *
+ * A row held back for a suspect price, or unchanged since yesterday, still has
+ * a perfectly good picture attached to it.
+ *
+ * The NULL check is a condition on the UPDATE rather than a read-then-write, so
+ * concurrent sweeps cannot race through the gap between checking and writing. An
+ * existing image is never replaced: it was chosen by hand or came from a better
+ * source, and silently overwriting it would leave nothing to notice.
+ *
+ * Returns whether it actually filled one, so callers can report a real number.
+ */
+export async function fillMissingModelImage(
+  supabase: SupabaseClient,
+  modelId: string,
+  imageUrl?: string | null
+): Promise<boolean> {
+  if (!imageUrl) return false;
+
+  const { data, error } = await supabase
+    .from('models')
+    .update({ image_url: imageUrl })
+    .eq('id', modelId)
+    .is('image_url', null)
+    .select('id');
+
+  if (error) {
+    // A picture is a nice-to-have. Never let it fail a sweep.
+    console.warn(`⚠️ could not set image for ${modelId}: ${error.message}`);
+    return false;
+  }
+  return (data || []).length > 0;
+}
+
+/**
  * Point a model at a retailer URL, creating the retailer if it's new.
  *
  * Idempotent by (model_id, retailer_id): re-linking the same shop updates the
@@ -159,28 +201,10 @@ export async function attachRetailerLink(
     const selectedCurrency = currency || 'AUD';
     const priceAud = toAud(price, selectedCurrency);
 
-    /**
-     * Fill in a missing model image from the shop's photo.
-     *
-     * `.is('image_url', null)` does the guarding, so this cannot overwrite an
-     * existing picture even if two sweeps run at once — the condition is
-     * evaluated by Postgres rather than by a read-then-write here, which would
-     * have a gap between the two.
-     *
-     * Failure is logged and ignored: an image is a nice-to-have, and a link
-     * with a correct price and no picture is far better than no link.
-     */
-    if (imageUrl) {
-      const { error: imageError, data: filled } = await supabase
-        .from('models')
-        .update({ image_url: imageUrl })
-        .eq('id', modelId)
-        .is('image_url', null)
-        .select('id');
-
-      if (imageError) console.warn(`⚠️ could not set image for ${modelId}: ${imageError.message}`);
-      else if (filled?.length) console.log(`🖼️ image set from retailer photo`);
-    }
+    // Convenience for callers that create a link and a model together. The
+    // sweep does NOT rely on this -- it fills images in its own pass, because
+    // this function is only reached for rows it intends to write.
+    if (imageUrl) await fillMissingModelImage(supabase, modelId, imageUrl);
 
     const row = {
       model_id: modelId,

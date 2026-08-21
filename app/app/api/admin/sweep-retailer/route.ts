@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { fetchShopifyFeed, isShopify, shopCurrency } from '@/lib/shopifyFeed';
 import { fetchSitemapFeed, sitemapShopFor, type CandidateModel } from '@/lib/sitemapFeed';
 import { classifyMatches, type SweepModel } from '@/lib/retailerSweep';
-import { attachRetailerLink } from '@/lib/retailerLink';
+import { attachRetailerLink, fillMissingModelImage } from '@/lib/retailerLink';
 import { selectAll } from '@/lib/selectAll';
 
 const supabase = createClient(
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     // and it needs to know what we are looking for.
     const models = await readAll(
       'models',
-      'id, scale, manufacturer_sku, manufacturer:manufacturers(name), ' +
+      'id, scale, manufacturer_sku, image_url, manufacturer:manufacturers(name), ' +
         'car:cars(event_name, chassis_name, driver:drivers(name), season:seasons(year))'
     );
 
@@ -236,7 +236,33 @@ export async function POST(request: NextRequest) {
     };
 
     let written = 0;
+    let imagesFilled = 0;
     const failures: string[] = [];
+
+    /**
+     * Images, for EVERY match — not just the ones being written.
+     *
+     * The write list excludes `unchanged` and `review` rows, so tying image
+     * filling to it meant an already-linked model whose price had not moved got
+     * nothing. Re-running a shop specifically to pick up images would have
+     * filled zero. A row can have a suspect price and a perfectly good photo;
+     * they are unrelated facts.
+     *
+     * The dry run COUNTS rather than writing, so it predicts the real number
+     * instead of reporting zero and looking like the feature does nothing.
+     */
+    const imageless = new Set(
+      ((models || []) as any[]).filter(m => !m.image_url).map(m => m.id)
+    );
+    for (const m of matches) {
+      if (!m.variant.imageUrl || !imageless.has(m.model.id)) continue;
+      if (dryRun) {
+        imagesFilled++;
+      } else if (await fillMissingModelImage(supabase, m.model.id, m.variant.imageUrl)) {
+        imagesFilled++;
+      }
+    }
+    console.log(`🖼️ ${dryRun ? 'would fill' : 'filled'} ${imagesFilled} missing model image(s)`);
 
     if (!dryRun) {
       for (const m of matches.filter(x => x.write)) {
@@ -250,10 +276,6 @@ export async function POST(request: NextRequest) {
           // A hand-picked URL may point at a specific variant or bundle that a
           // SKU match would not reproduce. Refresh its price, keep its link.
           preserveExistingUrl: true,
-          // Fills a missing model image from the shop's photo. Never overwrites
-          // one that exists — the feed already carried this on every variant and
-          // it was being read, displayed in the dry run, and thrown away.
-          imageUrl: m.variant.imageUrl,
         });
         if (res.ok) written++;
         else failures.push(`${m.model.sku}: ${res.reason}`);
@@ -281,6 +303,7 @@ export async function POST(request: NextRequest) {
       },
       totals,
       written,
+      imagesFilled,
       failures,
       matches: matches.map(m => ({
         modelId: m.model.id,
