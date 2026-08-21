@@ -4514,6 +4514,17 @@ export default function EbayLinkingAdmin() {
                   <span>price/stock changed: <strong className="text-[var(--text-primary)]">{r.totals.refresh}</strong></span>
                   <span>unchanged: <strong className="text-[var(--text-primary)]">{r.totals.unchanged}</strong></span>
                   <span>held back: <strong className={r.totals.hold + r.totals.review ? 'text-yellow-500' : 'text-[var(--text-primary)]'}>{r.totals.hold + r.totals.review}</strong></span>
+                  {/* Images are the one thing a re-sweep can change when every
+                      price is unchanged, so without this the panel reads as
+                      "nothing happened" on exactly the runs that matter most. */}
+                  {r.imagesFilled != null && (
+                    <span>
+                      {r.dryRun ? 'images to fill' : 'images filled'}:{' '}
+                      <strong className={r.imagesFilled ? 'text-green-400' : 'text-[var(--text-primary)]'}>
+                        {r.imagesFilled}
+                      </strong>
+                    </span>
+                  )}
                 </div>
 
                 {section('new', '🆕 New links', 'text-green-400')}
