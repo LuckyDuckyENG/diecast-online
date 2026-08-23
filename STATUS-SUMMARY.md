@@ -6,9 +6,9 @@
 ## Where things stand
 
 ```
-cars 500  |  models 744  |  retailer links 1506  |  eBay links 429  |  retailers 48  |  drivers 47
+cars 568  |  models 865  |  retailer links 1506  |  eBay links 429  |  retailers 48  |  drivers 47
 price observations 1572 (1142 retailer + 430 eBay)
-seasons: 2020 (11) + 2021 (69) + 2022 (83) + 2023 (98) + 2024 (66) + 2025 (90) + 2026 (83)   slugs: 489/489
+seasons: 2020 (79) + 2021 (69) + 2022 (83) + 2023 (98) + 2024 (66) + 2025 (90) + 2026 (83)   slugs: 489/489
 models buyable 688/730   |   images 654/730   |   currencies: AUD, EUR, GBP, USD
 retailer links by state: 781 in stock · 74 pre-order · 670 out of stock
 models with 2+ retailers 494  |  3+ 219
@@ -688,6 +688,49 @@ every other season.
 - **Zero images.** See Next up — this is the biggest single gap.
 - Anthony's and Horizondiecast not swept. Low value: Anthony's 2026 stock is
   entirely AUD 20/50 deposits the guard will refuse, Horizondiecast had 13 products.
+
+## 2020 — hand research beat feed discovery 7 to 1
+
+**2020 is in: 79 cars, 135 models**, from a hand-researched CSV. The feed
+generator managed 11. That is the headline finding and it qualifies everything
+below: *feed discovery* dies below 2021, but the CSV pipeline does not — a
+researched season imports exactly as well as it ever did.
+
+The hand-built file also got right what the generator got wrong. "Mercedes /
+George Russell / Sakhir GP" is the correct race for his single 2020 Mercedes
+drive; the generator filed it as "Season" because the shop titles never named it.
+
+### Checking a 92-row hand-built CSV before import
+
+Worth repeating on any researched season, because two of the four checks found
+something:
+
+- **SKU collisions against the catalogue.** One row carried `537224304` for a
+  2020 Sainz car — already held for **2022 MCL36 Norris Bahrain GP**. Two models
+  sharing one SKU means every sweep and eBay search links the same product to
+  both cars. Cleared the SKU, kept the car (Sainz really did finish 2nd at Monza).
+- **The year embedded in a Minichamps SKU.** Positions 4-5 are the season, so
+  every Minichamps SKU self-checks: `537`**`22`**`4304` fails against 2020. All 55
+  others agreed. Free validation, no lookup needed.
+- **Duplicate SKUs inside the file** — none.
+- **Rows with no SKU at all** — 15. `sync-csv.js` creates the car and no models,
+  and a car with no models contributes nothing to `driverGroups`, so it is
+  invisible in the admin, browse AND the sitemap. Held in
+  `f1_2020_HOLD_no_sku.csv` until a SKU turns up.
+
+**28 of 92 rows carried pattern-derived SKUs** (`round + driver number`, never
+seen in a listing) — the same convention the 2022 CSV uses. That is acceptable
+because a wrong SKU usually matches nothing, which is harmless. The dangerous
+case is a wrong SKU that is real for ANOTHER car, and that is exactly what the
+collision check exists to catch.
+
+### Reference rows a 2020 import needs
+
+Teams that stopped existing: **Racing Point** (became Aston Martin) and
+**Renault** (became Alpine). Drivers never carried before: **Robert Kubica**,
+**Romain Grosjean**, **Pietro Fittipaldi** (who substituted for Grosjean after
+Bahrain). And multi-driver rows must use the catalogue's `+` convention —
+"Hamilton/Bottas" resolves to nothing, "Lewis Hamilton + Valtteri Bottas" works.
 
 ## Feed-based discovery dies below 2021 — measured 2026-08-22
 
