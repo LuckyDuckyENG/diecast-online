@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-08-21
+# Status Summary — last updated 2026-08-22
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -6,12 +6,12 @@
 ## Where things stand
 
 ```
-cars 489  |  models 730  |  retailer links 1362  |  eBay links 429  |  retailers 48  |  drivers 47
+cars 489  |  models 730  |  retailer links 1506  |  eBay links 429  |  retailers 48  |  drivers 47
 price observations 1572 (1142 retailer + 430 eBay)
 seasons: 2021 (69) + 2022 (83) + 2023 (98) + 2024 (66) + 2025 (90) + 2026 (83)   slugs: 489/489
-models buyable 683/730   |   images 326/730   |   currencies: AUD, EUR, GBP, USD
-retailer links by state: 629 in stock · 75 pre-order · 678 out of stock
-models with 2+ retailers 382  |  3+ 192
+models buyable 688/730   |   images 654/730   |   currencies: AUD, EUR, GBP, USD
+retailer links by state: 781 in stock · 74 pre-order · 670 out of stock
+models with 2+ retailers 494  |  3+ 219
 ```
 
 **Read visibility as a share of cars that CAN be visible.** 84 cars have no models
@@ -23,12 +23,16 @@ cars visible 395/489  =  98% of the 404 that have models
    2024 59/59   2025 56/56   2026 82/82
 ```
 
-**Images are now the clear weak point, and 2026 made it worse.** 357 of the 683
-buyable models have none — 187 of those arrived with 2026, every one of which had
-an image URL sitting in the shop feed that the sweep read, displayed in its dry
-run, and then discarded. `attachRetailerLink` takes no image parameter. Nothing is
-broken (they render the team-colour panel) but this is the largest single quality
-gap in the catalogue and the cheapest to close: see **Next up**.
+**Images: 654/730, and only 37 buyable models still lack one** — down from 357.
+Sweeps now fill a missing image from the shop's own photo, never overwriting one
+already set. Two things had to be right. The fill runs for EVERY match rather
+than only rows being written — an unchanged price means `write: false`, so
+hanging it off the write path meant re-sweeping for images filled exactly zero.
+And a shop's "no photo yet" graphic is refused: Downies serves
+`Image_Placeholders_F1_<uuid>.jpg` for unreleased stock, and 183 were stored
+before that was caught. Note the tempting general rule fails here — Downies gives
+every placeholder its own UUID, so 183 copies of one graphic are 183 distinct
+URLs, and exactly one image URL in the catalogue is shared by more than one model.
 
 Live on Vercel at diecasts.app. Migrations 007–017 applied. `next build` clean.
 **Submitted to Google Search Console 2026-08-13** — domain verified by DNS,
