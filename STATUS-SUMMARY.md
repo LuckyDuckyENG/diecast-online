@@ -6,9 +6,9 @@
 ## Where things stand
 
 ```
-cars 489  |  models 730  |  retailer links 1506  |  eBay links 429  |  retailers 48  |  drivers 47
+cars 500  |  models 744  |  retailer links 1506  |  eBay links 429  |  retailers 48  |  drivers 47
 price observations 1572 (1142 retailer + 430 eBay)
-seasons: 2021 (69) + 2022 (83) + 2023 (98) + 2024 (66) + 2025 (90) + 2026 (83)   slugs: 489/489
+seasons: 2020 (11) + 2021 (69) + 2022 (83) + 2023 (98) + 2024 (66) + 2025 (90) + 2026 (83)   slugs: 489/489
 models buyable 688/730   |   images 654/730   |   currencies: AUD, EUR, GBP, USD
 retailer links by state: 781 in stock · 74 pre-order · 670 out of stock
 models with 2+ retailers 494  |  3+ 219
@@ -693,7 +693,18 @@ every other season.
 
 Attempted 2020 with the season CSV generator. It produced **21 rows across 6
 teams, several with one driver, and ZERO cross-confirmed** — against 2026's 118
-rows, 11 teams of two, 66 cross-confirmed. Not imported.
+rows, 11 teams of two, 66 cross-confirmed.
+
+**11 of the 21 were imported** (14 models), after checking all 21 by hand —
+feasible precisely because there were only 21. Every imported row names a real
+race and matches what the shops say. The other 10 are parked in
+`f1_2020_HOLD_season_rows.csv`, all with `event_name = Season`, because that is
+where the risk turned out to be concentrated: the "no race named -> Season"
+fallback filed specific race cars as season models. Two are provably wrong from
+their own SKUs — `M6052-BAH-RUS` is Russell's Sakhir car (Bahrain, his only 2020
+Mercedes drive) and `M6052-TUR-HAM` is Hamilton's Turkish GP title-clincher.
+Minichamps encodes it too: `413200444` is round 04 / car #44, and round 4 was the
+British GP, which is what that row says. Those ten need a person, not a matcher.
 
 The method was not the problem; the stock is. F1 products per season across all
 seven readable shops:
