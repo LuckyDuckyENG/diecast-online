@@ -65,18 +65,29 @@ const supabase = createClient(
 const UA = { 'User-Agent': 'diecasts.app catalogue matcher (+https://diecasts.app)' };
 
 /**
- * Shops with a Shopify feed that carry current-season F1.
+ * Every shop with a readable feed — and which shop matters depends on the year.
  *
- * Mini Model Shop, Yuui and Notjustcollectibles are omitted on evidence, not
- * oversight: all three returned ZERO 2026 F1 products. They are back-catalogue
- * specialists, the mirror image of Metro Hobbies. Fetching them would cost four
- * minutes to learn nothing.
+ * The first version listed only four, omitting Mini Model Shop, Yuui and
+ * Notjustcollectibles "on evidence": all three returned ZERO 2026 products. That
+ * was correct for 2026 and precisely backwards for anything older. They are
+ * back-catalogue specialists, and STATUS-SUMMARY already records the pattern
+ * from the retailer sweeps — Mini Model Shop supplied 54 links for 2021 and
+ * nothing at all for 2025, while Metro Hobbies did the exact reverse.
+ *
+ * Running 2020 without them produced SIX rows. The stock was there; we were not
+ * asking the shops that had it.
+ *
+ * So the list is now every shop, and the year decides which ones contribute.
+ * Fetching a shop that turns out to hold nothing costs one cached download.
  */
 const SHOPS = [
   { name: "Anthony's", host: 'anthonysdiecasts.com.au', structured: true },
   { name: 'Downies', host: 'www.downies.com' },
   { name: 'Stone Model', host: 'www.stonemodelcar.com' },
   { name: 'Horizondiecast', host: 'horizondiecast.com' },
+  { name: 'Mini Model Shop', host: 'minimodelshop.com' },
+  { name: 'Yuui', host: 'yuui.nl' },
+  { name: 'Notjustcollectibles', host: 'notjustcollectibles.com' },
 ];
 
 const PAGE_SIZE = 250;
@@ -365,12 +376,166 @@ if (!Object.values(feeds).some(f => f.length)) {
   process.exit(1);
 }
 
-// --- pass 1: learn the season's vocabulary from the structured shop
 const chassisToTeam = new Map();
 const drivers = new Map();
 const events = new Map();
 
-for (const shop of SHOPS.filter(s => s.structured)) {
+/**
+ * SEEDED MODE (--seed), for a season the shops barely stock.
+ *
+ * The bootstrap works because Anthony's carried 164 rigidly-formatted 2026
+ * products — enough to reconstruct a whole grid from one shop. That collapses
+ * going backwards: 2020 has ~136 products across SIX shops, and Anthony's share
+ * is about 22. A team absent from Anthony's would never have its chassis
+ * learned, so every other shop's products for that team would be dropped as "no
+ * chassis found" — the W17E failure, silent and at the scale of whole teams.
+ *
+ * But an old season does not need reconstructing. The catalogue already holds
+ * 47 drivers, 18 teams and 44 events spanning 2021-2026, and drivers and races
+ * barely move year to year. Only the CHASSIS codes are new each season.
+ *
+ * So: seed drivers, teams and events from the catalogue, and discover chassis
+ * from the feeds by looking for a code-shaped token in a title that already
+ * names a known team. Ten codes to find, each appearing many times across 136
+ * products — far easier than reconstructing a grid.
+ */
+const SEEDED = process.argv.includes('--seed');
+
+/** Looks like a chassis designation: letters then digits. W11, RB16, MCL35,
+ *  SF1000, AT01, C39, FW43, VF-20. Not a year, not a scale, not a race number. */
+function looksLikeChassis(tok) {
+  if (!/^[A-Z]{1,5}\d{1,4}[A-Z]?$/.test(tok)) return false;
+  if (/^\d/.test(tok)) return false;
+  if (tok.length < 3) return false;
+  if (/^(F1|FIA|GP|NO|HP|AMG|BWT)\d*$/.test(tok)) return false;
+  return true;
+}
+
+if (SEEDED) {
+  for (const d of knownDrivers) drivers.set(key(d), { spelling: d, canonical: d });
+
+  /**
+   * Seeded events, plus the spellings shops actually use for them.
+   *
+   * Seeding gave the catalogue's names verbatim, which fails on the ways a shop
+   * writes the same race: "Turkey GP" against our "Turkish GP", "Austria GP"
+   * against "Austrian GP", "Barcelona Test" against "Test Session (Barcelona)".
+   * The alias table existed but was only consulted while LEARNING from the
+   * structured shop, which seeded mode skips entirely.
+   */
+  for (const e of knownEvents) {
+    events.set(key(e), { spelling: e, canonical: e });
+    for (const [re, adjectival] of EVENT_ALIASES) {
+      // Both directions: the table maps country -> adjective, and a shop may
+      // write either.
+      if (new RegExp(`^${adjectival}\\b`, 'i').test(e)) {
+        const country = e.replace(new RegExp(`^${adjectival}\\b`, 'i'), String(re.source).replace(/[\\^$\\b]/g, ''));
+        if (country && country !== e) events.set(key(country), { spelling: country, canonical: e });
+      }
+    }
+    // "Test Session (Barcelona)" and "Pre-season Testing (Barcelona)" are both
+    // written "Barcelona Test" by shops.
+    const paren = e.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+    if (paren && /test/i.test(e)) {
+      const alt = `${paren[2]} Test`;
+      events.set(key(alt), { spelling: alt, canonical: e });
+    }
+  }
+
+  /**
+   * Races the catalogue has never seen, learned from the feeds.
+   *
+   * 2020 is the awkward case seeding cannot cover: COVID produced one-off races
+   * — Tuscan, Eifel, Portuguese, Sakhir, 70th Anniversary — that exist in no
+   * other season. Seeding from 2021 can never know about them.
+   *
+   * Accepted only when at least TWO titles name the same race, so a typo in one
+   * product title cannot invent an event. Reported, because creating an event
+   * is a bigger claim than matching one.
+   */
+  const newEvents = new Map();
+  for (const shop of SHOPS) {
+    for (const item of feeds[shop.name] || []) {
+      if (!item.title.includes(YEAR) || !isF1(item.title)) continue;
+      for (const m of item.title.matchAll(/\b([A-Z][A-Za-z0-9]*(?:\s+[A-Z][A-Za-z]*)?)\s+(?:GP|Grand\s+Prix)\b/g)) {
+        const name = `${m[1].trim()} GP`;
+        if (events.has(key(name))) continue;
+        newEvents.set(key(name), { name, n: (newEvents.get(key(name))?.n || 0) + 1 });
+      }
+    }
+  }
+  /**
+   * REPORTED, NEVER CREATED.
+   *
+   * The first version accepted any "<Words> GP" seen twice or more. It produced
+   * "Hamilton Turkey GP" ×13, "Russell Sakhir GP" ×3 and "Winner Turkish GP"
+   * ×3, because the pattern swallows whatever capitalised words precede GP —
+   * usually a driver's surname or a placing. Yuui is a Dutch shop, so it also
+   * yielded "Winnaar GP", "Oostenrijkse GP" and "JARIG JUBILEUM GP".
+   *
+   * Every one would have become a race that never existed, with cars filed
+   * under it — pages about nothing, exactly what this whole pipeline refuses to
+   * produce. And frequency is no defence: a systematic parsing error repeats
+   * just as reliably as a fact does.
+   *
+   * So unknown races are printed for a person to add deliberately, and products
+   * naming them are skipped rather than guessed at. 2020's genuinely missing
+   * races — Tuscan, Eifel, Portuguese, Sakhir, 70th Anniversary — are a handful
+   * of rows to add by hand, which is cheaper and safer than any cleverness that
+   * gets it wrong.
+   */
+  const unknown = [...newEvents.values()].sort((a, b) => b.n - a.n).slice(0, 12);
+  if (unknown.length) {
+    console.log(`\nraces in ${YEAR} feeds the catalogue does not know — NOT added automatically:`);
+    for (const e of unknown) console.log(`    ${e.name.padEnd(28)} ×${e.n}`);
+    console.log(`  (the mangled ones above are why this does not auto-create events)`);
+  }
+
+  /**
+   * Chassis by team, voted across every shop.
+   *
+   * A title naming a known team and containing exactly one code-shaped token is
+   * strong evidence. Titles with several are skipped rather than guessed at —
+   * a wrong chassis becomes a wrong slug and a car that never existed.
+   */
+  const votes = new Map(); // team -> Map(chassis -> count)
+  for (const shop of SHOPS) {
+    for (const item of feeds[shop.name] || []) {
+      if (!item.title.includes(YEAR) || !isF1(item.title)) continue;
+      const tk = tokens(item.title);
+      const team = knownTeams.find(t => {
+        const tt = tokens(t).filter(x => !['F1', 'TEAM', 'RACING', 'SCUDERIA'].includes(x));
+        return tt.length > 0 && tt.every(x => tk.includes(x));
+      });
+      if (!team) continue;
+
+      const codes = [...new Set(tk.filter(looksLikeChassis))].filter(c => c !== YEAR);
+      if (codes.length !== 1) continue;
+
+      if (!votes.has(team)) votes.set(team, new Map());
+      const m = votes.get(team);
+      m.set(codes[0], (m.get(codes[0]) || 0) + 1);
+    }
+  }
+
+  console.log(`\nseeded from the catalogue; chassis discovered from ${YEAR} feeds:`);
+  for (const [team, m] of votes) {
+    const ranked = [...m.entries()].sort((a, b) => b[1] - a[1]);
+    const [best, n] = ranked[0];
+    // One sighting is an accident. Two independent titles is a pattern.
+    if (n < 2) {
+      console.log(`  ${team.padEnd(26)} SKIPPED — "${best}" seen only once`);
+      continue;
+    }
+    chassisToTeam.set(key(best), { team, chassis: best });
+    const others = ranked.slice(1, 3).map(([c, k]) => `${c}×${k}`).join(', ');
+    console.log(`  ${team.padEnd(26)} ${best.padEnd(8)} ×${n}${others ? `   (also saw ${others})` : ''}`);
+  }
+}
+
+// --- pass 1: learn the season's vocabulary from the structured shop
+
+for (const shop of SEEDED ? [] : SHOPS.filter(s => s.structured)) {
   for (const v of feeds[shop.name]) {
     if (!v.title.includes(YEAR) || !isF1(v.title)) continue;
     const p = parseStructured(v.title);
@@ -566,7 +731,26 @@ function extract(title) {
       bestLen = et.join('').length;
     }
   }
-  if (!event) return null;
+
+  /**
+   * A model tied to no race is a season car, which the catalogue already has a
+   * category for -- 59 models carry event_name "Season".
+   *
+   * "1:12 2020 Lewis Hamilton -- World Champion -- Mercedes-AMG F1 W11" names a
+   * driver, a chassis and an achievement, but no round. Requiring a race dropped
+   * every one of those.
+   *
+   * ONLY when the title names no race whatsoever. A title reading "Tuscan GP
+   * Winner" does name one -- we simply have not learned it -- and calling that a
+   * season car would file a specific race under the wrong event and quietly
+   * merge it with others. Silence is a season car; an unrecognised race is a
+   * skip.
+   */
+  if (!event) {
+    const namesARace = /(?:GP|Grand\s+Prix)/i.test(title);
+    if (namesARace) return null;
+    event = 'Season';
+  }
 
   return { scale, driver, event, team: found.team, chassis: found.chassis };
 }

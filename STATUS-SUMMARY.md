@@ -685,6 +685,73 @@ every other season.
 - Anthony's and Horizondiecast not swept. Low value: Anthony's 2026 stock is
   entirely AUD 20/50 deposits the guard will refuse, Horizondiecast had 13 products.
 
+## Feed-based discovery dies below 2021 — measured 2026-08-22
+
+Attempted 2020 with the season CSV generator. It produced **21 rows across 6
+teams, several with one driver, and ZERO cross-confirmed** — against 2026's 118
+rows, 11 teams of two, 66 cross-confirmed. Not imported.
+
+The method was not the problem; the stock is. F1 products per season across all
+seven readable shops:
+
+```
+2022 625 · 2021 393 · 2020 136 · 2019 73 · 2018 47 · 2014 38 · 2010 32
+2005  25 · 2000  53 · 1995 51
+```
+
+**The cliff is 2021 -> 2020, a 65% drop in one year.** Below that it flattens —
+and note it is NOT a decay curve: 2000 (53) and 1995 (51) beat 2005 (25) and
+2010 (32). Older is not scarcer, LESS ICONIC is scarcer. Senna and
+Schumacher-era cars get reissued; a 2005 Toyota does not. So "work backwards
+year by year" is the wrong strategy; go by era if you go at all.
+
+**The structural limit: the eBay pipeline cannot DISCOVER.** It searches by SKU,
+so a model must already exist in the catalogue. For old seasons eBay is where the
+models are, and it has no way to tell us they exist. Feed discovery covers
+roughly 2021+; below that the honest options are a hand-built CSV, or an
+eBay-title discovery path with a real review queue (a project, not an afternoon).
+
+### What 2020 taught the generator anyway
+
+- **Which shops matter depends on the year.** SHOPS listed four, excluding Mini
+  Model Shop, Yuui and Notjustcollectibles "on evidence" — they had zero 2026
+  products. They are back-catalogue specialists, and running 2020 without them
+  gave SIX rows. Now every shop is fetched and the year decides who contributes.
+- **`--seed` mode**, for seasons the shops barely stock: seed drivers, teams and
+  events from the catalogue and discover only the chassis codes from feeds. The
+  2026 bootstrap needs ~164 structured titles to reconstruct a grid; 2020 has 22.
+- **Seeded events need alias spellings.** Shops write "Turkey GP" and "Austria
+  GP" where the catalogue says Turkish and Austrian, and "Barcelona Test" for
+  "Test Session (Barcelona)".
+- **A title naming no race is a `Season` car** — the catalogue already has 59.
+  But ONLY when no race is named at all; an unrecognised race is a skip, because
+  filing a specific car under the wrong event merges it with others silently.
+
+### The bug that nearly shipped: auto-created events
+
+To cover 2020's COVID one-offs (Tuscan, Eifel, Portuguese, Sakhir, 70th
+Anniversary), the generator briefly accepted any `<Words> GP` seen twice or more.
+It produced:
+
+```
+Hamilton Turkey GP ×13   Russell Sakhir GP ×3   Winner Turkish GP ×3
+Winnaar GP ×3            Oostenrijkse GP ×3     JARIG JUBILEUM GP ×2
+```
+
+The pattern swallows whatever capitalised words precede "GP" — a driver surname,
+a placing — and Yuui is a DUTCH shop, so its titles yielded Dutch words for
+winner, Austrian and anniversary. Every one would have become a race that never
+existed, with cars filed under it.
+
+**Frequency is no defence: a systematic parsing error repeats exactly as
+reliably as a fact.** Unknown races are now reported for a person to add, never
+created. Removing it dropped 26 rows to 21 — the 5 lost were fabrications.
+
+**Also still true and worth not repeating:** the `Season` fallback filed
+"Mercedes / George Russell / 2020" as a season car. Russell drove a Mercedes
+exactly once that year, substituting at the Sakhir GP. The titles do not name the
+race, so it is unverifiable from the feed — plausible, wrong, and quiet.
+
 ## Next up
 
 1. **Make the sweep write images — do this FIRST, it is ~15 minutes and everything
