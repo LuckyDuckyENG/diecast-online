@@ -1,38 +1,59 @@
-# Status Summary — last updated 2026-08-22
+# Status Summary — last updated 2026-08-24
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
 
+> ## ⏰ THE ONLY THING WITH A DEADLINE
+>
+> The site refuses to quote a price older than **30 days** (`STALE_DAYS`), so
+> prices revert to "Check price on site" unless something re-checks them.
+>
+> ```
+> retailer prices: first go stale 2026-08-28 · half by 2026-09-17
+> eBay prices    : first go stale 2026-09-16 · half by 2026-09-24
+> ```
+>
+> **Around mid-September, run 🔄 Refresh All Retailers and 🔁 Refresh eBay.**
+> About an hour each, from localhost. Nothing breaks if they are late — prices
+> stop being displayed, links stay, and a refresh brings them all back. This is
+> the one job that cannot be deferred indefinitely.
+
 ## Where things stand
 
 ```
-cars 568  |  models 865  |  retailer links 1506  |  eBay links 429  |  retailers 48  |  drivers 47
+cars 568  |  models 865  |  retailer links 1744  |  eBay links 1430  |  retailers 48  |  drivers 51
 price observations 1572 (1142 retailer + 430 eBay)
-seasons: 2020 (79) + 2021 (69) + 2022 (83) + 2023 (98) + 2024 (66) + 2025 (90) + 2026 (83)   slugs: 489/489
-models buyable 688/730   |   images 654/730   |   currencies: AUD, EUR, GBP, USD
-retailer links by state: 781 in stock · 74 pre-order · 670 out of stock
-models with 2+ retailers 494  |  3+ 219
+seasons: 2020 (79) + 2021 (69) + 2022 (83) + 2023 (98) + 2024 (66) + 2025 (90) + 2026 (83)
+slugs 568/568   |   models buyable 760/865   |   images 722/865
+retailer links by state: 881 in stock · 78 pre-order · 803 out of stock
+models with 2+ retailers 535  |  3+ 292
+eBay: 382 models carry several listings · 82 still on one
 ```
 
-**Read visibility as a share of cars that CAN be visible.** 84 cars have no models
+**Read visibility as a share of cars that CAN be visible.** 86 cars have no models
 at all — CSV rows with no SKU — so they are invisible by construction.
 
 ```
-cars visible 395/489  =  98% of the 404 that have models
-   2021 48/50   2022 67/71   2023 83/86
+cars visible 445/568  =  92% of the 482 that have models
+   2020 47/78   2021 49/50   2022 67/71   2023 85/86
    2024 59/59   2025 56/56   2026 82/82
 ```
 
-**Images: 654/730, and only 37 buyable models still lack one** — down from 357.
-Sweeps now fill a missing image from the shop's own photo, never overwriting one
-already set. Two things had to be right. The fill runs for EVERY match rather
-than only rows being written — an unchanged price means `write: false`, so
-hanging it off the write path meant re-sweeping for images filled exactly zero.
-And a shop's "no photo yet" graphic is refused: Downies serves
-`Image_Placeholders_F1_<uuid>.jpg` for unreleased stock, and 183 were stored
-before that was caught. Note the tempting general rule fails here — Downies gives
-every placeholder its own UUID, so 183 copies of one graphic are 183 distinct
-URLs, and exactly one image URL in the catalogue is shared by more than one model.
+2020 is the outlier at 47/78 and correctly so: shops barely stock that era, so
+31 of its cars are carried by eBay or nothing at all.
+
+**Images: 722/865, with only 42 buyable models still lacking one.** Sweeps fill a
+missing image from the shop's own photo and never overwrite one already set —
+demonstrated: shop A writes, shop B is skipped, A's photo survives. The guard is
+`.is('image_url', null)` as a condition on the UPDATE, so concurrent sweeps
+cannot race through it. Placeholders are refused (`Image_Placeholders_F1_<uuid>`).
+
+**Where a model has no image but an eBay listing does, the photo is applied BY
+HAND, deliberately** — 43 models are in that position. An eBay image is a photograph of one seller's actual item —
+sometimes boxed, used, or on a kitchen table — where a retailer feed image is a
+product shot. Since first-write is permanent, auto-applying one would block a
+clean retailer photo forever. The per-listing picker shows a thumbnail beside
+each 📸 so the choice is made on sight.
 
 Live on Vercel at diecasts.app. Migrations 007–017 applied. `next build` clean.
 **Submitted to Google Search Console 2026-08-13** — domain verified by DNS,
@@ -296,6 +317,30 @@ Reproduce with `{all: true, dryRun: true, recheckAfterDays: 0}`.
 Minichamps trailing at 46% is partly genuine — they made far more models than AU
 eBay carries — but a bug hid in exactly that signal once already, so it is worth
 re-checking rather than assumed.
+
+### Every season re-run under the multiple-listings matcher — 2026-08-24
+
+```
+eBay links            429 -> 1430
+models on ONE listing 365 ->   82
+models with several   ~40 ->  382
+```
+
+**Across those 382 models the cheapest listing is on average 39% below the
+dearest.** That is what showing one arbitrary listing was costing — not the odd
+outlier like the 426-against-125 case that started this, but a systematic 39%
+gap. It is the single clearest measure of why this work was worth doing.
+
+2026 is deliberately at zero: unreleased pre-orders have no secondary market.
+Searching its SKUs returned coincidental matches on sewing patterns and revenue
+stamps, nothing else. Revisit once the cars ship.
+
+Per season: 2020 53/35 · 2021 66/56 · 2022 108/99 · 2023 109/90 · 2024 68/54 ·
+2025 60/48 (linked / with several).
+
+**2025 was silently missed on the first pass** and showed 56 linked with ZERO
+multiples while every other season had plenty — that shape is the tell if a
+scope ever fails to take.
 
 ### Measured 2026-08-17 — expiry is not the problem, one-listing-per-model is
 
@@ -812,43 +857,46 @@ race, so it is unverifiable from the feed — plausible, wrong, and quiet.
 
 ## Next up
 
-1. **Make the sweep write images — do this FIRST, it is ~15 minutes and everything
-   after it benefits.** `attachRetailerLink` takes no image parameter, so every
-   sweep reads an image URL from the feed, shows it in the dry run and throws it
-   away. 357 of 683 buyable models have no image and 187 of those are 2026, all
-   with an image waiting in a feed we already downloaded. Pass the URL through and
-   set `models.image_url` ONLY when it is currently null, never overwriting one
-   chosen by hand. Then re-run Downies (30 seconds) to fill 178 of them, and every
-   later sweep fills images for free. Sweeping more shops before this means
-   re-running them all afterwards.
-2. **Apply the remaining eBay scopes.** Only 2023 Red Bull has been run under the
-   multiple-listings matcher, which is why just 21 models hold more than one
-   listing. 2021, 2022, 2024 and 2025 are still one-listing-per-model and carry
-   the 1-in-8 overstatement. Panel sends `recheckAfterDays: 0`, so already-linked
-   models are re-searched rather than skipped.
-3. **The retailer SWEEP records no price observations.** `refresh-prices` and
+Items 1 and 2 were the whole of this list two days ago and are now done: sweeps
+fill images (722/865), and every season has been re-run under the
+multiple-listings matcher (382 models carry several, 82 remain on one).
+
+1. **The mid-September refresh** — see the deadline box at the top. The only
+   dated item here.
+2. **The retailer SWEEP records no price observations.** `refresh-prices` and
    `refresh-ebay` both append to `price_observations`; the sweep writes through
-   `attachRetailerLink` and does not. So the 211 new 2026 links sit outside the
+   `attachRetailerLink` and does not. So links created by a sweep sit outside the
    price history until a Refresh All Retailers picks them up. Third write path,
-   two of them recording history — exactly the kind of inconsistency that gets
-   forgotten.
-4. **Batch the sweep's writes** before running any sweep from the deployed admin.
-   ~338 sequential `attachRetailerLink` calls, each doing two selects and a write,
-   push an apply run past `maxDuration = 300`. Fine locally, times out on Vercel.
-5. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
+   two of them recording history — the kind of inconsistency that gets forgotten.
+3. **A `predev` guard for the `.next` collision.** A production build left in
+   `.next/` breaks route registration and every `/api/*` returns 404 with an HTML
+   body while pages still render. **This has now bitten FOUR times**, most
+   recently from a build dated eight days earlier that lay dormant until a fresh
+   dev start. `"predev": "rimraf .next"` or similar ends it permanently.
+4. **Own the images, or keep hotlinking.** Every product photo is served from a
+   retailer's CDN — 24 hosts, their bandwidth, their copyright, and any of them
+   can break every image by renaming a file. None block a `diecasts.app` referer
+   today, but that is a snapshot. Copying to Supabase Storage at fill time solves
+   breakage, bandwidth and ownership together; ~700 images is cheap now and a
+   migration later. **A real decision, not a nice-to-have.**
+5. **42 buyable models still have no image**, 43 of the image-less have an eBay
+   photo available. Applied by hand on purpose — see the images note at the top.
+6. **86 cars have no models at all**, so they are invisible by construction.
+   15 of them are 2020 rows held in `f1_2020_HOLD_no_sku.csv` awaiting a SKU.
+7. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
    problem in the currency audit.
-6. **8 retailer links whose URL states a different scale than the model** — see Data
-   findings. Splits into wrong links and wrong catalogue scale; do not blind-fix.
-7. **2020**, if you want another season. Retail coverage will be thin: back-catalogue
-   specialists only, so it leans on eBay the way 2021 did.
-8. **eBay listing decay** — handled by the refresh, and slower than assumed
-   (1 dead in the first full pass of 430). Nothing to do; noted so the next person
-   does not rebuild it.
-9. More sitemap shops — one line each in `SITEMAP_SHOPS`: miniatures-minichamps,
-   tibormodel, dc.kyosho. 24 retailers are still manual.
-10. Review queue for the eBay `event-driver` tier, and a "recently auto-added" view.
-11. Structured data (Product/Offer JSON-LD), gated on the freshness rules.
-12. Rotate the eBay and Exa credentials still sitting in the repo history.
+8. **8 retailer links whose URL states a different scale than the model** — see
+   Data findings. Splits into wrong links and wrong catalogue scale; do not
+   blind-fix.
+9. **More seasons, if wanted — but by ERA, not chronology.** Feed discovery dies
+   below 2021; hand-researched CSVs do not (2020 gave 79 cars against the
+   generator's 11). And stock is not a decay curve: 2000 and 1995 have more
+   product than 2005 and 2010, because iconic sells and mid-2000s midfield does
+   not.
+10. **2026 eBay**, once the cars actually ship. Zero secondary market today.
+11. Review queue for the eBay `event-driver` tier, and a "recently auto-added" view.
+12. Structured data (Product/Offer JSON-LD), gated on the freshness rules.
+13. Rotate the eBay and Exa credentials still sitting in the repo history.
 
 ## Data findings worth acting on
 
