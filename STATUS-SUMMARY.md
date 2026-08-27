@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-08-24
+# Status Summary — last updated 2026-08-28
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -854,6 +854,51 @@ created. Removing it dropped 26 rows to 21 — the 5 lost were fabrications.
 "Mercedes / George Russell / 2020" as a season car. Russell drove a Mercedes
 exactly once that year, substituting at the Sakhir GP. The titles do not name the
 race, so it is unverifiable from the feed — plausible, wrong, and quiet.
+
+## The biggest unclaimed win — measured 2026-08-28
+
+**The shops carry ~1,130 F1 products in 1:18/1:43 whose SKU the catalogue does
+not hold.** Not obscure variants: race winners, last races, first poles.
+
+```
+season   held   NOT held
+2020      20      51
+2021      41     145
+2022      82     265
+2023     103     262
+2024     135     208
+2025     145     199
+2026     319      44
+```
+
+Samples of what is missing:
+
+```
+18S775  Vettel - Abu Dhabi GP (Last Race) 2022      537246104 Norris - Singapore GP Winner 2024
+18S776  Verstappen - Abu Dhabi GP Winner 2022       LS18F1069 Sainz - Mexico GP Winner 2024
+S8525   Perez - Saudi Arabian GP (First Pole) 2022  18S999    Hamilton - British GP Winner 2024
+```
+
+**Why the gap exists: the season generator has only ever been run on 2026 and
+2020.** 2021-2025 came from hand-built CSVs months ago and have never been
+checked against the shops — which is why 2026, the one season built FROM feeds,
+has the smallest gap by far (44).
+
+### Next action, and why not 2019
+
+Run `scripts/build-season-csv.mjs --seed` for 2021-2025. Start with 2022 (265).
+The machinery is proven twice and the SKUs are already sitting in feeds we
+download.
+
+**Refine `--seed` first:** for 2021-2025 the catalogue already holds the chassis
+names as well as drivers, teams and events, so seeding can take everything from
+the database rather than discovering chassis from feeds. That removes the exact
+failure that cost most of Mercedes on the 2026 run (W17E never matching W17).
+
+**2019 is the worst available use of the time.** 73 F1 products across all shops,
+half of 2020's 136 — and 2020 needed hand research to reach 79 cars. Hardest
+work, thinnest result, while five seasons of easy high-value models sit
+unclaimed.
 
 ## Next up
 
