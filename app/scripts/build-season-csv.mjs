@@ -88,6 +88,18 @@ const SHOPS = [
   { name: 'Mini Model Shop', host: 'minimodelshop.com' },
   { name: 'Yuui', host: 'yuui.nl' },
   { name: 'Notjustcollectibles', host: 'notjustcollectibles.com' },
+  /**
+   * BigCommerce, so no products.json — read via its sitemap by
+   * lib/sitemapFeed.ts and pre-populated into .feed-cache by hand. It is worth
+   * the extra step: of 1,268 F1 SKUs it carries that the catalogue lacks, only
+   * 567 are also in the seven Shopify shops. **700 models exist here and
+   * nowhere else we can read.**
+   *
+   * Its SKUs carry a warehouse prefix — `US-S7852` is Spark's `S7852` — which
+   * is stripped when the cache is built. Left on, 86 products read as missing
+   * when we already hold them.
+   */
+  { name: 'LIVECARMODEL', host: 'livecarmodel.com', sitemapOnly: true },
 ];
 
 const PAGE_SIZE = 250;
@@ -120,6 +132,16 @@ async function fetchFeed(shop) {
       console.log(`  ${shop.name}: ${cached.length} variants (cached)`);
       return cached;
     }
+  }
+
+  // A sitemap shop has no products.json to fall back on. Say so plainly rather
+  // than emitting seven 404 warnings and an empty feed that reads as "no stock".
+  if (shop.sitemapOnly) {
+    console.warn(
+      `  ⚠️ ${shop.name}: no cached feed. It is read via its sitemap, not ` +
+      `products.json — rebuild the cache before relying on this run.`
+    );
+    return [];
   }
 
   const variants = [];
@@ -346,6 +368,23 @@ function canonicalDriver(raw, known) {
   const n = norm(raw);
   const exact = known.find(k => norm(k) === n);
   if (exact) return exact;
+
+  /**
+   * Same words, either order — "Zhou Guanyu" is "Guanyu Zhou".
+   *
+   * The surname rule below cannot catch this, because it assumes the surname
+   * is last and for a Chinese name the shops disagree about which word that
+   * is. It cost the catalogue two driver rows, six cars split between them,
+   * and a duplicate 2024 C44 Season page; the 2022 run was about to add a
+   * second Bahrain GP car under the other spelling, carrying the same SKU.
+   *
+   * Sorting the words is enough on its own — no two real drivers are
+   * anagrams of each other by whole words.
+   */
+  const words = s => norm(s).split(' ').filter(Boolean).sort().join(' ');
+  const reordered = known.find(k => words(k) === words(raw));
+  if (reordered) return reordered;
+
   const surname = raw.trim().split(/\s+/).pop();
   const candidates = known.filter(k => norm(k).endsWith(norm(surname)) && !/\+/.test(k));
   if (candidates.length === 1) return candidates[0];
@@ -413,6 +452,45 @@ function looksLikeChassis(tok) {
 
 if (SEEDED) {
   for (const d of knownDrivers) drivers.set(key(d), { spelling: d, canonical: d });
+
+  /**
+   * Chassis straight from the catalogue, when this season already has cars.
+   *
+   * Discovering chassis from feeds is only necessary for a season we have never
+   * imported. For 2020-2026 the codes are already sitting in `cars.chassis_name`
+   * — verified, spelled the way the slugs and hub pages use them, and complete.
+   *
+   * This is the direct fix for the W17E failure: the discovery pass learns a
+   * chassis from whichever shop it meets first, so Anthony's "W17E" beat the
+   * catalogue's own W12..W16 convention AND then failed to match the shops
+   * writing "W17", losing most of the Mercedes season silently. Reading the
+   * catalogue cannot get its own convention wrong.
+   *
+   * Feed discovery still runs afterwards and only ADDS codes the catalogue does
+   * not have, so a season with partial coverage still picks up what it is
+   * missing.
+   */
+  const { data: seasonCars } = await supabase
+    .from('cars')
+    .select('chassis_name, team:teams(name), season:seasons!inner(year)')
+    .eq('seasons.year', Number(YEAR));
+
+  const fromDb = new Map();
+  for (const c of seasonCars || []) {
+    const chassis = (c.chassis_name || '').trim();
+    const team = (c.team?.name || '').trim();
+    if (!chassis || !team) continue;
+    if (!fromDb.has(key(chassis))) fromDb.set(key(chassis), { team, chassis });
+  }
+  if (fromDb.size) {
+    console.log(`\n${fromDb.size} chassis seeded from the catalogue's own ${YEAR} cars:`);
+    for (const [k, v] of fromDb) {
+      chassisToTeam.set(k, v);
+      console.log(`  ${v.chassis.padEnd(12)} ${v.team}`);
+    }
+  } else {
+    console.log(`\nno ${YEAR} cars in the catalogue — chassis will be discovered from feeds`);
+  }
 
   /**
    * Seeded events, plus the spellings shops actually use for them.
@@ -525,6 +603,13 @@ if (SEEDED) {
     // One sighting is an accident. Two independent titles is a pattern.
     if (n < 2) {
       console.log(`  ${team.padEnd(26)} SKIPPED — "${best}" seen only once`);
+      continue;
+    }
+    // Only ADD. A code seeded from the catalogue is the site's own verified
+    // spelling and must not be replaced by whichever shop was met first — that
+    // is precisely how W17E overrode the W12..W16 convention.
+    if (chassisToTeam.has(key(best))) {
+      console.log(`  ${team.padEnd(26)} ${best.padEnd(8)} (already seeded, kept)`);
       continue;
     }
     chassisToTeam.set(key(best), { team, chassis: best });
@@ -784,12 +869,40 @@ function mfrFromSku(sku) {
 const mfrOf = (title, sku) =>
   MANUFACTURERS.find(m => new RegExp(`\\b${m}\\b`, 'i').test(title)) || mfrFromSku(sku);
 
-const skipped = { scale: 0, noMatch: 0, badSkuScale: 0, noSku: 0 };
+const skipped = { scale: 0, noMatch: 0, badSkuScale: 0, noSku: 0, junkSku: 0 };
+const junkSkus = [];
+
+/**
+ * A shop's SKU field is not always a manufacturer SKU.
+ *
+ * Two kinds of rubbish came through on the first 2022 run. Horizondiecast
+ * files the Verstappen partwork series under `EDITION 110`, `EDITION 91` and
+ * so on — a series number, not a part number, and eleven of them would have
+ * become eleven Red Bull models with a SKU no shop could ever be matched on.
+ * And `18-38067 #77` has the driver number glued onto the end, which is a real
+ * SKU we would then hold in a form that matches nothing.
+ *
+ * The fence is deliberately blunt: no whitespace, one leading alphanumeric,
+ * at least one digit, 3–20 characters. All 865 SKUs already in the catalogue
+ * pass it, so it rejects nothing we have ever accepted by hand.
+ *
+ * It does NOT try to repair `18-38067 #77` by cutting at the space. That guess
+ * is right often enough to be dangerous — a wrong SKU on a real car is worse
+ * than a missing one, because it looks like a fact and gets swept, priced and
+ * linked as though it were.
+ */
+const VALID_SKU = /^[A-Za-z0-9][A-Za-z0-9._\/-]{2,19}$/;
+const isUsableSku = sku => VALID_SKU.test(sku) && /\d/.test(sku);
 
 for (const shop of SHOPS) {
   for (const v of feeds[shop.name]) {
     if (!v.title.includes(YEAR) || !isF1(v.title)) continue;
     if (!v.sku) { skipped.noSku++; continue; }
+    if (!isUsableSku(v.sku)) {
+      skipped.junkSku++;
+      junkSkus.push(`${v.sku}  (${shop.name})  ${v.title.slice(0, 70)}`);
+      continue;
+    }
 
     const f = extract(v.title);
     if (!f) { skipped.noMatch++; continue; }
@@ -821,9 +934,61 @@ for (const shop of SHOPS) {
   }
 }
 
+/**
+ * One SKU, one car.
+ *
+ * A shop that names the race gives "18S777 ... Brazilian GP"; a shop that does
+ * not gives "18S777 ... 2022 Mercedes W13" and the event falls back to
+ * "Season". Both are the same box on a shelf, and emitting both makes
+ * sync-csv.js create two cars and put the same part number on each — after
+ * which every sweep, every eBay match and every price sits on whichever page
+ * happened to be built first.
+ *
+ * The named race wins because it is strictly more information: "Season" is
+ * what this script writes when it found nothing, not a claim that the model is
+ * a season car. Eight of eleven repeats in the first 2022 run were this.
+ */
+const IS_SEASON = /^season$/i;
+let foldedIntoRace = 0;
+const skuHome = new Map(); // sku -> row that names a race
+for (const row of rows.values()) {
+  if (IS_SEASON.test(row.event)) continue;
+  for (const s of [row.sku_1_18, row.sku_1_43]) if (s) skuHome.set(s, row);
+}
+for (const [rowKey, row] of rows) {
+  if (!IS_SEASON.test(row.event)) continue;
+  for (const col of ['sku_1_18', 'sku_1_43']) {
+    const s = row[col];
+    if (!s) continue;
+    const home = skuHome.get(s);
+    // Same driver and same maker, or it is a coincidence worth keeping.
+    if (!home || key(home.driver) !== key(row.driver) ||
+        key(home.manufacturer) !== key(row.manufacturer)) continue;
+    console.log(`  ${s} moved to "${home.event}" — the Season row was the shop that did not say`);
+    for (const shop of row.sources.get(s) || []) {
+      if (!home.sources.has(s)) home.sources.set(s, new Set());
+      home.sources.get(s).add(shop);
+    }
+    row[col] = '';
+    foldedIntoRace++;
+  }
+  if (!row.sku_1_18 && !row.sku_1_43) rows.delete(rowKey);
+}
+if (foldedIntoRace) console.log(`\n${foldedIntoRace} SKU(s) folded from a "Season" row onto the race that names them`);
+
 console.log(`\nrows built: ${rows.size}`);
 console.log(`  skipped — no field match: ${skipped.noMatch}  out-of-scope scale: ${skipped.scale}  ` +
-            `SKU/scale disagreement: ${skipped.badSkuScale}  no SKU: ${skipped.noSku}`);
+            `SKU/scale disagreement: ${skipped.badSkuScale}  no SKU: ${skipped.noSku}  ` +
+            `unusable SKU: ${skipped.junkSku}`);
+
+// Reported, never silently dropped — some of these are real models filed under
+// a broken SKU, and the only way they get in is if a person sees them.
+if (junkSkus.length) {
+  console.log(`
+DROPPED — the shop's SKU field is not a part number:`);
+  for (const j of [...new Set(junkSkus)].slice(0, 25)) console.log(`  ${j}`);
+  if (new Set(junkSkus).size > 25) console.log(`  ... and ${new Set(junkSkus).size - 25} more`);
+}
 
 // --- missing reference rows, which sync-csv.js will NOT create
 const csvEsc = s => {

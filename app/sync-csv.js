@@ -114,6 +114,13 @@ async function syncCSV(dryRun = false, csvArg = null) {
     carsSkipped: 0,
     modelsCreated: 0,
     modelsSkipped: 0,
+    carsWouldCreate: 0,
+    // A dry run inserts nothing, so two rows for the same car -- the Spark and
+    // the Minichamps of one race -- would both count as a new car. The live run
+    // creates it once and skips the second. Remembering what a dry run has
+    // already "created" makes the two agree: predicted 76, actual 54.
+    dryCars: new Set(),
+    modelsWouldCreate: 0,
     errors: []
   };
   
@@ -155,8 +162,16 @@ async function syncCSV(dryRun = false, csvArg = null) {
     
     console.log(`Processing: ${row.year} ${row.team} ${row.chassis_name} - ${row.event_name} - ${row.driver_name}`);
     
-    if (!dryRun) {
-      // Create or find car
+    {
+      // Create or find car.
+      //
+      // The lookups run in dry-run mode as well. They used to be inside an
+      // `if (!dryRun)`, so a dry run printed "Would create car and models" for
+      // every row without ever asking the database -- on a 164-row 2022 file
+      // it claimed 164 new cars when half of them already existed. That made
+      // the dry run useless as the gate for the one failure this script warns
+      // loudest about: inventing a car that never existed. Only the INSERTs
+      // are gated now; every SELECT always runs.
       const {data: existingCar} = await supabase
         .from('cars')
         .select('id')
@@ -169,7 +184,17 @@ async function syncCSV(dryRun = false, csvArg = null) {
       
       let carId = existingCar?.id;
       
-      if (!carId) {
+      if (!carId && dryRun) {
+        const sig = [season.id, team.id, row.chassis_name, driver.id, row.event_name].join('|');
+        if (stats.dryCars.has(sig)) {
+          stats.carsSkipped++;
+          console.log(`  [DRY RUN] car already queued by an earlier row`);
+        } else {
+          stats.dryCars.add(sig);
+          stats.carsWouldCreate++;
+          console.log(`  [DRY RUN] would CREATE car`);
+        }
+      } else if (!carId) {
         const {data: newCar, error: carError} = await supabase
           .from('cars')
           .insert({
@@ -202,7 +227,7 @@ async function syncCSV(dryRun = false, csvArg = null) {
         carId = newCar.id;
         stats.carsCreated++;
         console.log(`  ✅ Created car`);
-      } else {
+      } else if (carId) {
         stats.carsSkipped++;
         console.log(`  ⏭️  Car exists`);
       }
@@ -225,7 +250,10 @@ async function syncCSV(dryRun = false, csvArg = null) {
           .eq('scale', scale)
           .maybeSingle();
         
-        if (!existingModel) {
+        if (!existingModel && dryRun) {
+          stats.modelsWouldCreate++;
+          console.log(`  [DRY RUN] would CREATE model ${scale} ${sku}`);
+        } else if (!existingModel) {
           const {error: modelError} = await supabase
             .from('models')
             .insert({
@@ -247,17 +275,20 @@ async function syncCSV(dryRun = false, csvArg = null) {
           console.log(`  ⏭️  Model exists ${scale} ${sku}`);
         }
       }
-    } else {
-      console.log(`  [DRY RUN] Would create car and models`);
     }
   }
   
   console.log('\n═══════════════════════════════════════════');
   console.log('📊 SYNC COMPLETE\n');
-  console.log(`Cars created: ${stats.carsCreated}`);
-  console.log(`Cars skipped: ${stats.carsSkipped}`);
-  console.log(`Models created: ${stats.modelsCreated}`);
-  console.log(`Models skipped: ${stats.modelsSkipped}`);
+  if (dryRun) {
+    console.log(`Cars    : ${stats.carsWouldCreate} would be CREATED, ${stats.carsSkipped} already exist`);
+    console.log(`Models  : ${stats.modelsWouldCreate} would be CREATED, ${stats.modelsSkipped} already exist`);
+  } else {
+    console.log(`Cars created: ${stats.carsCreated}`);
+    console.log(`Cars skipped: ${stats.carsSkipped}`);
+    console.log(`Models created: ${stats.modelsCreated}`);
+    console.log(`Models skipped: ${stats.modelsSkipped}`);
+  }
   console.log(`Errors: ${stats.errors.length}`);
   
   if (stats.errors.length > 0) {

@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Shop feeds downloaded by scripts/build-season-csv.mjs — 12MB of other
+# people's catalogues, re-fetchable at any time and stale within a day.
+.feed-cache/
