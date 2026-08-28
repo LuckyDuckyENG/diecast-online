@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-08-28
+# Status Summary — last updated 2026-08-29
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -21,7 +21,7 @@
 ## Where things stand
 
 ```
-cars 568  |  models 865  |  retailer links 1744  |  eBay links 1430  |  retailers 48  |  drivers 51
+cars 621  |  models 1044  |  retailer links 1744  |  eBay links 1430  |  retailers 48  |  drivers 50
 price observations 1572 (1142 retailer + 430 eBay)
 seasons: 2020 (79) + 2021 (69) + 2022 (83) + 2023 (98) + 2024 (66) + 2025 (90) + 2026 (83)
 slugs 568/568   |   models buyable 760/865   |   images 722/865
@@ -884,16 +884,70 @@ S8525   Perez - Saudi Arabian GP (First Pole) 2022  18S999    Hamilton - British
 checked against the shops — which is why 2026, the one season built FROM feeds,
 has the smallest gap by far (44).
 
-### Next action, and why not 2019
+### 2022 done — 2026-08-29 (commit 0c878fc)
 
-Run `scripts/build-season-csv.mjs --seed` for 2021-2025. Start with 2022 (265).
-The machinery is proven twice and the SKUs are already sitting in feeds we
-download.
+**179 new models, 54 new cars, 0 errors. 2022 went 128 -> 307 models; the
+catalogue went 865 -> 1044.**
 
-**Refine `--seed` first:** for 2021-2025 the catalogue already holds the chassis
-names as well as drivers, teams and events, so seeding can take everything from
-the database rather than discovering chassis from feeds. That removes the exact
-failure that cost most of Mercedes on the 2026 run (W17E never matching W17).
+LIVECARMODEL is now the eighth source. It has no products.json, so it is read
+via its sitemap and written into the same `.feed-cache/` the Shopify shops use
+— one more source, no new code path. Rebuild that cache by hand before a run;
+the generator warns loudly rather than reporting an empty feed as "no stock".
+Its SKUs carry a warehouse prefix (`US-S7852` is Spark's `S7852`) which must be
+stripped, or 86 products read as missing when we already hold them.
+
+`--seed` now takes the season's chassis from our own `cars` table and refuses
+to let a feed overwrite one. That is the direct fix for W17E.
+
+**Four defects the run itself exposed. All fixed, all worth knowing about
+before running 2021, 2023, 2024 or 2025:**
+
+1. **A shop's SKU field is not always a part number.** Stone Model files the
+   Verstappen partwork as `Edition 110`; LIVECARMODEL writes Bburago as
+   `18-38067 #77` with the driver number glued on. 34 dropped — and printed,
+   because some are real models behind a broken SKU. The fence rejects none of
+   the 865 SKUs already held. It deliberately does NOT repair `18-38067 #77` by
+   cutting at the space: a wrong SKU looks like a fact and gets swept, priced
+   and linked as one.
+2. **"Zhou Guanyu" and "Guanyu Zhou" were two drivers.** Surname matching
+   cannot fold them, because the shops disagree about which word is the
+   surname. It had already cost 6 cars split across two rows and a duplicate
+   2024 C44 Season page. `canonicalDriver` now folds same-words-either-order;
+   the database was merged too.
+3. **One SKU was becoming two cars.** A shop that names the race and a shop
+   that does not produced two rows for the same box. The named race wins —
+   "Season" is what the generator writes when it found nothing, not a claim.
+4. **`sync-csv --dry-run` was doing none of the lookups.** It printed "Would
+   create car and models" unconditionally: 164 claimed new cars when 88 already
+   existed. Useless as the gate for the one failure the generator warns loudest
+   about. Only INSERTs are gated now. It then predicted 179 new models / 76
+   held, which is exactly what the import did.
+
+Also normalised: the two cars filed under a bare `Italian GP` moved to
+`Italian GP (Monza)` where the other 17 live, slugs regenerated to match.
+Note the parenthetical is NOT always noise — `Abu Dhabi GP (FP1)` is a
+different session, and Barcelona/Fiorano are different tests. Do not fold
+those.
+
+### Next: the same run for 2023, 2024, 2025, 2021
+
+262, 208, 199 and 145 unheld SKUs. The machinery is now proven four times and
+every trap above is already fenced, so these should be much quieter than 2022
+was. One season per sitting:
+
+```
+node scripts/build-season-csv.mjs --year 2023 --seed --out ../f1_2023_NEW.csv
+node sync-csv.js ../f1_2023_NEW.csv --dry-run     # now tells the truth
+node sync-csv.js ../f1_2023_NEW.csv
+```
+
+**The new models arrive bare** — no image, no retailer link, no eBay link.
+2022 is now 307 models with only 108 images. They become real pages when the
+retailer sweeps and the eBay matcher run over them, so plan a sweep pass after
+the imports rather than after each one.
+
+**2019 is still the worst available use of the time.** 73 F1 products across
+all shops, half of 2020's 136 — and 2020 needed hand research to reach 79 cars.
 
 **2019 is the worst available use of the time.** 73 F1 products across all shops,
 half of 2020's 136 — and 2020 needed hand research to reach 79 cars. Hardest
