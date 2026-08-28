@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-08-29
+# Status Summary — last updated 2026-08-29 (evening)
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -21,7 +21,7 @@
 ## Where things stand
 
 ```
-cars 621  |  models 1044  |  retailer links 1744  |  eBay links 1430  |  retailers 48  |  drivers 50
+cars 621  |  models 1044  |  retailer links 1862  |  eBay links 1430  |  retailers 48  |  drivers 50
 price observations 1572 (1142 retailer + 430 eBay)
 seasons: 2020 (79) + 2021 (69) + 2022 (83) + 2023 (98) + 2024 (66) + 2025 (90) + 2026 (83)
 slugs 568/568   |   models buyable 760/865   |   images 722/865
@@ -957,8 +957,51 @@ from exactly where it stopped; the panel says `read 620 of 884 candidates — ru
 again to continue`. Nothing is dropped without being counted, and no future
 import can make it time out.
 
-**LIVECARMODEL currently needs two passes.** Shopify shops are unaffected —
-they page themselves and always finish.
+**LIVECARMODEL needs two to three passes** depending on how fast their server
+is that day. Shopify shops are unaffected — they page themselves and always
+finish.
+
+One trap found by running it: the offset was first written as a single number
+shared by both buttons, so a dry run that stopped at 516 would have made Apply
+start at 516 and silently write none of the first 516 candidates' links. The
+cursor now records which mode produced it and switching modes restarts from
+zero (52942fa). Both buttons show "continue from N" rather than keeping it as
+invisible state — which is what caused the bug in the first place.
+
+### The LIVECARMODEL sweep ran — 2026-08-29 evening
+
+Three passes, applied. **+118 retailer links, +120 images.** LIVECARMODEL went
+from 532 links to 650, and it is now the single largest source of links in the
+catalogue.
+
+```
+                 before   after
+models buyable      760     878
+models with image   722     842
+2022 buyable        112     230
+2022 with image     108     228
+2022 cars hidden     58      16   <- these are now on /browse
+```
+
+**2022 was the whole point of this and it worked**: 58 of its 125 cars were
+invisible after the import because a car with no retailer and no eBay link is
+kept off `/browse` by `REQUIRE_RETAILER`. 42 of them are now live.
+
+Two things to know for the next shop:
+
+- **Passes are not a fixed number.** The first attempt read 516 candidates in
+  263s; an hour later the same run read 381 in 262s. Their server sets the
+  pace, so keep pressing Apply until the "continue from" text disappears from
+  the button.
+- **Two Solido A522s are still held** as "4.0x BELOW the 1:18 median". They are
+  a real price — Solido is a budget brand, ~AUD 97 for a 1:18 is genuinely what
+  they cost. The check compares against a 1:18 median of AUD 389.92 set by
+  Spark (n=54) and Minichamps (n=189), and Solido has fewer than 4 priced
+  models so it has no baseline of its own. That is circular: cheap brands get
+  held, so they never earn a baseline. The fix is to compare against the
+  MANUFACTURER + scale median where there is enough data and fall back to scale
+  only when there is not. BBR 1:43 already sits at 2.11x and would trip the
+  same wire for the same wrong reason.
 
 **The new models arrive bare** — no image, no retailer link, no eBay link.
 2022 is now 307 models with only 108 images. They become real pages when the
