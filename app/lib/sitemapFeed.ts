@@ -54,7 +54,26 @@ const BATCH_DELAY_MS = 300;
  * sweep into an hour of requests against someone else's server. When it bites,
  * `truncated` says so rather than letting a partial answer read as complete.
  */
-const MAX_CANDIDATES = 800;
+const MAX_CANDIDATES = 5000;
+
+/**
+ * How long the fetch loop may run before it stops and reports where it got to.
+ *
+ * A COUNT ceiling was the wrong bound. It was set to 800 when the prefilter
+ * returned ~530 candidates; importing 179 models into 2022 took that to 884,
+ * which is past the ceiling AND past the clock — 800 pages three at a time is
+ * about 365s against a 300s route limit. So the count either silently dropped
+ * 84 candidates or timed out, and the number to set it to changes every time a
+ * season is imported.
+ *
+ * Time is the thing that actually runs out, so bound that directly. The sweep
+ * stops while it can still write what it found, says how many candidates are
+ * left, and `offset` picks up from there. Nothing is dropped without being
+ * counted, and no import can make this time out again.
+ *
+ * 240s leaves the sitemap fetch (~10s) and the database writes inside 300s.
+ */
+const FETCH_BUDGET_MS = 240_000;
 
 export interface SitemapShop {
   /** Where the sitemap index lives, relative to the host. */
@@ -232,7 +251,8 @@ function readProductJsonLd(html: string): {
 
 export async function fetchSitemapFeed(
   rawHost: string,
-  models: CandidateModel[]
+  models: CandidateModel[],
+  opts: { offset?: number; budgetMs?: number } = {}
 ): Promise<FeedResult> {
   const host = rawHost.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
   const shop = sitemapShopFor(host);
@@ -243,8 +263,17 @@ export async function fetchSitemapFeed(
   const { urls, requests: sitemapRequests } = await fetchSitemapUrls(host, shop);
   const candidates = prefilter(urls, models, shop.productMarker);
 
-  const truncated = candidates.length > MAX_CANDIDATES;
-  const toFetch = candidates.slice(0, MAX_CANDIDATES);
+  // Sorted so `offset` means the same thing across runs. prefilter builds a Set
+  // and Set order depends on which model matched first, which changes whenever
+  // the catalogue does -- resuming from an offset into an unstable order would
+  // re-read some pages and skip others.
+  candidates.sort();
+
+  const offset = Math.max(0, opts.offset || 0);
+  const budgetMs = opts.budgetMs ?? FETCH_BUDGET_MS;
+  const deadline = Date.now() + budgetMs;
+  const toFetch = candidates.slice(offset, offset + MAX_CANDIDATES);
+  let stoppedAt = offset + toFetch.length;
 
   let requests = sitemapRequests;
   let variants = 0;
@@ -254,6 +283,13 @@ export async function fetchSitemapFeed(
   // SKU, so pages that parsed to nothing were hammered with no gap at all —
   // fastest exactly where we were getting no value.
   for (let i = 0; i < toFetch.length; i += CONCURRENCY) {
+    // Checked before the batch, not after, so the run always ends with time
+    // left to write what it has. Stopping here is a normal outcome, not a
+    // failure: `nextOffset` says where to resume.
+    if (Date.now() > deadline) {
+      stoppedAt = offset + i;
+      break;
+    }
     const batch = toFetch.slice(i, i + CONCURRENCY);
     const pages = await Promise.all(batch.map(async url => ({ url, html: await getText(url) })));
     requests += batch.length;
@@ -285,5 +321,19 @@ export async function fetchSitemapFeed(
     }
   }
 
-  return { host, products: urls.length, variants, requests, truncated, bySku };
+  const done = stoppedAt >= candidates.length;
+
+  return {
+    host,
+    products: urls.length,
+    variants,
+    requests,
+    // Still true when the run is partial, so every existing caller and the
+    // admin's "results incomplete" warning keep working unchanged.
+    truncated: !done,
+    candidates: candidates.length,
+    scanned: stoppedAt,
+    nextOffset: done ? null : stoppedAt,
+    bySku,
+  };
 }

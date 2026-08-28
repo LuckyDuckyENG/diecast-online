@@ -35,6 +35,16 @@ export const maxDuration = 300;
 interface Body {
   retailerId?: string;
   dryRun?: boolean;
+  /**
+   * Resume a sitemap sweep that ran out of time.
+   *
+   * A sitemap shop has no bulk feed, so the sweep reads one product page per
+   * candidate and the candidate list grows with the catalogue — importing 179
+   * models into 2022 took LIVECARMODEL from 573 candidates to 884, past what
+   * fits in 300s. The sweep now stops on a clock and returns `nextOffset`;
+   * sending it back here continues from exactly there.
+   */
+  offset?: number;
 }
 
 const readAll = <T = any>(table: string, columns: string) =>
@@ -93,7 +103,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { retailerId, dryRun = true }: Body = await request.json();
+    const { retailerId, dryRun = true, offset = 0 }: Body = await request.json();
     if (!retailerId) {
       return NextResponse.json({ error: 'retailerId is required' }, { status: 400 });
     }
@@ -135,7 +145,8 @@ export async function POST(request: NextRequest) {
             driver: m.car?.driver?.name || null,
             event: m.car?.event_name || null,
             year: m.car?.season?.year ?? null,
-          })).filter(m => m.sku)
+          })).filter(m => m.sku),
+          { offset }
         )
       : await fetchShopifyFeed(host);
 
@@ -302,6 +313,9 @@ export async function POST(request: NextRequest) {
         skus: feed.bySku.size,
         requests: feed.requests,
         truncated: feed.truncated,
+        candidates: feed.candidates,
+        scanned: feed.scanned,
+        nextOffset: feed.nextOffset,
         seconds: Math.round((Date.now() - t0) / 100) / 10,
       },
       totals,

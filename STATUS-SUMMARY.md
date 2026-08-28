@@ -941,6 +941,25 @@ node sync-csv.js ../f1_2023_NEW.csv --dry-run     # now tells the truth
 node sync-csv.js ../f1_2023_NEW.csv
 ```
 
+### The LIVECARMODEL sweep is now resumable — 2026-08-29
+
+Importing 2022 took its prefilter from **573 candidates to 884**, which broke
+the sweep two ways at once: past `MAX_CANDIDATES = 800`, so 84 were silently
+dropped, and 800 pages three-at-a-time is ~365s against a 300s route limit.
+Measured, not guessed — the real prefilter run offline returned 884, and a
+timed pass came in at 368s.
+
+A count ceiling was the wrong bound, because the number to set it to changes
+every time a season is imported. **The sweep now stops on a clock** (240s,
+leaving the sitemap fetch and the writes inside 300s), reports how far it got,
+and takes an `offset` to continue. Press the same button again and it resumes
+from exactly where it stopped; the panel says `read 620 of 884 candidates — run
+again to continue`. Nothing is dropped without being counted, and no future
+import can make it time out.
+
+**LIVECARMODEL currently needs two passes.** Shopify shops are unaffected —
+they page themselves and always finish.
+
 **The new models arrive bare** — no image, no retailer link, no eBay link.
 2022 is now 307 models with only 108 images. They become real pages when the
 retailer sweeps and the eBay matcher run over them, so plan a sweep pass after

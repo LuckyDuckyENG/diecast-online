@@ -282,6 +282,16 @@ export default function EbayLinkingAdmin() {
   // Retailer feed sweep — discovery and refresh from one download
   const [sweepRetailers, setSweepRetailers] = useState<any[]>([]);
   const [sweepTarget, setSweepTarget] = useState<string>('');
+  /**
+   * Where the next sitemap sweep resumes from.
+   *
+   * A sitemap shop is read one product page at a time, so the sweep stops on a
+   * clock and reports how far it got. Carrying that forward means pressing the
+   * same button again continues instead of re-reading the same pages. Reset
+   * whenever the retailer changes, because an offset into one shop's candidate
+   * list means nothing in another's.
+   */
+  const [sweepOffset, setSweepOffset] = useState(0);
   const [sweepState, setSweepState] = useState<{
     running: boolean;
     result: any | null;
@@ -3009,12 +3019,14 @@ export default function EbayLinkingAdmin() {
       const res = await fetch('/api/admin/sweep-retailer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ retailerId: sweepTarget, dryRun }),
+        body: JSON.stringify({ retailerId: sweepTarget, dryRun, offset: sweepOffset }),
         cache: 'no-store',
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.details || data.error || 'Sweep failed');
       setSweepState({ running: false, result: data, error: null });
+      // null means every candidate was read, so the next run starts over.
+      setSweepOffset(data.feed?.nextOffset ?? 0);
 
       if (!dryRun) {
         const refreshed = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
@@ -4413,7 +4425,7 @@ export default function EbayLinkingAdmin() {
 
             <select
               value={sweepTarget}
-              onChange={e => setSweepTarget(e.target.value)}
+              onChange={e => { setSweepTarget(e.target.value); setSweepOffset(0); }}
               className="px-2 py-1 rounded bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm text-[var(--text-primary)]"
             >
               <option value="">Choose a shop…</option>
@@ -4503,9 +4515,16 @@ export default function EbayLinkingAdmin() {
                 {r.feed && (
                   <div className="text-xs text-gray-500 mb-2">
                     {r.feed.products} products · {r.feed.skus} SKUs · {r.feed.requests} requests · {r.feed.seconds}s
-                    {r.feed.truncated && (
+                    {r.feed.nextOffset != null ? (
+                      /* A sitemap sweep stops on a clock rather than timing
+                         out. This is the only place that says there is more to
+                         read, so it has to be unmissable. */
+                      <span className="text-yellow-500">
+                        {' '}· ⚠ read {r.feed.scanned} of {r.feed.candidates} candidates — run again to continue
+                      </span>
+                    ) : r.feed.truncated ? (
                       <span className="text-yellow-500"> · ⚠ catalogue truncated, results incomplete</span>
-                    )}
+                    ) : null}
                   </div>
                 )}
                 <div className="flex flex-wrap gap-4 text-gray-400">

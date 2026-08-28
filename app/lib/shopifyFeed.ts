@@ -60,6 +60,17 @@ export interface FeedResult {
   variants: number;
   requests: number;
   truncated: boolean;
+  /**
+   * Resumable sweeps. Only the sitemap reader sets these — a Shopify feed is
+   * paged by the shop and always finishes, so it leaves them undefined.
+   *
+   * `nextOffset` is null when the sweep covered every candidate. When it is a
+   * number, that many candidates are still unread and the sweep should be run
+   * again from there.
+   */
+  candidates?: number;
+  scanned?: number;
+  nextOffset?: number | null;
   /** Uppercased SKU -> variant. First occurrence wins. */
   bySku: Map<string, FeedVariant>;
 }
