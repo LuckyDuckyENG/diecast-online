@@ -291,7 +291,19 @@ export default function EbayLinkingAdmin() {
    * whenever the retailer changes, because an offset into one shop's candidate
    * list means nothing in another's.
    */
-  const [sweepOffset, setSweepOffset] = useState(0);
+  const [sweepCursor, setSweepCursor] = useState<{ offset: number; dryRun: boolean | null }>({
+    offset: 0,
+    dryRun: null,
+  });
+  /**
+   * The cursor remembers WHICH MODE produced it, and a run in the other mode
+   * starts from zero. A dry run that stopped at 516 of 884 must not make Apply
+   * begin at 516 -- it would skip the first 516 candidates and silently write
+   * none of their links, which is the exact failure the resume was added to
+   * prevent.
+   */
+  const resumeOffset = (dryRun: boolean) =>
+    sweepCursor.dryRun === dryRun ? sweepCursor.offset : 0;
   const [sweepState, setSweepState] = useState<{
     running: boolean;
     result: any | null;
@@ -3005,8 +3017,12 @@ export default function EbayLinkingAdmin() {
     const shop = sweepRetailers.find(r => r.id === sweepTarget);
 
     if (!dryRun) {
+      const from = resumeOffset(false);
       const ok = confirm(
         `Apply the sweep for ${shop?.name}?\n\n` +
+        (from
+          ? `Continuing from candidate ${from} — the earlier ones were written by the previous pass.\n\n`
+          : '') +
         `New links and price/stock changes are written. Pre-orders and price ` +
         `outliers are held back. Hand-picked product URLs keep their URL and ` +
         `only get a fresh price.`
@@ -3014,19 +3030,20 @@ export default function EbayLinkingAdmin() {
       if (!ok) return;
     }
 
+    const offset = resumeOffset(dryRun);
     setSweepState({ running: true, result: null, error: null });
     try {
       const res = await fetch('/api/admin/sweep-retailer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ retailerId: sweepTarget, dryRun, offset: sweepOffset }),
+        body: JSON.stringify({ retailerId: sweepTarget, dryRun, offset }),
         cache: 'no-store',
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.details || data.error || 'Sweep failed');
       setSweepState({ running: false, result: data, error: null });
       // null means every candidate was read, so the next run starts over.
-      setSweepOffset(data.feed?.nextOffset ?? 0);
+      setSweepCursor({ offset: data.feed?.nextOffset ?? 0, dryRun });
 
       if (!dryRun) {
         const refreshed = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
@@ -4425,7 +4442,7 @@ export default function EbayLinkingAdmin() {
 
             <select
               value={sweepTarget}
-              onChange={e => { setSweepTarget(e.target.value); setSweepOffset(0); }}
+              onChange={e => { setSweepTarget(e.target.value); setSweepCursor({ offset: 0, dryRun: null }); }}
               className="px-2 py-1 rounded bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm text-[var(--text-primary)]"
             >
               <option value="">Choose a shop…</option>
@@ -4442,7 +4459,7 @@ export default function EbayLinkingAdmin() {
               className="px-3 py-1.5 bg-slate-600 text-white text-sm rounded-lg hover:bg-slate-700 disabled:opacity-50"
               title="Download their catalogue and show what would change, writing nothing"
             >
-              🧪 Dry run
+              🧪 Dry run{resumeOffset(true) ? ` — continue from ${resumeOffset(true)}` : ''}
             </button>
             <button
               disabled={!sweepTarget || sweepState?.running}
@@ -4450,7 +4467,7 @@ export default function EbayLinkingAdmin() {
               className="px-3 py-1.5 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 disabled:opacity-50"
               title="Write new links and refresh prices and stock"
             >
-              🏪 Apply sweep
+              🏪 Apply sweep{resumeOffset(false) ? ` — continue from ${resumeOffset(false)}` : ''}
             </button>
 
             {sweepState?.running && (
