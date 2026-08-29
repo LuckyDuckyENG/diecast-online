@@ -40,15 +40,21 @@ export interface HubData {
 }
 
 async function loadCatalogue() {
-  // prices and ebay are paged: both tables pass PostgREST's 1000-row cap
-  // (price_history reached 1,151 on 2026-08-17), and a truncated read here
-  // understates which cars are buyable on every hub page, silently.
-  const [{ data: cars }, { data: models }, prices, ebay] = await Promise.all([
-    supabase.from('cars').select(`
+  // ALL FOUR are paged. PostgREST caps a plain .select() at 1000 rows and says
+  // nothing about it, and a truncated read here understates which cars are
+  // buyable on every hub page, silently.
+  //
+  // This was fixed for prices and ebay on 2026-08-17 and stopped there, because
+  // those were the tables over the cap that day. `models` crossed it on
+  // 2026-08-29 (865 -> 1,463) and took /browse down to 502 cars from 631. Half
+  // a fix lasts exactly until the next table grows, so `cars` is paged too — it
+  // is at 670 and two more seasons will carry it past.
+  const [cars, models, prices, ebay] = await Promise.all([
+    selectAll<any>(supabase, 'cars', `
       id, slug, chassis_name, event_name,
       driver:drivers(name), team:teams(name, primary_color, text_color), season:seasons(year)
     `),
-    supabase.from('models').select('id, car_id, image_url, scale, manufacturers(name)'),
+    selectAll<any>(supabase, 'models', 'id, car_id, image_url, scale, manufacturers(name)'),
     selectAll<any>(supabase, 'price_history', 'model_id, price, price_aud, in_stock'),
     selectAll<any>(supabase, 'ebay_links', 'model_id'),
   ]);

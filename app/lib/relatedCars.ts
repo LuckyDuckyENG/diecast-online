@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { selectAll } from './selectAll';
 
 /**
  * Related cars for the bottom of a car page.
@@ -28,14 +29,20 @@ export interface RelatedGroup {
 const PER_GROUP = 6;
 
 export async function getRelatedCars(car: any): Promise<RelatedGroup[]> {
-  // One pass over the catalogue; it's small and this avoids four round trips
-  const [{ data: allCars }, { data: allModels }, { data: allPrices }] = await Promise.all([
-    supabase.from('cars').select(`
+  // One pass over the catalogue; it's small and this avoids four round trips.
+  //
+  // Paged, because "it's small" stopped being true. PostgREST caps a plain
+  // .select() at 1000 rows silently: price_history is at 2,774 and models at
+  // 1,463, so an unpaged read here was quietly deciding that most of the
+  // catalogue had no models and no prices — which on this page means related
+  // cars that look unbuyable, or vanish.
+  const [allCars, allModels, allPrices] = await Promise.all([
+    selectAll<any>(supabase, 'cars', `
       id, slug, chassis_name, event_name, season_id, team_id, driver_id,
       driver:drivers(name), team:teams(name), season:seasons(year)
     `),
-    supabase.from('models').select('id, car_id, image_url'),
-    supabase.from('price_history').select('model_id, price, price_aud, in_stock'),
+    selectAll<any>(supabase, 'models', 'id, car_id, image_url'),
+    selectAll<any>(supabase, 'price_history', 'model_id, price, price_aud, in_stock'),
   ]);
 
   const modelsByCar = new Map<string, any[]>();

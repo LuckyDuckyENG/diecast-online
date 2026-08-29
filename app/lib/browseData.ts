@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { REQUIRE_RETAILER, fetchModelIdsWithStore } from './storeCoverage';
+import { selectAll } from './selectAll';
 import type { Model } from './types';
 
 /**
@@ -10,30 +11,40 @@ import type { Model } from './types';
  * tells crawlers the car pages exist; this is the hub page that links to them
  * and passes authority through.
  */
+/**
+ * Both reads are paged.
+ *
+ * PostgREST caps a plain .select() at 1000 rows and says nothing about it — no
+ * error, no flag, just a short array. `models` crossed that line on 2026-08-29
+ * when the 2023 and 2024 imports took it from 865 to 1,463, and /browse
+ * immediately dropped to 502 cars from the 631 it should show: every car whose
+ * models all sat in the missing 463 had a variantCount of 0 and was filtered
+ * out as having nothing to sell.
+ *
+ * It presented as a smaller catalogue rather than as a failure, which is what
+ * makes this cap dangerous — the page looked entirely healthy.
+ *
+ * `cars` is at 670 and will cross the same line within a couple of seasons, so
+ * it is paged now rather than after it silently truncates too.
+ */
 export async function getBrowseCars(): Promise<Model[]> {
-  const { data: carsData, error: carsError } = await supabase
-    .from('cars')
-    .select(`
-      id,
-      slug,
-      chassis_name,
-      event_name,
-      team:teams(name, primary_color, text_color),
-      season:seasons(year),
-      driver:drivers(name, number)
-    `);
-
-  if (carsError) {
-    console.error('Error fetching cars:', carsError.message);
-    return [];
-  }
-
-  const { data: allModels, error: modelsError } = await supabase
-    .from('models')
-    .select('id, car_id, image_url, manufacturer_sku, scale, manufacturers(name)');
-
-  if (modelsError) {
-    console.error('Error fetching models:', modelsError.message);
+  let carsData: any[];
+  let allModels: any[];
+  try {
+    [carsData, allModels] = await Promise.all([
+      selectAll<any>(supabase, 'cars', `
+        id,
+        slug,
+        chassis_name,
+        event_name,
+        team:teams(name, primary_color, text_color),
+        season:seasons(year),
+        driver:drivers(name, number)
+      `),
+      selectAll<any>(supabase, 'models', 'id, car_id, image_url, manufacturer_sku, scale, manufacturers(name)'),
+    ]);
+  } catch (err: any) {
+    console.error('Error fetching browse data:', err.message);
     return [];
   }
 
