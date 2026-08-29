@@ -338,6 +338,69 @@ const EVENT_ALIASES = [
   [/^qatar\b/i, 'Qatar'], [/^singapore\b/i, 'Singapore'], [/^abu dhabi\b/i, 'Abu Dhabi'],
 ];
 
+/**
+ * Other ways the shops write a race we already hold.
+ *
+ * Every entry here was taken from a title that was actually dropped, not from
+ * imagination — the point is to recognise real listings, and a speculative
+ * alias is how a race that never happened gets invented.
+ *
+ * Keyed on the catalogue's own name, normalised, so renaming an event in the
+ * database is all it takes to retire an entry.
+ */
+const EVENT_SYNONYMS = {
+  'italiangpmonza':          ['Italian', 'Italy', 'Monza', 'Italy Monza', 'Italien'],
+  'emiliaromagnagpimola':    ['Emilia Romagna', 'Emilia-Romagna', 'Imola'],
+  'unitedstatesgpaustin':    ['United States', 'USA', 'US', 'Austin', 'US Austin', 'COTA', 'Americas'],
+  'unitedstatesgpsprintaustin': ['United States Sprint', 'USA Sprint', 'US Sprint Austin'],
+  'brazoliangp':             [],
+  'braziliangp':             ['Brazil', 'Interlagos', 'Sao Paulo'],
+  'belgiangp':               ['Belgium', 'Spa', 'Belgium SPA'],
+  'saudiarabiangp':          ['Saudi', 'Saudi Arabia', 'Jeddah'],
+  'japanesegp':              ['Japan', 'Suzuka'],
+  'chinesegp':               ['China', 'Shanghai'],
+  'canadiangp':              ['Canada', 'Montreal'],
+  'mexicangp':               ['Mexico'],
+  'mexicocitygp':            ['Mexico City'],
+  'australiangp':            ['Australia', 'Melbourne', 'Albert Park'],
+  'spanishgp':               ['Spain', 'Barcelona', 'Catalunya'],
+  'austriangp':              ['Austria', 'Red Bull Ring', 'Spielberg'],
+  'hungariangp':             ['Hungary', 'Hungaroring', 'Budapest'],
+  'britishgp':               ['Britain', 'Great Britain', 'Silverstone', 'UK'],
+  'dutchgp':                 ['Netherlands', 'Holland', 'Zandvoort'],
+  'azerbaijangp':            ['Baku'],
+  'russiangpsochi':          ['Russia', 'Russian', 'Sochi'],
+  'eifelgpnurburgring':      ['Eifel', 'Nurburgring', 'Nürburgring'],
+  'tuscangpmugello':         ['Tuscan', 'Tuscany', 'Mugello'],
+  'abudhabigp':              ['Abu Dhabi', 'Yas Marina'],
+  'qatargp':                 ['Losail', 'Lusail'],
+  'lasvegasgp':              ['Vegas'],
+  'monacogp':                ['Monte Carlo'],
+  'singaporegp':             ['Marina Bay'],
+  'preseasontestingbarcelona': ['Pre-season Testing', 'Barcelona Test', 'Pre-season Test'],
+  'preseasontestingfiorano': ['Fiorano Test'],
+};
+
+/**
+ * Every token-set that should be accepted as naming this event.
+ *
+ * Always includes the catalogue's own wording; adds the part outside any
+ * parentheses ("Italian GP (Monza)" -> "Italian"), the part inside them
+ * ("Monza"), and anything listed in EVENT_SYNONYMS. A parenthetical is a
+ * disambiguator we added, not something a shop is obliged to repeat.
+ */
+function eventSpellings(spelling) {
+  const out = [tokens(spelling).filter(t => t !== 'GP')];
+  const outside = spelling.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+  const inside = (spelling.match(/\(([^)]*)\)/) || [])[1];
+  if (outside && outside !== spelling) out.push(tokens(outside).filter(t => t !== 'GP'));
+  if (inside) out.push(tokens(inside).filter(t => t !== 'GP'));
+  for (const alt of EVENT_SYNONYMS[norm(spelling)] || []) {
+    out.push(tokens(alt).filter(t => t !== 'GP'));
+  }
+  return out.filter(t => t.length);
+}
+
 function canonicalEvent(raw, known) {
   let e = raw.trim();
   for (const [re, replacement] of EVENT_ALIASES) {
@@ -770,7 +833,7 @@ function hasChassis(tk, chassis) {
 
 function extract(title) {
   const scale = scaleOf(title);
-  if (!scale) return null;
+  if (!scale) return { skip: 'scale' };
   const tk = tokens(title);
   const has = t => tk.includes(t);
 
@@ -787,7 +850,7 @@ function extract(title) {
   for (const [, v] of chassisToTeam) {
     if (hasChassis(tk, v.chassis)) { found = v; break; }
   }
-  if (!found) return null;
+  if (!found) return { skip: 'chassis' };
 
   // Full name first, then surname — and surnames are whole tokens too, so
   // "Sainz" cannot be found inside some longer word.
@@ -801,19 +864,33 @@ function extract(title) {
       if (surname.length > 3 && has(surname)) { driver = v.canonical; break; }
     }
   }
-  if (!driver) return null;
+  if (!driver) return { skip: 'driver' };
 
   // Events are multi-word ("Miami GP", "Belgian GP (Spa)"), so every token of
   // the event name must appear, rather than the string appearing verbatim.
+  //
+  // Every WAY of writing it counts, though. Requiring the catalogue's exact
+  // wording was quietly the biggest source of loss in the whole script: 99 of
+  // 2023's 323 field-match failures, and 19 rows in the 2022 import that got
+  // filed as season cars because the race they named went unrecognised.
+  //
+  //   "Emilia Romagna GP"  vs  our "Emilia Romagna GP (Imola)"   needs "imola"
+  //   "Italian GP"         vs  our "Italian GP (Monza)"          needs "monza"
+  //   "Brazil GP"          vs  our "Brazilian GP"                 different word
+  //   "Saudi GP"           vs  our "Saudi Arabian GP"             missing a word
+  //
+  // So an event matches if ANY of its spellings matches in full — never on a
+  // partial or a single shared word, which is what would start inventing races.
   let event = null;
   let bestLen = 0;
   for (const [, v] of events) {
-    const et = tokens(v.spelling).filter(t => t !== 'GP');
-    if (!et.length) continue;
-    // Longest match wins, so "Spanish Test" is not beaten by "Spanish GP".
-    if (et.every(t => has(t)) && et.join('').length > bestLen) {
-      event = v.canonical;
-      bestLen = et.join('').length;
+    for (const et of eventSpellings(v.spelling)) {
+      if (!et.length) continue;
+      // Longest match wins, so "Spanish Test" is not beaten by "Spanish GP".
+      if (et.every(t => has(t)) && et.join('').length > bestLen) {
+        event = v.canonical;
+        bestLen = et.join('').length;
+      }
     }
   }
 
@@ -832,8 +909,18 @@ function extract(title) {
    * skip.
    */
   if (!event) {
-    const namesARace = /(?:GP|Grand\s+Prix)/i.test(title);
-    if (namesARace) return null;
+    // The word boundaries here were once literal BACKSPACE characters. A patch
+    // turned \b into 0x08 and it was committed in 22cc782, after which the
+    // regex matched nothing a product title ever contains -- so namesARace was
+    // always false, and every title naming a race we had not learned fell
+    // through to "Season" rather than being skipped. That is exactly the
+    // failure the comment above forbids: a specific race filed under the wrong
+    // event and quietly merged with others.
+    //
+    // Written as an explicit character class rather than \b, so a future patch
+    // cannot turn it back into a control character without it being visible.
+    const namesARace = /(?:^|[^A-Za-z])(?:GP|Grand\s+Prix)(?:[^A-Za-z]|$)/i.test(title);
+    if (namesARace) return { skip: 'event' };
     event = 'Season';
   }
 
@@ -870,6 +957,11 @@ const mfrOf = (title, sku) =>
   MANUFACTURERS.find(m => new RegExp(`\\b${m}\\b`, 'i').test(title)) || mfrFromSku(sku);
 
 const skipped = { scale: 0, noMatch: 0, badSkuScale: 0, noSku: 0, junkSku: 0 };
+// One number for "no field match" hid that the failures are three different
+// problems with three different fixes. Counted separately, and --why prints
+// the titles so the pattern is visible rather than inferred.
+const why = {};
+const whyTitles = {};
 const junkSkus = [];
 
 /**
@@ -905,7 +997,12 @@ for (const shop of SHOPS) {
     }
 
     const f = extract(v.title);
-    if (!f) { skipped.noMatch++; continue; }
+    if (f?.skip) {
+      skipped.noMatch++;
+      why[f.skip] = (why[f.skip] || 0) + 1;
+      (whyTitles[f.skip] ||= []).push(v.title);
+      continue;
+    }
     if (!SCALES.includes(f.scale)) { skipped.scale++; continue; }
 
     // The SKU's own prefix must not contradict the title's scale. This is the
@@ -980,6 +1077,14 @@ console.log(`\nrows built: ${rows.size}`);
 console.log(`  skipped — no field match: ${skipped.noMatch}  out-of-scope scale: ${skipped.scale}  ` +
             `SKU/scale disagreement: ${skipped.badSkuScale}  no SKU: ${skipped.noSku}  ` +
             `unusable SKU: ${skipped.junkSku}`);
+console.log(`  those ${skipped.noMatch} field-match failures break down as: ` +
+  Object.entries(why).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(', '));
+if (process.argv.includes('--why')) {
+  for (const [k, list] of Object.entries(whyTitles)) {
+    console.log(`\n  --- ${list.length} dropped on ${k.toUpperCase()} ---`);
+    for (const t of list.slice(0, 25)) console.log(`    ${t.slice(0, 105)}`);
+  }
+}
 
 // Reported, never silently dropped — some of these are real models filed under
 // a broken SKU, and the only way they get in is if a person sees them.
