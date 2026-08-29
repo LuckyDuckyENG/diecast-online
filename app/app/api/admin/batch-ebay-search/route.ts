@@ -139,15 +139,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: rows, error } = await supabase
-      .from('models')
-      .select(
-        'id, scale, manufacturer_sku, manufacturer:manufacturers(name), ' +
-          'car:cars!inner(chassis_name, event_name, driver:drivers(name), ' +
-          'team:teams(name), season:seasons(year))'
-      );
-
-    if (error) throw new Error(`Model fetch failed: ${error.message}`);
+    /**
+     * Paged. This is the matcher's entire work list, and `models` passed the
+     * 1000-row PostgREST cap on 2026-08-29 at 1,645 rows.
+     *
+     * A plain .select() would have handed this run the first 1000 and said
+     * nothing about the rest — so a "link every model" pass would have skipped
+     * 645 of them, silently, and precisely the newest ones. It would then have
+     * reported success, and the only symptom would be seasons that stayed at
+     * zero eBay links for no visible reason.
+     */
+    const rows = await selectAll<any>(
+      supabase,
+      'models',
+      'id, scale, manufacturer_sku, manufacturer:manufacturers(name), ' +
+        'car:cars!inner(chassis_name, event_name, driver:drivers(name), ' +
+        'team:teams(name), season:seasons(year))'
+    );
 
     // Every race the catalogue knows about. Needed so a listing title can be
     // read as naming a race that is not this model's — the only way to catch a

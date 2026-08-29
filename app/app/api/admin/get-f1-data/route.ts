@@ -41,36 +41,36 @@ export async function GET(request: NextRequest) {
   try {
     console.log('📊 Fetching F1 cars and models from Supabase...');
 
-    // Fetch all F1 cars
-    const { data: cars, error: carsError } = await supabase
-      .from('cars')
-      .select(`
+    /**
+     * Cars and models are paged too.
+     *
+     * These two were left as plain selects when ebay_links and price_history
+     * below were fixed, because they were under 1000 rows at the time. `models`
+     * passed it on 2026-08-29 and the admin immediately stopped showing the
+     * imports: 2025 read as 87 models when the database held 270, and the
+     * missing ones were exactly the newest — a plain .select() returns the
+     * first 1000 and says nothing about the rest.
+     *
+     * That is worse here than on a public page. The admin is where you decide
+     * what still needs linking, so a truncated read presents finished work as
+     * outstanding and hides new work entirely.
+     */
+    const [cars, models] = await Promise.all([
+      selectAll<any>(supabase, 'cars', `
         id,
         chassis_name,
         event_name,
         team:teams(name),
         season:seasons(year),
         driver:drivers(name)
-      `)
-      .order('id', { ascending: false });
-
-    if (carsError) {
-      throw new Error(`Failed to fetch cars: ${carsError.message}`);
-    }
-
-    console.log(`📊 Fetched ${cars?.length || 0} cars from database`);
-
-    // Fetch all models with manufacturer data (driver comes from car now)
-    const { data: models, error: modelsError } = await supabase
-      .from('models')
-      .select(`
+      `, q => q.order('id', { ascending: false })),
+      selectAll<any>(supabase, 'models', `
         *,
         manufacturer:manufacturers(name)
-      `);
+      `),
+    ]);
 
-    if (modelsError) {
-      throw new Error(`Failed to fetch models: ${modelsError.message}`);
-    }
+    console.log(`📊 Fetched ${cars.length} cars and ${models.length} models from database`);
 
     // Both paged. These drive what the admin believes is already linked, and a
     // plain .select() stops at 1000 rows without erroring -- which would show

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { selectAll } from './selectAll';
 import { formatAge, shouldHidePrice } from './freshness';
 import { toAud } from './currency';
 import { ebayAffiliateUrl } from './ebayAffiliate';
@@ -75,14 +76,22 @@ export interface CarPageData {
   variants: CarVariant[];
 }
 
-/** Every slug, for generateStaticParams. */
+/**
+ * Every slug, for generateStaticParams.
+ *
+ * Paged before it needs to be. `cars` is at 736 and the 1000-row PostgREST cap
+ * arrives without an error — and the symptom here would be car pages quietly
+ * dropping out of the prerender and the sitemap, which is the last place anyone
+ * would look for a truncated database read.
+ */
 export async function getAllCarSlugs(): Promise<string[]> {
-  const { data, error } = await supabase.from('cars').select('slug').not('slug', 'is', null);
-  if (error) {
-    console.error('Failed to list car slugs:', error.message);
+  try {
+    const rows = await selectAll<any>(supabase, 'cars', 'slug', q => q.not('slug', 'is', null));
+    return rows.map(c => c.slug).filter(Boolean);
+  } catch (err: any) {
+    console.error('Failed to list car slugs:', err.message);
     return [];
   }
-  return (data || []).map((c: any) => c.slug).filter(Boolean);
 }
 
 /**
