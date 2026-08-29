@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-08-29 (evening)
+# Status Summary — last updated 2026-08-30
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -21,7 +21,7 @@
 ## Where things stand
 
 ```
-cars 621  |  models 1044  |  retailer links 1862  |  eBay links 1430  |  retailers 48  |  drivers 50
+cars 736  |  models 1645  |  retailer links 3062  |  eBay links 1430  |  retailers 48  |  drivers 48
 price observations 1572 (1142 retailer + 430 eBay)
 seasons: 2020 (79) + 2021 (69) + 2022 (83) + 2023 (98) + 2024 (66) + 2025 (90) + 2026 (83)
 slugs 568/568   |   models buyable 760/865   |   images 722/865
@@ -884,6 +884,60 @@ S8525   Perez - Saudi Arabian GP (First Pole) 2022  18S999    Hamilton - British
 checked against the shops — which is why 2026, the one season built FROM feeds,
 has the smallest gap by far (44).
 
+### 2023, 2024 and 2025 done — 2026-08-30
+
+**601 models and 200 cars added in one day.** The catalogue went 1,044 -> 1,645
+models and 621 -> 736 cars; `/browse` went from 502 to 692.
+
+```
+                    26 Aug     30 Aug
+cars                   568        736
+models                 865      1,645
+retailer links       1,744      3,062
+models with image      722      1,455
+cars with no store       —         44   (31 of them 2020)
+```
+
+Every season 2020-2026 has now been through the generator. **2021 is the only
+one left with a known gap** (145 unheld SKUs).
+
+Each import cost one new bug, all of them silent, all found by the import
+COLLIDING rather than by anything looking wrong. In order:
+
+1. **A backspace character in a regex** (see the trap below). `namesARace` could
+   never be true, so every title naming an unrecognised race was filed as a
+   season car. Cost: 19 wrong rows in the 2022 import, repaired.
+2. **Event matching demanded the catalogue's exact wording.** `Emilia Romagna GP
+   (Imola)` required the token "imola"; `Brazilian GP` never matched "Brazil GP".
+   99 of 2023's 323 field-match failures. An event now matches if ANY of its
+   spellings matches IN FULL.
+3. **`537` is not a 1:43 prefix.** Minichamps' 5xx series runs across scales and
+   their 1:18 McLarens live in it, so 22 good 2024 rows were thrown out as
+   "SKU/scale disagreement". Ambiguous prefixes now return null.
+4. **The maker came from the title, not the SKU.** Horizondiecast writes "BBR x
+   MINICHAMPS", and MANUFACTURERS lists Minichamps first, so BBR254416 was
+   offered as a Minichamps part and collided on the unique constraint.
+5. **A shared parenthetical matched two races.** `United States GP (Austin)` and
+   `United States GP Sprint (Austin)` both end in "(Austin)", so Sainz's Austin
+   SPRINT car went to the non-sprint race. Shared parentheticals are now
+   computed from the catalogue and suppressed as standalone spellings.
+
+### Ties, and how they get settled
+
+The generator refuses to guess when two shops name two different races for one
+SKU. It settles by counting shops, and where that ties it REPORTS and leaves the
+row alone. Hand decisions are recorded in `EVENT_OVERRIDES` with their evidence,
+so a re-run does not ask again.
+
+**A Minichamps SKU encodes the round.** `417 25 02 30` is year 25, round 02,
+driver 30 — so the part number itself names the race. Where both signals existed
+they agreed: 117250263 decodes to round 2 / car 63, exactly the Chinese GP the
+three-shop vote had chosen. This is the strongest evidence available and is
+worth automating if ties keep appearing.
+
+**Source reputation is not evidence.** LIVECARMODEL was the wrong side of every
+tie in 2023 and 2024, and right all three times in 2025.
+
 ### 2022 done — 2026-08-29 (commit 0c878fc)
 
 **179 new models, 54 new cars, 0 errors. 2022 went 128 -> 307 models; the
@@ -1016,14 +1070,79 @@ half of 2020's 136 — and 2020 needed hand research to reach 79 cars. Hardest
 work, thinnest result, while five seasons of easy high-value models sit
 unclaimed.
 
+## The 1000-row cap bit FOUR readers in one day — 2026-08-30
+
+`models` crossed PostgREST's silent 1000-row limit when the imports took it from
+865 to 1,645. Four readers were truncating, and not one of them errored:
+
+```
+lib/browseData.ts                  /browse showed 502 cars instead of 631
+lib/hubData.ts                     hub pages under-counted what is buyable
+lib/relatedCars.ts                 related cars looked unbuyable
+app/api/admin/get-f1-data          admin showed 87 models for 2025; there are 270
+app/api/admin/batch-ebay-search    the eBay matcher's WORK LIST
+```
+
+**The last one never got to fail, and would have been the worst.** That unpaged
+select IS the list of models the eBay pass iterates. It would have taken the
+first 1,000 of 1,645, skipped 645 — every model imported this week — and
+reported success. The only symptom would have been seasons sitting at zero eBay
+links for no visible reason.
+
+**The lesson is not "page this table". It is "page them all at once".**
+`hubData` was fixed on 2026-08-17 for `price_history` and `ebay_links` — the two
+over the cap that day — and `models` was left because it was at 865. `get-f1-data`
+had exactly the same half-fix. Both broke the moment the next table grew.
+
+**Why it is so dangerous:** it never looks like a failure. A truncated read
+presents as a smaller catalogue, a healthy page, a plausible number. The site hid
+a fifth of itself for hours and nothing anywhere said so.
+
+Tables over the cap: `price_history` 3,062 · `price_observations` 1,572 ·
+`ebay_links` 1,430 · `models` 1,645. `cars` is at 736 and paged pre-emptively.
+
 ## Next up
 
 Items 1 and 2 were the whole of this list two days ago and are now done: sweeps
 fill images (722/865), and every season has been re-run under the
 multiple-listings matcher (382 models carry several, 82 remain on one).
 
-1. **The mid-September refresh** — see the deadline box at the top. The only
-   dated item here.
+1. **THE eBAY PASS.** The single biggest gap left: **464 of 1,645 models have an
+   eBay listing**, so ~1,200 have never been searched, including nearly every
+   model imported this week. eBay is where the multi-listing price comparison
+   comes from, so this is the difference between a catalogue and a price index.
+   Safe to run now that batch-ebay-search is paged — it was not, this morning.
+
+   ```
+   year   models   retail   eBay
+   2022      307      280    108
+   2023      383      352    109
+   2024      283      269     68
+   2025      270      242     60
+   2026      187      185      0     <- suspicious, 187 models and not one link
+   ALL     1,645    1,440    464
+   ```
+
+   2026's zero is most likely the truncated work list above, but confirm it
+   rather than assume.
+
+2. **2021** — the last season with a known gap, 145 unheld SKUs. Same three
+   commands as the others; every trap above is now fenced.
+
+3. **Finish the shop sweeps.** Horizondiecast, Yuui and Notjustcollectibles have
+   not been swept at all and carry the back-catalogue and Bburago stock nothing
+   else has. LIVECARMODEL now needs about FOUR presses of Apply — its candidate
+   list grew from 884 to 1,443 as the catalogue grew.
+
+   **Press Apply repeatedly; do not alternate with Dry run.** The cursors are
+   deliberately separate per mode, so switching restarts at 0 and you never reach
+   the end. Also: an offset is only valid while the catalogue is unchanged —
+   importing a season re-sorts the candidate list and makes an old offset point
+   somewhere else. Restart from 0 after an import.
+
+4. **The mid-September refresh** — see the deadline box at the top. Only 6
+   retailer links are past 30 days so far, because the sweeps have been
+   refreshing them as a side effect.
 2. **The retailer SWEEP records no price observations.** `refresh-prices` and
    `refresh-ebay` both append to `price_observations`; the sweep writes through
    `attachRetailerLink` and does not. So links created by a sweep sit outside the
