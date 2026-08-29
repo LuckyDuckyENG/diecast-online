@@ -379,6 +379,10 @@ const EVENT_SYNONYMS = {
   'singaporegp':             ['Marina Bay'],
   'preseasontestingbarcelona': ['Pre-season Testing', 'Barcelona Test', 'Pre-season Test'],
   'preseasontestingfiorano': ['Fiorano Test'],
+  // British and American spelling of the same word. Without this, Mick
+  // Schumacher's "Spanish Tyre Test 2023" matched the shorter "Spanish Test",
+  // which is a 2026 McLaren event — a real car filed under the wrong year.
+  'spanishgptiretest':       ['Spanish Tyre Test', 'Spanish Tire Test'],
 };
 
 /**
@@ -447,6 +451,28 @@ function canonicalDriver(raw, known) {
   const words = s => norm(s).split(' ').filter(Boolean).sort().join(' ');
   const reordered = known.find(k => words(k) === words(raw));
   if (reordered) return reordered;
+
+  /**
+   * Same surname, and one given name is a shortening of the other — "Alex
+   * Albon" is "Alexander Albon". The reordering rule above cannot see this
+   * because the words genuinely differ, and the catalogue had both, splitting
+   * Williams across two driver rows exactly as Zhou was split.
+   *
+   * A PREFIX, not a fuzzy match, so it stays narrow: "Mick" is not a prefix of
+   * "Michael", which is the pair that would matter most to get wrong.
+   */
+  const parts = s => norm(s).split(' ').filter(Boolean);
+  const mine = parts(raw);
+  if (mine.length >= 2) {
+    const shortened = known.find(k => {
+      const theirs = parts(k);
+      if (theirs.length < 2) return false;
+      if (theirs[theirs.length - 1] !== mine[mine.length - 1]) return false;
+      const [a, b] = [theirs[0], mine[0]];
+      return a !== b && a.length >= 3 && b.length >= 3 && (a.startsWith(b) || b.startsWith(a));
+    });
+    if (shortened) return shortened;
+  }
 
   const surname = raw.trim().split(/\s+/).pop();
   const candidates = known.filter(k => norm(k).endsWith(norm(surname)) && !/\+/.test(k));
@@ -1072,6 +1098,54 @@ for (const [rowKey, row] of rows) {
   if (!row.sku_1_18 && !row.sku_1_43) rows.delete(rowKey);
 }
 if (foldedIntoRace) console.log(`\n${foldedIntoRace} SKU(s) folded from a "Season" row onto the race that names them`);
+
+/**
+ * One SKU, one row — including when two shops name two DIFFERENT races.
+ *
+ * The fold above only settles "Season" against a named race. Shops also simply
+ * disagree: Spark 18S958 is Liam Lawson's AlphaTauri, and Anthony's and Stone
+ * Model both call it Singapore ("9th Singapore GP, 1st Career Point", which is
+ * his actual result there) while LIVECARMODEL calls it Dutch. Left alone that
+ * is two cars carrying one part number, and whichever page is built first
+ * collects the links.
+ *
+ * Settled by counting shops, because that is the only evidence available here
+ * and it is the same rule the chassis spelling already uses. A tie is left
+ * alone and reported: two shops flatly contradicting each other is a question
+ * for a person, not something to break with a coin toss.
+ */
+const rowsBySku = new Map();
+for (const [rowKey, row] of rows) {
+  for (const col of ['sku_1_18', 'sku_1_43']) {
+    if (!row[col]) continue;
+    if (!rowsBySku.has(row[col])) rowsBySku.set(row[col], []);
+    rowsBySku.get(row[col]).push({ rowKey, row, col });
+  }
+}
+let contested = 0;
+const ties = [];
+for (const [sku, entries] of rowsBySku) {
+  if (entries.length < 2) continue;
+  const score = e => (e.row.sources.get(sku) || new Set()).size;
+  const ranked = [...entries].sort((a, b) => score(b) - score(a));
+  if (score(ranked[0]) === score(ranked[1])) {
+    ties.push(`${sku}: ${entries.map(e => `"${e.row.event} / ${e.row.driver}"`).join(' vs ')} — ${score(ranked[0])} shop(s) each`);
+    continue;
+  }
+  const keep = ranked[0];
+  console.log(`  ${sku} kept on "${keep.row.event}" (${score(keep)} shops) over ` +
+    ranked.slice(1).map(e => `"${e.row.event}" (${score(e)})`).join(', '));
+  for (const e of ranked.slice(1)) {
+    e.row[e.col] = '';
+    if (!e.row.sku_1_18 && !e.row.sku_1_43) rows.delete(e.rowKey);
+  }
+  contested++;
+}
+if (contested) console.log(`\n${contested} SKU(s) claimed by two races, settled by how many shops agree`);
+if (ties.length) {
+  console.log(`\nSHOPS DISAGREE AND NEITHER LEADS — left in, decide by hand:`);
+  for (const t of ties) console.log(`  ${t}`);
+}
 
 console.log(`\nrows built: ${rows.size}`);
 console.log(`  skipped — no field match: ${skipped.noMatch}  out-of-scope scale: ${skipped.scale}  ` +
