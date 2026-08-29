@@ -304,8 +304,29 @@ function scaleFromSku(sku) {
   if (/^LSF/.test(s)) return '1:43';
   if (/^18S/.test(s)) return '1:18';
   if (/^S\d{3,4}$/.test(s)) return '1:43';
-  if (/^(110|117|147)\d{6}$/.test(s)) return '1:18';
-  if (/^(410|417|537|447)\d{6}$/.test(s)) return '1:43';
+  /**
+   * Minichamps numeric prefixes — but ONLY the ones that actually decide a
+   * scale. Counted across every numeric SKU in the feeds, against the scale the
+   * shop's own title states:
+   *
+   *   417  1:43 x488                        410  1:43 x187    unanimous
+   *   110  1:18 x288                        117  1:18 x261    unanimous
+   *   537  1:43 x145  1:18 x123  1:12 x11                     a coin flip
+   *   533  1:18 x30   1:43 x17              530  1:43/1:18/1:64
+   *
+   * 537 was listed here as 1:43. It is not: the 5xx series runs across scales,
+   * and Minichamps' 1:18 McLarens live in it — 537252504 is Norris's Monaco
+   * winner, which Anthony's and LIVECARMODEL both call 1:18. So every one of
+   * those was thrown out as a "SKU/scale disagreement", 22 of them in 2024
+   * alone, by a check meant to catch mislabelled titles.
+   *
+   * An ambiguous prefix must return null. Knowing nothing lets the title
+   * decide; guessing overrules it with a coin toss.
+   */
+  if (/^(100|103|110|113|117|147|153|155|180|183|186|850)\d{6}$/.test(s)) return '1:18';
+  if (/^(400|410|413|417|436|447|472|940)\d{6}$/.test(s)) return '1:43';
+  if (/^(122|127)\d{6}$/.test(s)) return '1:12';
+  if (/^(452|610|640|643)\d{6}$/.test(s)) return '1:64';
   if (/^12S/.test(s)) return '1:12';
   if (/^(64S|Y)\d+$/.test(s)) return '1:64';
   return null;
@@ -1114,6 +1135,28 @@ if (foldedIntoRace) console.log(`\n${foldedIntoRace} SKU(s) folded from a "Seaso
  * alone and reported: two shops flatly contradicting each other is a question
  * for a person, not something to break with a coin toss.
  */
+/**
+ * Ties the shop count cannot settle, decided by hand — and recorded, because
+ * otherwise the next run asks the same question again and the answer is lost.
+ *
+ * SKU -> the event its row must carry. Each one needs its evidence written
+ * down; a bare verdict here is indistinguishable from a guess.
+ */
+const EVENT_OVERRIDES = {
+  // Stone Model says "Australian GP 2024, 10th Place" and "9th Place";
+  // LIVECARMODEL says Saudi Arabian. Haas scored their first points of 2024 at
+  // Australia with Hulkenberg 9th and Magnussen 10th, which is exactly the pair
+  // of placings Stone Model states. LIVECARMODEL has now been the wrong side of
+  // three of these (see 18S958, Lawson's Dutch-vs-Singapore).
+  'S9527': 'Australian GP',
+  'S9528': 'Australian GP',
+  // A two-car Constructors' Champion set. Four shops name both drivers, so the
+  // row must be the "Norris + Piastri" one; the rival row files a twin set
+  // under Lando Norris alone. Stone Model places it at Abu Dhabi, where the
+  // championship was clinched.
+  'S9571': 'Abu Dhabi GP',
+};
+
 const rowsBySku = new Map();
 for (const [rowKey, row] of rows) {
   for (const col of ['sku_1_18', 'sku_1_43']) {
@@ -1126,6 +1169,22 @@ let contested = 0;
 const ties = [];
 for (const [sku, entries] of rowsBySku) {
   if (entries.length < 2) continue;
+  const decided = EVENT_OVERRIDES[sku];
+  if (decided) {
+    const winner = entries.find(e => key(e.row.event) === key(decided));
+    if (!winner) {
+      console.log(`  ⚠️ ${sku}: override says "${decided}" but no row has that event — check the override`);
+    } else {
+      console.log(`  ${sku} kept on "${winner.row.event}" (decided by hand)`);
+      for (const e of entries) {
+        if (e === winner) continue;
+        e.row[e.col] = '';
+        if (!e.row.sku_1_18 && !e.row.sku_1_43) rows.delete(e.rowKey);
+      }
+      contested++;
+      continue;
+    }
+  }
   const score = e => (e.row.sources.get(sku) || new Set()).size;
   const ranked = [...entries].sort((a, b) => score(b) - score(a));
   if (score(ranked[0]) === score(ranked[1])) {
