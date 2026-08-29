@@ -373,7 +373,12 @@ const EVENT_SYNONYMS = {
   'italiangpmonza':          ['Italian', 'Italy', 'Monza', 'Italy Monza', 'Italien'],
   'emiliaromagnagpimola':    ['Emilia Romagna', 'Emilia-Romagna', 'Imola'],
   'unitedstatesgpaustin':    ['United States', 'USA', 'US', 'Austin', 'US Austin', 'COTA', 'Americas'],
-  'unitedstatesgpsprintaustin': ['United States Sprint', 'USA Sprint', 'US Sprint Austin'],
+  // "Austin Sprint" matters: the shops write these as "Austin GP Sprint Race",
+  // which matched only the non-sprint race through its bare "Austin" synonym.
+  // With a two-token spelling the sprint wins on length, which is the rule that
+  // already keeps "Spanish Test" from being beaten by "Spanish GP".
+  'unitedstatesgpsprintaustin': ['United States Sprint', 'USA Sprint', 'US Sprint Austin',
+                                 'Austin Sprint', 'US Sprint', 'Americas Sprint'],
   'brazoliangp':             [],
   'braziliangp':             ['Brazil', 'Interlagos', 'Sao Paulo'],
   'belgiangp':               ['Belgium', 'Spa', 'Belgium SPA'],
@@ -414,12 +419,39 @@ const EVENT_SYNONYMS = {
  * ("Monza"), and anything listed in EVENT_SYNONYMS. A parenthetical is a
  * disambiguator we added, not something a shop is obliged to repeat.
  */
+/**
+ * Parenthetical parts that more than one known event shares.
+ *
+ * "United States GP (Austin)" and "United States GP Sprint (Austin)" both end
+ * in "(Austin)", so accepting the bare parenthetical as a spelling makes either
+ * one match a title mentioning Austin — and since both candidates then score
+ * the same length, the winner is whichever the Map happened to iterate first.
+ * Carlos Sainz's Austin SPRINT car went to the non-sprint race that way.
+ *
+ * A parenthetical only disambiguates when it belongs to one event. Where it is
+ * shared it carries no information on its own, so it has to be used together
+ * with the words outside the brackets.
+ */
+let ambiguousParentheticals = new Set();
+function computeAmbiguousParentheticals(knownSpellings) {
+  const seen = new Map();
+  for (const s of knownSpellings) {
+    const inside = (s.match(/\(([^)]*)\)/) || [])[1];
+    if (!inside) continue;
+    const k = key(inside);
+    seen.set(k, (seen.get(k) || 0) + 1);
+  }
+  ambiguousParentheticals = new Set([...seen].filter(([, n]) => n > 1).map(([k]) => k));
+}
+
 function eventSpellings(spelling) {
   const out = [tokens(spelling).filter(t => t !== 'GP')];
   const outside = spelling.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
   const inside = (spelling.match(/\(([^)]*)\)/) || [])[1];
   if (outside && outside !== spelling) out.push(tokens(outside).filter(t => t !== 'GP'));
-  if (inside) out.push(tokens(inside).filter(t => t !== 'GP'));
+  if (inside && !ambiguousParentheticals.has(key(inside))) {
+    out.push(tokens(inside).filter(t => t !== 'GP'));
+  }
   for (const alt of EVENT_SYNONYMS[norm(spelling)] || []) {
     out.push(tokens(alt).filter(t => t !== 'GP'));
   }
@@ -515,7 +547,13 @@ const [{ data: dbTeams }, { data: dbDrivers }, { data: dbCars }] = await Promise
 const knownTeams = [...new Set((dbTeams || []).map(t => t.name?.trim()).filter(Boolean))];
 const knownDrivers = [...new Set((dbDrivers || []).map(d => d.name?.trim()).filter(Boolean))];
 const knownEvents = [...new Set((dbCars || []).map(c => c.event_name?.trim()).filter(Boolean))];
-console.log(`catalogue vocabulary: ${knownTeams.length} teams, ${knownDrivers.length} drivers, ${knownEvents.length} events\n`);
+computeAmbiguousParentheticals(knownEvents);
+console.log(`catalogue vocabulary: ${knownTeams.length} teams, ${knownDrivers.length} drivers, ${knownEvents.length} events`);
+if (ambiguousParentheticals.size) {
+  console.log(`  parentheticals shared by more than one race, so not usable alone: ` +
+    `${[...ambiguousParentheticals].join(', ')}`);
+}
+console.log();
 
 const feeds = {};
 for (const shop of SHOPS) feeds[shop.name] = await fetchFeed(shop);
@@ -1000,8 +1038,26 @@ function mfrFromSku(sku) {
   return null;
 }
 
+/**
+ * The SKU decides, and the title is the fallback — not the other way round.
+ *
+ * A part number is the maker's own structured field: BBR254416 is BBR's, and
+ * nothing in a product title outranks that. A title is prose, and prose can
+ * name two brands at once. Horizondiecast lists these as
+ *
+ *   "BBR x MINICHAMPS 1:43 FERRARI SF-25 - CHARLES LELERC - MIAMI GP 2025"
+ *
+ * and because MANUFACTURERS happens to list Minichamps first, the title search
+ * returned Minichamps for a BBR part number. That made the 2025 import collide
+ * on models_manufacturer_sku_key: the catalogue holds BBR254416 under BBR, the
+ * CSV offered it under Minichamps, so the existence check missed and the insert
+ * hit the unique constraint. Two co-branded Ferraris failed that way.
+ *
+ * mfrFromSku only answers for prefixes that identify a maker unambiguously, so
+ * when it returns null the title is still the best evidence available.
+ */
 const mfrOf = (title, sku) =>
-  MANUFACTURERS.find(m => new RegExp(`\\b${m}\\b`, 'i').test(title)) || mfrFromSku(sku);
+  mfrFromSku(sku) || MANUFACTURERS.find(m => new RegExp(`\\b${m}\\b`, 'i').test(title));
 
 const skipped = { scale: 0, noMatch: 0, badSkuScale: 0, noSku: 0, junkSku: 0 };
 // One number for "no field match" hid that the failures are three different
@@ -1143,6 +1199,28 @@ if (foldedIntoRace) console.log(`\n${foldedIntoRace} SKU(s) folded from a "Seaso
  * down; a bare verdict here is indistinguishable from a guess.
  */
 const EVENT_OVERRIDES = {
+  /**
+   * 2025. Two of these the SKU settles by itself: a Minichamps part number
+   * encodes the ROUND in positions 6-7 and the driver number after it, so
+   * 417 25 02 30 is round 2, car 30. That is independent of anything a shop
+   * typed, and where both signals existed they agreed — 117250263 decodes to
+   * round 2 / car 63, which is the Chinese GP the three-shop vote had already
+   * chosen. Worth trusting more than the vote, not less.
+   */
+  '417250105': 'Australian GP',   // round 01, car 5  — Bortoleto. Anthony's said Spanish (round 09).
+  '417250230': 'Chinese GP',      // round 02, car 30 — Lawson, still at Red Bull before the Japan swap.
+  /**
+   * Not an event question at all: both rows say Australian GP and differ by
+   * TEAM. Tsunoda started 2025 at Racing Bulls and only moved to Red Bull from
+   * Japan, round 3, swapping with Lawson — so at round 1 he is in the VCARB 02.
+   * Anthony's has him in an RB21 two rounds early.
+   *
+   * Note this one contradicts the pattern from 2023 and 2024, where
+   * LIVECARMODEL was the wrong side of every tie. It is right here, three times
+   * over. Source reputation is not evidence; the SKU and the calendar are.
+   */
+  '18S1251': { event: 'Australian GP', chassis: 'VCARB 02' },
+
   // Stone Model says "Australian GP 2024, 10th Place" and "9th Place";
   // LIVECARMODEL says Saudi Arabian. Haas scored their first points of 2024 at
   // Australia with Hulkenberg 9th and Magnussen 10th, which is exactly the pair
@@ -1171,9 +1249,15 @@ for (const [sku, entries] of rowsBySku) {
   if (entries.length < 2) continue;
   const decided = EVENT_OVERRIDES[sku];
   if (decided) {
-    const winner = entries.find(e => key(e.row.event) === key(decided));
+    // A string names the event; an object can also pin the chassis, for ties
+    // where both rows agree on the race and differ by which car the driver was
+    // in that weekend.
+    const want = typeof decided === 'string' ? { event: decided } : decided;
+    const winner = entries.find(e =>
+      key(e.row.event) === key(want.event) &&
+      (!want.chassis || key(e.row.chassis) === key(want.chassis)));
     if (!winner) {
-      console.log(`  ⚠️ ${sku}: override says "${decided}" but no row has that event — check the override`);
+      console.log(`  ⚠️ ${sku}: override says ${JSON.stringify(decided)} but no row matches — check it`);
     } else {
       console.log(`  ${sku} kept on "${winner.row.event}" (decided by hand)`);
       for (const e of entries) {
