@@ -199,17 +199,24 @@ export async function POST(request: NextRequest) {
     const currencyDisputed =
       !!declared && !!establishedCurrency && declared !== establishedCurrency;
 
-    // Prices we already trust for this scale, so the outlier check has a
-    // reference that does not depend on what this one sweep happened to match.
-    const scaleOf = new Map<string, string>();
-    for (const m of (models || []) as any[]) scaleOf.set(m.id, m.scale || '?');
+    // Prices we already trust, so the outlier check has a reference that does
+    // not depend on what this one sweep happened to match.
+    //
+    // Keyed by maker AND scale. A scale-only reference is set by whoever has
+    // the most models — 288 Minichamps put the 1:18 median at AUD 389.92 — and
+    // every budget brand then reads as a broken price. Solido genuinely costs
+    // about a third of that.
+    const keyOf = new Map<string, string>();
+    for (const m of (models || []) as any[]) {
+      keyOf.set(m.id, `${(m.manufacturer?.name || '?').toLowerCase()}|${m.scale || '?'}`);
+    }
     const reference = new Map<string, number[]>();
     for (const row of existingRows || []) {
       const p = Number(row.price_aud);
       if (!(p > 0)) continue;
-      const scale = scaleOf.get(row.model_id) || '?';
-      if (!reference.has(scale)) reference.set(scale, []);
-      reference.get(scale)!.push(p);
+      const k = keyOf.get(row.model_id) || '?|?';
+      if (!reference.has(k)) reference.set(k, []);
+      reference.get(k)!.push(p);
     }
 
     const pairs: { model: SweepModel; variant: any }[] = [];
@@ -226,6 +233,7 @@ export async function POST(request: NextRequest) {
           id: m.id,
           sku,
           scale: m.scale || null,
+          manufacturer: m.manufacturer?.name || null,
           label: `${m.manufacturer?.name || '?'} ${m.scale || ''} ${car?.season?.year || ''} ${car?.chassis_name || ''} ${car?.event_name || ''} / ${car?.driver?.name || ''}`.replace(/\s+/g, ' ').trim(),
           existing: ex
             ? { price: ex.price, inStock: ex.in_stock, productUrl: ex.product_url }

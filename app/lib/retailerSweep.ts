@@ -17,6 +17,11 @@ export interface SweepModel {
   id: string;
   sku: string | null;
   scale: string | null;
+  /**
+   * Who made it. Carried purely for the price guard: what a model should cost
+   * depends far more on its maker than on its scale. See BRAND_MIN_SAMPLES.
+   */
+  manufacturer: string | null;
   label: string;
   /** Existing link at this retailer, if any. */
   existing?: { price: number | null; inStock: boolean | null; productUrl: string | null };
@@ -55,6 +60,35 @@ const LOW_FACTOR = 3;
 const MIN_SAMPLES = 5;
 
 /**
+ * The same test, but against what THIS MAKER charges rather than what the scale
+ * costs on average.
+ *
+ * A scale-wide median is set by whoever has the most models. For 1:18 that is
+ * 288 Minichamps, 90 Spark and 54 Looksmart, which puts it at AUD 389.92 — and
+ * then every budget brand reads as an error:
+ *
+ *   Minichamps 1:18   AUD 379.96   0.97x the scale median   fine
+ *   Solido     1:18   AUD 129.99   0.33x                    exactly on the line
+ *   Bburago    1:43   no prices at all, 13 SKUs in feeds we already download
+ *
+ * Solido's own median is one third of the scale median, so it sits precisely at
+ * the 3x threshold: its stored links squeaked past by five cents, and two new
+ * ones at AUD 97.43 were held as "4.0x BELOW the median". That price is simply
+ * what Solido costs.
+ *
+ * The trap is that it is self-sealing. A held price is never written, so the
+ * brand never accumulates the prices it would need to prove it is cheap, so it
+ * is held forever. Bburago has 17 models and has never been priced once.
+ *
+ * Three is enough to establish a band and low enough to reach: Solido has
+ * exactly three stored prices, and a brand with none at all — Bburago — can
+ * still qualify on the strength of the sweep's own listings, because a shop
+ * that lists eight Bburago cars at similar money is evidence of a price band,
+ * not of eight identical mistakes.
+ */
+const BRAND_MIN_SAMPLES = 3;
+
+/**
  * How far a refreshed price may move before it stops looking like a price
  * change and starts looking like a change of currency. Real diecast prices
  * drift a few percent; USD/AUD is about 50%.
@@ -83,7 +117,14 @@ export function looksLikePreorder(title: string): boolean {
 }
 
 export interface ClassifyOptions {
-  /** Known good AUD prices per scale, for the outlier check. */
+  /**
+   * Known good AUD prices for the outlier check, keyed `manufacturer|scale`.
+   *
+   * Keyed by both because the check needs both levels: the maker's own band
+   * where it is known, and the scale as the fallback. Passing one map and
+   * deriving the scale buckets from it keeps the two from disagreeing about
+   * which prices they were built from.
+   */
   reference?: Map<string, number[]>;
   /**
    * The currency the feed quotes in.
@@ -106,22 +147,40 @@ export function classifyMatches(
   /** Feed price in AUD, so it can be compared with the AUD reference. */
   const aud = (p: number) => toAud(p, cur);
 
-  // Build a price reference per scale from this sweep plus anything supplied.
-  const byScale = new Map<string, number[]>();
+  const brandKey = (m: SweepModel) => `${(m.manufacturer || '?').toLowerCase()}|${m.scale || '?'}`;
+
+  // Build the reference from this sweep plus anything supplied, keyed by
+  // maker AND scale. Including the sweep's own prices is what lets a brand we
+  // have never priced establish a band at all — Bburago has 17 models and not
+  // one stored price, so the database alone can never speak for it.
+  const byBrand = new Map<string, number[]>();
   for (const { model, variant } of pairs) {
     if (variant.price == null || variant.price <= 0) continue;
-    const k = model.scale || '?';
-    if (!byScale.has(k)) byScale.set(k, []);
-    byScale.get(k)!.push(aud(variant.price));
+    const k = brandKey(model);
+    if (!byBrand.has(k)) byBrand.set(k, []);
+    byBrand.get(k)!.push(aud(variant.price));
   }
-  for (const [scale, prices] of opts.reference || []) {
+  for (const [key, prices] of opts.reference || []) {
+    if (!byBrand.has(key)) byBrand.set(key, []);
+    byBrand.get(key)!.push(...prices.filter(p => p > 0));
+  }
+
+  // Scale buckets are the same prices merged across makers, so the fallback
+  // can never be built from a different set than the brand-level check.
+  const byScale = new Map<string, number[]>();
+  for (const [key, prices] of byBrand) {
+    const scale = key.split('|')[1] || '?';
     if (!byScale.has(scale)) byScale.set(scale, []);
-    byScale.get(scale)!.push(...prices.filter(p => p > 0));
+    byScale.get(scale)!.push(...prices);
   }
 
   const medians = new Map<string, number>();
   for (const [scale, prices] of byScale) {
     if (prices.length >= MIN_SAMPLES) medians.set(scale, median(prices));
+  }
+  const brandMedians = new Map<string, number>();
+  for (const [key, prices] of byBrand) {
+    if (prices.length >= BRAND_MIN_SAMPLES) brandMedians.set(key, median(prices));
   }
 
   const out: SweepMatch[] = [];
@@ -129,7 +188,13 @@ export function classifyMatches(
   for (const { model, variant } of pairs) {
     const price = variant.price;
     const scale = model.scale || '?';
-    const mid = medians.get(scale);
+    const scaleMid = medians.get(scale);
+    const brandMid = brandMedians.get(brandKey(model));
+    /** What this maker charges if we know, what the scale costs if we do not. */
+    const mid = brandMid ?? scaleMid;
+    const basis = brandMid != null
+      ? `${model.manufacturer} ${scale} median`
+      : `${scale} median`;
 
     const preorder = looksLikePreorder(variant.title);
     const mk = (action: SweepAction, reason: string, write: boolean): SweepMatch => ({
@@ -143,24 +208,45 @@ export function classifyMatches(
 
     const priceAud = aud(price);
 
+    /**
+     * A pre-order at a normal price is a real offer; a pre-order at a fraction
+     * of the price is a deposit. The title alone cannot tell them apart, and
+     * treating it as disqualifying withheld ten good links at Stone Model,
+     * where "[Pre-Order]" prefixes ordinary full-price stock.
+     *
+     * Measured against the SCALE median deliberately, not the maker's. A
+     * deposit is defined by being tiny next to what a car of that size costs,
+     * and anchoring it to the brand would defeat it exactly where a brand is
+     * cheap: Anthony's AUD 50.00 deposits have to stay caught.
+     */
+    if (scaleMid && preorder && priceAud * LOW_FACTOR < scaleMid) {
+      out.push(mk('review',
+        `${cur} ${price.toFixed(2)} against a ${scale} median of AUD ${scaleMid.toFixed(2)}, ` +
+        `and the title says pre-order — this is a deposit, not the price`,
+        false));
+      continue;
+    }
+
     if (mid) {
       if (priceAud > mid * HIGH_FACTOR) {
         out.push(mk('review',
           `${cur} ${price.toFixed(2)} (AUD ${priceAud.toFixed(2)}) is ` +
-          `${(priceAud / mid).toFixed(1)}x the ${scale} median of AUD ${mid.toFixed(2)}`,
+          `${(priceAud / mid).toFixed(1)}x the ${basis} of AUD ${mid.toFixed(2)}`,
           false));
         continue;
       }
-      // A pre-order at a normal price is a real offer; a pre-order at a
-      // fraction of the price is a deposit. The title alone cannot tell them
-      // apart, and treating it as disqualifying withheld ten good links at
-      // Stone Model, where "[Pre-Order]" prefixes ordinary full-price stock.
-      // Anthony's AUD 50.00 deposits are still caught, because they are both.
       if (priceAud * LOW_FACTOR < mid) {
-        const why = looksLikePreorder(variant.title)
-          ? `${cur} ${price.toFixed(2)} against a ${scale} median of AUD ${mid.toFixed(2)}, and the title says pre-order — this is a deposit, not the price`
-          : `${cur} ${price.toFixed(2)} (AUD ${priceAud.toFixed(2)}) is ${(mid / priceAud).toFixed(1)}x BELOW the ${scale} median of AUD ${mid.toFixed(2)}`;
-        out.push(mk('review', why, false));
+        // Say when there is no brand baseline yet. "4.0x below the 1:18 median"
+        // reads as a broken price; "we have never priced a Solido" reads as
+        // what it is, which is the difference between fixing the data and
+        // distrusting the shop.
+        const noBrandYet = brandMid == null && model.manufacturer
+          ? ` — no ${model.manufacturer} ${scale} prices to compare against yet, so this is the all-makers median`
+          : '';
+        out.push(mk('review',
+          `${cur} ${price.toFixed(2)} (AUD ${priceAud.toFixed(2)}) is ` +
+          `${(mid / priceAud).toFixed(1)}x BELOW the ${basis} of AUD ${mid.toFixed(2)}${noBrandYet}`,
+          false));
         continue;
       }
     }
