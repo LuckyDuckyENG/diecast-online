@@ -422,13 +422,57 @@ export default function CarDetail({
                     )}
                   </div>
 
-                  {/* Lowest Price Badge */}
-                  {variant.lowestPrice && (
+                  {/* Lowest Price Badge, and what the same model costs elsewhere */}
+                  {(variant.lowestPrice || variant.shopRange || variant.ebayRange) && (
                     <div className="sm:ml-6 sm:text-right shrink-0">
-                      <p className="text-xs text-[var(--text-tertiary)] mb-1">Lowest Price</p>
-                      <p className="font-black text-2xl sm:text-3xl text-[var(--accent)] whitespace-nowrap">
-                        AUD {parseFloat(variant.lowestPrice).toFixed(2)}
-                      </p>
+                      {variant.lowestPrice && (
+                        <>
+                          {/*
+                            "Lowest SHOP price", not "Lowest Price".
+
+                            The figure has always excluded eBay — a used market
+                            where one seller's asking price is not a comparison.
+                            The label never said so, which was survivable while
+                            eBay prices only appeared further down the list. It
+                            is not survivable next to an eBay range, because on
+                            738 models carrying both, eBay is cheaper than EVERY
+                            shop 51% of the time, by up to 69%. An unqualified
+                            "Lowest Price" would be wrong on half these pages.
+                          */}
+                          <p className="text-xs text-[var(--text-tertiary)] mb-1">Lowest shop price</p>
+                          <p className="font-black text-2xl sm:text-3xl text-[var(--accent)] whitespace-nowrap">
+                            AUD {parseFloat(variant.lowestPrice).toFixed(2)}
+                          </p>
+                        </>
+                      )}
+                      {/*
+                        The comparison, said out loud.
+                        Two ranges, never one. A shop price and a used eBay
+                        asking price are different kinds of number, and the
+                        wording is "ranges from", not "save X%" — postage is not
+                        in the data, so a saving cannot be promised, while a
+                        range is simply true.
+                      */}
+                      {(variant.shopRange || variant.ebayRange) && (
+                        <div className="mt-2 space-y-0.5 text-xs text-[var(--text-tertiary)]">
+                          {variant.shopRange && (
+                            <p className="whitespace-nowrap">
+                              {variant.shopRange.count} shops ·{' '}
+                              <span className="text-[var(--text-secondary)] font-semibold">
+                                AUD {variant.shopRange.low.toFixed(2)}–{variant.shopRange.high.toFixed(2)}
+                              </span>
+                            </p>
+                          )}
+                          {variant.ebayRange && (
+                            <p className="whitespace-nowrap">
+                              {variant.ebayRange.count} on eBay ·{' '}
+                              <span className="text-[var(--text-secondary)] font-semibold">
+                                AUD {variant.ebayRange.low.toFixed(2)}–{variant.ebayRange.high.toFixed(2)}
+                              </span>
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

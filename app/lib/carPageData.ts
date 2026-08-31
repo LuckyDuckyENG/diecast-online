@@ -69,6 +69,17 @@ export interface CarVariant {
   manufacturers: any;
   retailers: CarRetailer[];
   lowestPrice: number | null;
+  /** Cheapest and dearest SHOP price, on the same terms as lowestPrice. */
+  shopRange: PriceSpan | null;
+  /** Cheapest and dearest live eBay listing. Never merged with shopRange. */
+  ebayRange: PriceSpan | null;
+}
+
+export interface PriceSpan {
+  low: number;
+  high: number;
+  /** How many prices the span was drawn from — always 2 or more. */
+  count: number;
 }
 
 export interface CarPageData {
@@ -245,10 +256,42 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
       r => r.inStock && !r.priceHidden && !r.isSecondary && !r.isPreorder
     );
 
+    /**
+     * What the same model costs at the cheapest and the dearest place selling it.
+     *
+     * The point of the site, stated rather than left to be inferred. Across the
+     * catalogue the gap is 24% between shops and 38% between eBay sellers, and
+     * a visitor currently has to read the list and work that out themselves.
+     *
+     * Kept as two separate ranges, never merged. A shop price and a used eBay
+     * asking price are not the same kind of number, and one span covering both
+     * would put a "from" against a floor no shop offers. The shop range uses
+     * EXACTLY the filter that produced lowestPrice above, so the range can never
+     * disagree with the figure printed beside it.
+     *
+     * Emitted only at two or more prices. A "range" over one listing is not a
+     * range, it is the price again in a costume.
+     */
+    const span = (rows: CarRetailer[]) => {
+      if (rows.length < 2) return null;
+      const p = rows.map(r => r.priceAUD).filter(n => n > 0);
+      if (p.length < 2) return null;
+      const low = Math.min(...p);
+      const high = Math.max(...p);
+      // Identical prices are a real answer and worth saying, but not as a range.
+      return high > low ? { low, high, count: p.length } : null;
+    };
+
+    // Sold-out listings stay visible on the page but cannot bound a range: an
+    // asking price nobody can accept is not what the model costs.
+    const ebayLive = retailers.filter(r => r.isSecondary && !r.soldOut && !r.priceHidden);
+
     return {
       ...variant,
       retailers,
       lowestPrice: quotable.length > 0 ? Math.min(...quotable.map(r => r.priceAUD)) : null,
+      shopRange: span(quotable),
+      ebayRange: span(ebayLive),
     };
   });
 
