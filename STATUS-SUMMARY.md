@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-08-30
+# Status Summary — last updated 2026-09-01
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -1105,6 +1105,74 @@ a fifth of itself for hours and nothing anywhere said so.
 
 Tables over the cap: `price_history` 3,062 · `price_observations` 1,572 ·
 `ebay_links` 1,430 · `models` 1,645. `cars` is at 736 and paged pre-emptively.
+
+## The comparison is on the pages now — 2026-09-01
+
+Maintenance mode, and it turned into the first product work in a while.
+
+**Car page** (b91cb04) and **browse cards** (f73c7a1) now state the spread
+instead of leaving a visitor to work it out:
+
+```
+AUD 152.32 – 194.01
+1:43 Minichamps · 4 prices · cheapest on eBay
+```
+
+676 cards carry a price, 513 show a range, 357 say the cheapest is on eBay.
+On the car page: 408 variants show a shop range, 772 an eBay range, 272 both.
+
+**Two ranges, never one.** A shop price and a used eBay asking price are
+different kinds of number. On the car page they are printed separately; on a
+card the floor is attributed instead. The span logic lives in `lib/priceSpan.ts`
+and both pages import it, so they cannot drift.
+
+**Bucket by scale AND maker.** Grouping by scale alone gave cards reading
+`AUD 28.82 – 831.78` — a Bburago and a hand-built BBR of the same car, at the
+same scale. Found by reading the output rather than the totals. Checking the
+suspicious floor was worth it twice: every price under AUD 60 turned out to be
+genuine Bburago, which is what proved the grouping was wrong, not the data.
+
+**"Lowest Price" is now "Lowest shop price".** It always excluded eBay and the
+label never said so. Survivable until an eBay range sat beside it, because on
+the 738 models carrying both, **eBay is cheaper than every shop 51% of the
+time, by up to 69%.** That is a sharper pitch than the spread average.
+
+**"Price: Low to High" had never worked.** Both sorts read a formatted string
+`browseData` never set, so every comparison was 0 against 0 for all 729 cars.
+The control was in the dropdown and selectable the whole time.
+
+Also today: the retailer sweep records price history at last (c1c96e6). It was
+the busiest of the three price-writing paths and the only one keeping none, so
+observations sat at 1,572 rows dated 18 August while links went 1,744 to 3,385.
+Sweeping Anthony's writes 2 links and records 485 observations, because 483
+prices HELD — and "this did not move for three weeks" is what a price index is
+for. The `.next` collision is guarded too (27ae20c), firing only when a
+production build is actually present so the dev cache survives.
+
+## Price history: the component already exists
+
+`app/components/PriceHistory.tsx` is 119 lines, works, and has an empty state.
+It is wired to `/models/[id]`, which passes `priceHistory: []`.
+
+So building it is one query plus putting it on a real page. It is NOT complex.
+
+**Three reasons it waits:**
+
+1. **Three recording days** — 17 Aug, 18 Aug, 31 Aug. A chart of three points is
+   a line between two guesses. The data accrues on its own now, so the feature
+   is worth more every week it is not built. After the September refresh there
+   is a fourth point and a month of movement.
+2. **`/models/[id]` is orphaned** — client-fetched, absent from the sitemap, and
+   the only link into it comes from a component rendered on itself. History
+   belongs on `/cars/[slug]`, which is server-rendered and indexed.
+3. **`lib/modelHelpers.ts` invents data** — `generatePriceHistory` is a random
+   walk, `rating: Math.random() * 1.5 + 3.5`, `generateReviews()`. NOT reaching
+   users today, because `/models/[id]` hardcodes empties — but one import away
+   from putting fabricated reviews and prices on a site whose entire value is
+   that its numbers are real. Delete them.
+
+**Order when picking this up:** decide what `/models/[id]` is for, delete the
+fabrication helpers, then build history on the car page after the refresh.
 
 ## Next up
 
