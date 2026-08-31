@@ -15,7 +15,16 @@ export interface Model {
   year: number;
   driver?: string;
   team?: string;
+  /** Legacy pre-formatted display string, still used by lib/mockData. */
   price?: string;
+  /** Cheapest price anywhere for the cheapest scale, in AUD. Null when unpriced. */
+  lowestPrice?: number | null;
+  /** Which market that floor came from, so a card can say so. */
+  lowestFrom?: 'shop' | 'ebay' | null;
+  /** Scale AND maker the price describes — never mixed across either. */
+  priceScale?: string | null;
+  /** Cheapest and dearest for that scale. Null when there is nothing to compare. */
+  priceRange?: { low: number; high: number; count: number } | null;
   imageUrl?: string;
   releaseDate?: string;
   scale?: string;

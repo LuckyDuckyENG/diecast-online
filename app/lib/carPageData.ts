@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { selectAll } from './selectAll';
+import { priceSpan, type PriceSpan } from './priceSpan';
 import { formatAge, shouldHidePrice } from './freshness';
 import { toAud } from './currency';
 import { ebayAffiliateUrl } from './ebayAffiliate';
@@ -75,12 +76,6 @@ export interface CarVariant {
   ebayRange: PriceSpan | null;
 }
 
-export interface PriceSpan {
-  low: number;
-  high: number;
-  /** How many prices the span was drawn from — always 2 or more. */
-  count: number;
-}
 
 export interface CarPageData {
   car: any;
@@ -272,15 +267,7 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
      * Emitted only at two or more prices. A "range" over one listing is not a
      * range, it is the price again in a costume.
      */
-    const span = (rows: CarRetailer[]) => {
-      if (rows.length < 2) return null;
-      const p = rows.map(r => r.priceAUD).filter(n => n > 0);
-      if (p.length < 2) return null;
-      const low = Math.min(...p);
-      const high = Math.max(...p);
-      // Identical prices are a real answer and worth saying, but not as a range.
-      return high > low ? { low, high, count: p.length } : null;
-    };
+    const span = (rows: CarRetailer[]) => priceSpan(rows.map(r => r.priceAUD));
 
     // Sold-out listings stay visible on the page but cannot bound a range: an
     // asking price nobody can accept is not what the model costs.

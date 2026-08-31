@@ -11,6 +11,14 @@ interface ModelCardProps {
   driver?: string;
   team?: string;
   price?: string;
+  /** Cheapest price anywhere in AUD, for the cheapest scale this car has. */
+  lowestPrice?: number | null;
+  /** Which market that floor came from. */
+  lowestFrom?: 'shop' | 'ebay' | null;
+  /** Scale AND maker the price describes, e.g. "1:43 Bburago". */
+  priceScale?: string | null;
+  /** Cheapest and dearest for that scale. */
+  priceRange?: { low: number; high: number; count: number } | null;
   imageUrl?: string;
   releaseDate?: string;
   liveryName?: string;
@@ -30,6 +38,10 @@ export default function ModelCard({
   driver,
   team,
   price,
+  lowestPrice,
+  lowestFrom,
+  priceScale,
+  priceRange,
   imageUrl,
   releaseDate,
   liveryName,
@@ -93,11 +105,45 @@ export default function ModelCard({
           </span>
         </p>
 
-        <div className="flex items-center justify-between">
-          {price && (
-            <span className="text-[var(--text-primary)] font-bold text-base sm:text-lg">{price}</span>
+        <div className="flex items-end justify-between gap-2">
+          {/*
+            The comparison, on the card rather than one click away.
+
+            A range instead of a single figure, because the spread IS the
+            reason to use the site: between shops it averages 24%, between eBay
+            sellers 38%. The scale is printed alongside, since the price
+            describes one scale only — a car's 1:18 costs roughly twice its
+            1:43, and an unlabelled number would read as a bargain that is
+            really just a smaller model.
+
+            "cheapest on eBay" appears only when it is true, which is 51% of
+            the models carrying both. It is the non-obvious half, and staying
+            silent on it would leave the better price hidden behind a shop
+            price that is not the lowest.
+          */}
+          {lowestPrice != null ? (
+            <div className="min-w-0">
+              <div className="text-[var(--text-primary)] font-bold text-base sm:text-lg leading-tight">
+                AUD {lowestPrice.toFixed(2)}
+                {priceRange && (
+                  <span className="font-semibold text-[var(--text-tertiary)] text-xs sm:text-sm">
+                    {' '}– {priceRange.high.toFixed(2)}
+                  </span>
+                )}
+              </div>
+              <div className="text-[10px] sm:text-[11px] text-[var(--text-tertiary)] leading-tight mt-0.5">
+                {priceScale}
+                {priceRange && ` · ${priceRange.count} prices`}
+                {lowestFrom === 'ebay' && ' · cheapest on eBay'}
+              </div>
+            </div>
+          ) : (
+            /* Search still passes a pre-formatted string; keep honouring it. */
+            price && (
+              <span className="text-[var(--text-primary)] font-bold text-base sm:text-lg">{price}</span>
+            )
           )}
-          <button className="ml-auto bg-[var(--accent)] text-white font-bold text-xs sm:text-sm px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg hover:brightness-[0.92] transition-all">
+          <button className="ml-auto shrink-0 bg-[var(--accent)] text-white font-bold text-xs sm:text-sm px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg hover:brightness-[0.92] transition-all">
             View
           </button>
         </div>

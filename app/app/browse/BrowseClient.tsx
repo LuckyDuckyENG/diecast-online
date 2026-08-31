@@ -129,19 +129,23 @@ function BrowseContent({ initialModels }: { initialModels: Model[] }) {
       case 'newest':
         results.sort((a, b) => b.year - a.year);
         break;
+      /**
+       * These two sorted nothing at all until now.
+       *
+       * They read `a.price`, a formatted string that browseData never set — so
+       * every comparison was parseFloat('0') against parseFloat('0') and the
+       * grid did not move for any of the 729 cars. The control was in the
+       * dropdown, people could choose it, and it silently did nothing.
+       *
+       * Now sorted on the numeric cheapest-anywhere price. Cars with no price
+       * always sink to the bottom rather than counting as free, which is what
+       * treating a missing price as 0 did.
+       */
       case 'price-low':
-        results.sort((a, b) => {
-          const priceA = parseFloat(a.price?.replace(/[€,]/g, '') || '0');
-          const priceB = parseFloat(b.price?.replace(/[€,]/g, '') || '0');
-          return priceA - priceB;
-        });
+        results.sort((a, b) => (a.lowestPrice ?? Infinity) - (b.lowestPrice ?? Infinity));
         break;
       case 'price-high':
-        results.sort((a, b) => {
-          const priceA = parseFloat(a.price?.replace(/[€,]/g, '') || '0');
-          const priceB = parseFloat(b.price?.replace(/[€,]/g, '') || '0');
-          return priceB - priceA;
-        });
+        results.sort((a, b) => (b.lowestPrice ?? -Infinity) - (a.lowestPrice ?? -Infinity));
         break;
       case 'popular':
         // Random order for now (would be based on actual popularity data)
