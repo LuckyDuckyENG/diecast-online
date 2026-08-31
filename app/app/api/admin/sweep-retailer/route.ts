@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { fetchShopifyFeed, isShopify, shopCurrency } from '@/lib/shopifyFeed';
 import { fetchSitemapFeed, sitemapShopFor, type CandidateModel } from '@/lib/sitemapFeed';
-import { classifyMatches, type SweepModel } from '@/lib/retailerSweep';
+import { classifyMatches, type SweepModel, type SweepAction } from '@/lib/retailerSweep';
+import { recordObservations, isRecordable, type Observation } from '@/lib/priceObservation';
+import { toAud } from '@/lib/currency';
 import { attachRetailerLink, fillMissingModelImage, looksLikePlaceholderImage } from '@/lib/retailerLink';
 import { selectAll } from '@/lib/selectAll';
 
@@ -286,6 +288,42 @@ export async function POST(request: NextRequest) {
     }
     console.log(`🖼️ ${dryRun ? 'would fill' : 'filled'} ${imagesFilled} missing model image(s)`);
 
+    /**
+     * Price history, for every price this sweep is prepared to believe.
+     *
+     * The sweep was the third path that writes a retailer price and the only
+     * one that recorded nothing. `refresh-prices` and `refresh-ebay` both append
+     * to price_observations; this did not, so the table stopped at 1,572 rows
+     * dated 18 August while retailer links went from 1,744 to 3,385. The busiest
+     * writer was contributing no history at all, which is a hole in the middle
+     * of a price index.
+     *
+     * An observation is recorded for every match whose price we would show —
+     * INCLUDING `unchanged`. Following refresh-prices, which records what it
+     * checked rather than only what moved: "this price held for three weeks" is
+     * exactly the kind of thing a price index exists to be able to say, and it
+     * is unrecoverable after the fact.
+     *
+     * `review` and `hold` are excluded on purpose. Those are the prices the
+     * guards refused to store, and writing them to an append-only table that
+     * has no correction path would poison the history with the precise values
+     * we decided not to trust.
+     */
+    const TRUSTED: SweepAction[] = ['new', 'refresh', 'unchanged'];
+    const observations: Observation[] = matches
+      .filter(m => TRUSTED.includes(m.action) && (m.variant.price ?? 0) > 0)
+      .map(m => ({
+        modelId: m.model.id,
+        // The retailer being swept, not one re-derived from the product URL.
+        retailerId,
+        price: m.variant.price!,
+        currency,
+        priceAud: toAud(m.variant.price!, currency),
+        inStock: m.variant.available,
+        isPreorder: m.isPreorder,
+      }));
+
+    let observed = 0;
     if (!dryRun) {
       for (const m of matches.filter(x => x.write)) {
         const res = await attachRetailerLink(supabase, {
@@ -302,6 +340,16 @@ export async function POST(request: NextRequest) {
         if (res.ok) written++;
         else failures.push(`${m.model.sku}: ${res.reason}`);
       }
+
+      // Swallows its own failures by design — losing a history row must never
+      // fail a sweep that has already written the links people will click.
+      const rec = await recordObservations(supabase, observations);
+      observed = rec.written;
+      console.log(`📈 recorded ${observed} price observation(s)`);
+    } else {
+      // Predicts the real number rather than reporting zero, the same way the
+      // image count does.
+      observed = observations.filter(isRecordable).length;
     }
 
     return NextResponse.json({
@@ -329,6 +377,7 @@ export async function POST(request: NextRequest) {
       totals,
       written,
       imagesFilled,
+      observed,
       failures,
       matches: matches.map(m => ({
         modelId: m.model.id,

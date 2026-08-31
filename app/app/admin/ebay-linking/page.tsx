@@ -4561,6 +4561,16 @@ export default function EbayLinkingAdmin() {
                       </strong>
                     </span>
                   )}
+                  {/* Counted separately from `written`, and always larger: an
+                      unchanged price is still an observation worth keeping. */}
+                  {r.observed != null && (
+                    <span>
+                      {r.dryRun ? 'price history to record' : 'price history recorded'}:{' '}
+                      <strong className={r.observed ? 'text-green-400' : 'text-[var(--text-primary)]'}>
+                        {r.observed}
+                      </strong>
+                    </span>
+                  )}
                 </div>
 
                 {section('new', '🆕 New links', 'text-green-400')}
