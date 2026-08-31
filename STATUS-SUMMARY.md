@@ -571,7 +571,12 @@ a retailer are submitted (96 of 164). `/admin`, `/api/`, `/search` disallowed.
 - **Never run `npm run build` while the dev server is running.** The production build
   writes to `.next/` while dev serves `.next/dev/`; the collision breaks route
   registration — every `/api/*` 404s with an HTML page while pages still render. Fix:
-  stop the server, `rm -rf .next`, restart. This caught us three times.
+  stop the server, `rm -rf .next`, restart. This caught us FOUR times, and is now
+  guarded: `predev` removes `.next/` only when it contains a production build,
+  identified by the `BUILD_ID` file that `next build` writes and `next dev` does
+  not. A blanket `rimraf .next` was the obvious fix and the wrong one — it throws
+  away the incremental compile cache on every start, a daily cost to prevent an
+  occasional mistake.
 - **Module-scope API clients turn optional env vars into hard build dependencies.**
   `new Exa(process.env.EXA_API_KEY)` at module scope failed the entire deploy because
   the key wasn't set on Vercel. Construct per request.
