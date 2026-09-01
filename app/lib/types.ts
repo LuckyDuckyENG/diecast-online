@@ -15,8 +15,6 @@ export interface Model {
   year: number;
   driver?: string;
   team?: string;
-  /** Legacy pre-formatted display string, still used by lib/mockData. */
-  price?: string;
   /** Cheapest price anywhere for the cheapest scale, in AUD. Null when unpriced. */
   lowestPrice?: number | null;
   /** Which market that floor came from, so a card can say so. */

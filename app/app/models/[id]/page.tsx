@@ -1,264 +1,43 @@
-'use client';
-
-import { useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import Navbar from '../../components/Navbar';
-import Footer from '../../components/Footer';
-import Breadcrumb from '../../components/Breadcrumb';
-import ModelHero from '../../components/ModelHero';
-import KeyDetails from '../../components/KeyDetails';
-import PriceHistory from '../../components/PriceHistory';
-import WhereToBuy from '../../components/WhereToBuy';
-import CollectorReviews from '../../components/CollectorReviews';
-import RelatedModels from '../../components/RelatedModels';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
-export default function ModelDetailPage() {
-  // Get id from URL params
-  const params = useParams();
-  const id = params.id as string;
+/**
+ * /models/<id> — a permanent redirect to the car that owns the model.
+ *
+ * This used to be a second, worse detail page. It was a client component, so a
+ * crawler received an empty shell and it could not export generateMetadata —
+ * the exact defect /cars/[slug] was rewritten to fix. It was absent from the
+ * sitemap. Nothing linked into it except a "related models" strip rendered on
+ * the page itself, so the only way in was to already be there.
+ *
+ * And three of its six sections had nothing to show: it passed
+ * `priceHistory: []`, `rating: { average: 0, count: 0 }` and `reviews: []`, so
+ * it rendered a permanently empty price chart and a reviews block for a feature
+ * that does not exist. Its "Where to buy" list marked links
+ * `rel="noopener noreferrer"` with no `sponsored`, which for an eBay affiliate
+ * link is an undisclosed paid link — the car page is careful about exactly this.
+ *
+ * A redirect rather than a deletion because model ids are real UUIDs that may
+ * sit in someone's history or an old message, and sending those to the car page
+ * is strictly better than a 404. Permanent, because this will not come back:
+ * everything it attempted, /cars/[slug] already does properly.
+ */
+export const revalidate = 3600;
 
-  const [model, setModel] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+type Props = { params: Promise<{ id: string }> };
 
-  // Fetch model data from Supabase
-  useEffect(() => {
-    async function fetchModel() {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('models')
-          .select(`
-            *,
-            manufacturer:manufacturers(name),
-            car:cars(
-              chassis_name,
-              event_name,
-              team:teams(name),
-              season:seasons(year),
-              driver:drivers(name, number)
-            )
-          `)
-          .eq('id', id)
-          .single();
+export default async function ModelRedirect({ params }: Props) {
+  const { id } = await params;
 
-        if (error) {
-          console.error('Error fetching model:', error);
-          setModel(null);
-          return;
-        }
+  const { data } = await supabase
+    .from('models')
+    .select('car:cars(slug, id)')
+    .eq('id', id)
+    .maybeSingle();
 
-        // Fetch retailer pricing data
-        const { data: priceData } = await supabase
-          .from('price_history')
-          .select(`
-            price,
-            recorded_at,
-            product_url,
-            retailer:retailers(name, url)
-          `)
-          .eq('model_id', id);
+  const car = (data as any)?.car;
+  if (!car) notFound();
 
-        // Fetch eBay listings, cheapest first.
-        //
-        // This used .single(), which THROWS when a model has more than one row.
-        // Migration 015 made that the normal case, so it was a page that would
-        // have started 500ing as soon as the first model picked up a second
-        // listing.
-        const { data: ebayLinks, error: ebayError } = await supabase
-          .from('ebay_links')
-          .select('*')
-          .eq('model_id', id)
-          .order('price_aud', { ascending: true });
-
-        console.log('🔗 eBay link fetch result:', {
-          count: ebayLinks?.length ?? 0,
-          ebayError,
-          modelId: id,
-        });
-
-        // Transform retailer data.
-        // Skip rows with no usable price — a 0 is a failed extraction, not an
-        // offer, and it would present as the cheapest option available.
-        const retailers = (priceData || [])
-          .filter((item: any) => parseFloat(item.price) > 0)
-          .map((item: any) => ({
-            name: item.retailer?.name || 'Unknown',
-            price: parseFloat(item.price) || 0,
-            currency: 'AUD',
-            availability: 'In Stock' as const,
-            url: item.product_url || item.retailer?.url || '#', // Use product_url if available, fallback to homepage
-          }));
-
-        console.log('💰 Retailers before eBay:', retailers);
-
-        // Every eBay listing becomes a row, cheapest first.
-        for (const ebayLink of ebayLinks || []) {
-          const ebayPrice = parseFloat(ebayLink.ebay_price?.replace(/[^0-9.]/g, '') || '0');
-          if (!(ebayPrice > 0)) {
-            console.log('⚠️ eBay price is 0 or invalid for item', ebayLink.ebay_item_id);
-            continue;
-          }
-          retailers.push({
-            name: ebayLink.seller ? `eBay — ${ebayLink.seller}` : 'eBay',
-            price: ebayPrice,
-            // Was hardcoded to 'AUD' with a comment saying it assumed USD, which
-            // could not both be true. The row records its own currency.
-            currency: ebayLink.currency || 'AUD',
-            availability: 'In Stock' as const,
-            url: ebayLink.ebay_url,
-          });
-        }
-
-        if (!(ebayLinks || []).length) {
-          console.log('⚠️ No eBay listings found for model:', id);
-        }
-
-        console.log('💰 Final retailers array:', retailers);
-
-        // Transform to expected format
-        const driver = data.car?.driver;
-        // No placeholder.jpg exists; empty string lets the UI show its own fallback
-        const imageUrl = data.image_url || '';
-        const transformedModel = {
-          id: data.id,
-          name: data.description || `${data.car?.chassis_name} - ${driver?.name}`,
-          manufacturer: data.manufacturer?.name || '',
-          year: data.car?.season?.year || 2024,
-          driver: driver?.name,
-          team: data.car?.team?.name,
-          grandPrix: data.car?.event_name || data.description?.split(' - ')[2] || 'Grand Prix 2024',
-          scale: data.scale,
-          material: 'Die-cast metal',
-          priceRange: {
-            low: parseFloat(data.price) || 0,
-            high: parseFloat(data.price) || 0,
-            currency: '€',
-          },
-          images: {
-            main: imageUrl,
-            thumbnails: [imageUrl],
-          },
-          articleNumber: 'N/A',
-          productionNumber: 'Limited Edition',
-          releaseDate: data.release_date,
-          specialLivery: false,
-          priceHistory: [],
-          retailers: retailers,
-          rating: { average: 0, count: 0 },
-          reviews: [],
-          relatedModels: [],
-        };
-
-        setModel(transformedModel);
-      } catch (err) {
-        console.error('Unexpected error:', err);
-        setModel(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchModel();
-  }, [id]);
-
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[var(--background)]">
-        <Navbar />
-        <div className="max-w-[1240px] mx-auto px-8 py-16 text-center">
-          <p className="text-[var(--text-tertiary)]">Loading model...</p>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  // If model not found, show not found message
-  if (!model) {
-    return (
-      <div className="min-h-screen bg-[var(--background)]">
-        <Navbar />
-        <div className="max-w-[1240px] mx-auto px-8 py-16 text-center">
-          <h1 className="font-display font-black text-4xl text-[var(--text-primary)] mb-4">
-            Model Not Found
-          </h1>
-          <p className="text-[var(--text-tertiary)] mb-8">
-            The model you're looking for doesn't exist.
-          </p>
-          <a
-            href="/browse"
-            className="inline-block bg-[var(--accent)] text-white font-bold px-6 py-3 rounded-lg hover:brightness-[0.92] transition-all"
-          >
-            Back to Browse
-          </a>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  // Extract car name from model name (first part before " - ")
-  const carName = model.name.split(' - ')[0];
-
-  const breadcrumbItems = [
-    { label: 'Home', href: '/' },
-    { label: 'Browse', href: '/browse' },
-    { label: carName, href: `/browse?team=${encodeURIComponent(model.team)}` },
-    {
-      label: `${model.grandPrix} — ${model.driver} — ${model.manufacturer} ${model.scale}`,
-      href: `/models/${id}`,
-    },
-  ];
-
-  return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <Navbar />
-
-      <div className="max-w-[1240px] mx-auto px-8 py-8">
-        {/* Breadcrumb */}
-        <Breadcrumb items={breadcrumbItems} />
-
-        {/* Hero Section */}
-        <ModelHero
-          name={model.name}
-          manufacturer={model.manufacturer}
-          scale={model.scale}
-          material={model.material}
-          priceRange={model.priceRange}
-          images={model.images}
-        />
-
-        {/* Key Details */}
-        <KeyDetails
-          year={model.year}
-          driver={model.driver}
-          team={model.team}
-          grandPrix={model.grandPrix}
-          scale={model.scale}
-          material={model.material}
-          manufacturer={model.manufacturer}
-          articleNumber={model.articleNumber}
-          productionNumber={model.productionNumber}
-          releaseDate={model.releaseDate}
-          specialLivery={model.specialLivery}
-        />
-
-        {/* Price History */}
-        <PriceHistory priceHistory={model.priceHistory} currency={model.priceRange.currency} />
-
-        {/* Where to Buy */}
-        <WhereToBuy retailers={model.retailers} />
-
-        {/* Collector Reviews */}
-        <CollectorReviews rating={model.rating} reviews={model.reviews} />
-
-        {/* Related Models */}
-        <RelatedModels models={model.relatedModels} />
-      </div>
-
-      <Footer />
-    </div>
-  );
+  // Slug where there is one, id as the fallback — /cars/[id] resolves both.
+  permanentRedirect(`/cars/${car.slug || car.id}`);
 }
