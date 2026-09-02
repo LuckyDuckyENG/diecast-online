@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { toAud } from '@/lib/currency';
 import { selectAll } from '@/lib/selectAll';
-import { recordObservations, type Observation } from '@/lib/priceObservation';
+import { recordObservations, newBatchId, type Observation } from '@/lib/priceObservation';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -166,6 +166,8 @@ export async function POST(request: NextRequest) {
     const suspicious: any[] = [];
     const deadListings: any[] = [];
     const observations: Observation[] = [];
+    /** One id for this whole run, so a bad run can be deleted and nothing else. */
+    const batchId = newBatchId();
 
     for (const link of links || []) {
       summary.checked++;
@@ -217,6 +219,11 @@ export async function POST(request: NextRequest) {
               ? {
                   modelId: link.model_id,
                   ebayItemId: link.ebay_item_id,
+                  batchId,
+                  // Not 'refresh-ebay': this price was read on some EARLIER run
+                  // and never recorded, and observedAt is backdated to match.
+                  // Filing it as read-today would misdescribe it twice.
+                  source: 'rescue',
                   price: lastPrice,
                   currency: link.currency || 'AUD',
                   priceAud:
@@ -284,6 +291,8 @@ export async function POST(request: NextRequest) {
         observations.push({
           modelId: link.model_id,
           ebayItemId: link.ebay_item_id,
+          batchId,
+          source: 'refresh-ebay',
           price: livePrice,
           currency: liveCurrency,
           priceAud,

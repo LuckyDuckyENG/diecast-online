@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { toAud } from '@/lib/currency';
-import { recordObservations, type Observation } from '@/lib/priceObservation';
+import { recordObservations, newBatchId, type Observation } from '@/lib/priceObservation';
 import { selectAll } from '@/lib/selectAll';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -309,6 +309,8 @@ export async function POST(request: NextRequest) {
     const changes: any[] = [];
     /** Every price successfully read this run, appended to history at the end. */
     const observations: Observation[] = [];
+    /** One id for this whole run, so a bad run can be deleted and nothing else. */
+    const batchId = newBatchId();
 
     // Only successful checks stamp last_checked_at, so links we can't read
     // (403s, price-less pages) visibly age instead of looking freshly verified.
@@ -523,6 +525,8 @@ If no price found, return {"price": null}`,
         observations.push({
           modelId: entry.model_id,
           retailerId: entry.retailer_id,
+          batchId,
+          source: 'refresh-prices',
           price: currentPrice,
           currency: entry.currency || 'AUD',
           priceAud: toAud(currentPrice, entry.currency || 'AUD'),

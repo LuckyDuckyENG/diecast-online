@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { fetchShopifyFeed, isShopify, shopCurrency } from '@/lib/shopifyFeed';
 import { fetchSitemapFeed, sitemapShopFor, type CandidateModel } from '@/lib/sitemapFeed';
 import { classifyMatches, type SweepModel, type SweepAction } from '@/lib/retailerSweep';
-import { recordObservations, isRecordable, type Observation } from '@/lib/priceObservation';
+import { recordObservations, isRecordable, newBatchId, type Observation } from '@/lib/priceObservation';
 import { toAud } from '@/lib/currency';
 import { attachRetailerLink, fillMissingModelImage, looksLikePlaceholderImage } from '@/lib/retailerLink';
 import { selectAll } from '@/lib/selectAll';
@@ -310,12 +310,16 @@ export async function POST(request: NextRequest) {
      * we decided not to trust.
      */
     const TRUSTED: SweepAction[] = ['new', 'refresh', 'unchanged'];
+    /** One id for this whole run, so a bad sweep can be deleted and nothing else. */
+    const batchId = newBatchId();
     const observations: Observation[] = matches
       .filter(m => TRUSTED.includes(m.action) && (m.variant.price ?? 0) > 0)
       .map(m => ({
         modelId: m.model.id,
         // The retailer being swept, not one re-derived from the product URL.
         retailerId,
+        batchId,
+        source: 'sweep',
         price: m.variant.price!,
         currency,
         priceAud: toAud(m.variant.price!, currency),

@@ -18,8 +18,37 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * table has to use the weaker wording.
  */
 
+/**
+ * Which job wrote an observation.
+ *
+ * A union rather than a CHECK constraint in the database: the failure worth
+ * preventing is a typo — 'sweep-retailer' in one writer where the others say
+ * 'sweep' — which makes a batch unfindable at exactly the moment you need to
+ * undo it. TypeScript catches that at the call site; a CHECK would catch it at
+ * runtime and would need a migration every time a writer is added.
+ */
+export type ObservationSource = 'sweep' | 'refresh-prices' | 'refresh-ebay' | 'rescue';
+
+/**
+ * One id for a whole run, generated once by the caller and passed to every
+ * observation it records.
+ *
+ * This is what makes a mistake recoverable. price_observations has no update
+ * path by design, so the only correction available is deletion — and without a
+ * batch the only way to find a bad run's rows is a timestamp window, which also
+ * catches the other two jobs writing at the same time. Undoing one bad sweep
+ * would mean destroying good history alongside it.
+ */
+export function newBatchId(): string {
+  return globalThis.crypto.randomUUID();
+}
+
 export interface Observation {
   modelId: string;
+  /** The run that recorded this. See newBatchId. */
+  batchId?: string | null;
+  /** Which job recorded it. */
+  source?: ObservationSource | null;
   /** Set for a retailer reading. Mutually exclusive with ebayItemId. */
   retailerId?: string | null;
   /** Set for an eBay reading. Mutually exclusive with retailerId. */
@@ -68,6 +97,8 @@ function toRow(o: Observation) {
     in_stock: o.inStock ?? null,
     is_preorder: o.isPreorder ?? null,
     availability: o.availability ?? null,
+    batch_id: o.batchId ?? null,
+    source: o.source ?? null,
     observed_at: o.observedAt || new Date().toISOString(),
   };
 }
@@ -93,13 +124,38 @@ export async function recordObservations(
   if (!usable.length) return { written: 0, skipped };
 
   const { error } = await supabase.from('price_observations').insert(usable.map(toRow));
+  if (!error) return { written: usable.length, skipped };
 
-  if (error) {
-    // A missing table is the expected failure before migration 017 is applied,
-    // and it must not stop a refresh from doing its real job.
-    console.warn(`⚠️ could not record ${usable.length} observation(s): ${error.message}`);
-    return { written: 0, skipped, error: error.message };
+  /**
+   * Deploying the code before running migration 018 must not cost history.
+   *
+   * batch_id and source arrived in 018, and this function swallows its errors
+   * on purpose — so shipping the writers first would have made every insert
+   * fail on an unknown column and recorded NOTHING, quietly, for as long as the
+   * migration lagged. Losing the history is precisely what 018 exists to
+   * prevent, so failing that way would be the joke writing itself.
+   *
+   * Retry once without the provenance columns. A row with no batch is worse
+   * than one with a batch and far better than no row: it is what every row
+   * written before 018 already looks like.
+   */
+  if (/batch_id|source/.test(error.message) && /column|schema cache/i.test(error.message)) {
+    const bare = usable.map(o => {
+      const { batch_id, source, ...rest } = toRow(o);
+      return rest;
+    });
+    const retry = await supabase.from('price_observations').insert(bare);
+    if (!retry.error) {
+      console.warn(
+        `⚠️ recorded ${usable.length} observation(s) WITHOUT batch_id/source — ` +
+        `migration 018 has not been applied, so this run cannot be undone as a unit.`
+      );
+      return { written: usable.length, skipped };
+    }
   }
 
-  return { written: usable.length, skipped };
+  // A missing table is the expected failure before migration 017 is applied,
+  // and it must not stop a refresh from doing its real job.
+  console.warn(`⚠️ could not record ${usable.length} observation(s): ${error.message}`);
+  return { written: 0, skipped, error: error.message };
 }
