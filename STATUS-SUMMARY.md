@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-01
+# Status Summary — last updated 2026-09-02
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -1173,6 +1173,118 @@ So building it is one query plus putting it on a real page. It is NOT complex.
 
 **Order when picking this up:** decide what `/models/[id]` is for, delete the
 fabrication helpers, then build history on the car page after the refresh.
+
+## Price history — designed, not built. 2026-09-02
+
+Migration 018 is applied and the undo path was exercised for real: two rows
+written under one `batch_id`, read back, deleted by batch, table returned to
+1,748. Every sweep and refresh now stamps `batch_id` and `source`.
+
+### Why it is not built yet — the number is 5%
+
+```
+buyable models with 2+ observation days        379 of 1,615   (23%)
+models where ONE SOURCE was seen on 2+ days     74            (5%)
+car pages with any chartable variant            68 of 786     (9%)
+models with ANY observation                    603            (37%)
+```
+
+The honest chart is per-source, and per-source needs the same seller observed
+on two different days. 17–18 Aug were refresh runs, 31 Aug was one shop's
+sweep, so they barely overlap. Building now means **91% of car pages read "No
+price history available yet"**, which makes the site look emptier than it is.
+
+### The reference is Keepa, not StockX
+
+StockX is built on TRANSACTIONS — last sale, bid/ask, volume. We have none.
+A vanished eBay listing 404s whether it sold, expired or was delisted, so every
+row means "we observed this offer at this price", never "it sold for this"
+(migration 017 says so, and any UI must use that wording).
+
+Keepa and CamelCamelCamel track ASKING prices, which is what we have, and their
+conventions exist because of that constraint: step charts never smoothed, one
+line per source, gaps where unobserved, low/high/average as text.
+
+**One row makes the case better than any argument. Spark 1:43 S8580:**
+
+```
+17 Aug   eBay      AUD 1,283.91     one seller's asking price
+18 Aug   retailer  USD 109.95  ->  AUD 164.93
+18 Aug   retailer  AUD 156.00
+18 Aug   retailer  EUR  59.92  ->  AUD  95.87
+```
+
+Three shops between AUD 96 and 165, and one optimist asking eight times retail
+who will never sell it. That single row rules out:
+
+- **all-time high** — it would headline a fantasy price. StockX can show a high
+  because someone PAID it.
+- **average** — dragged 40% by one listing.
+- **a single shared chart** — plot 1,284 against 96–165 and the three real
+  prices collapse into a smudge at the bottom of the axis.
+
+So per-source lines are not only about the coverage artefact. They are the only
+way the chart is READABLE.
+
+### The coverage artefact, for when this gets built
+
+237 of the 379 chartable models had the NUMBER of sellers observed change
+between days. Worked example — Minichamps 1:43 537256281:
+
+```
+17 Aug:  1 price,  cheapest AUD 338.07
+18 Aug:  3 prices, cheapest AUD 164.93
+```
+
+A "cheapest anywhere" line draws a 51% crash. Nothing crashed; we looked at
+three sellers instead of one. A per-source line cannot do this, because a
+source not observed that day leaves a gap in its own line instead of moving a
+combined number.
+
+**"Lowest we have seen" is the most fragile statistic available.** It covers
+37% rather than 5%, which is tempting — but a `min()` over an append-only table
+is poisoned permanently and INVISIBLY by one bad row. No outlier dot to spot,
+just a number that quietly makes every future price look expensive. This is the
+strongest reason `batch_id` exists.
+
+### Where it goes on the page
+
+Not StockX's always-on chart under the buy box: that works because StockX is
+one product per page. A car page carries up to 8 variants (median 2, mean 2.3),
+each a different model with its own history.
+
+So: **inside each variant card, in the price block that already shows the
+ranges** — a sparkline directly under "2 shops · AUD 164.93–254.92", because it
+is the same claim extended backwards. No axes, ~60x20px. Click to expand the
+per-source step chart, rendered on demand so 8 variants are not 8 charts.
+
+Ruled out: one chart at the top of the car page — "the price of this car" spans
+a Bburago at 28.82 and a BBR at 831.78, the same trap the browse cards hit. And
+a separate Price History tab, which would have to hold N charts anyway.
+
+**The sparkline degrades honestly and the chart does not.** With three points a
+sparkline is a shrug, which is fine at 20 pixels tall; the full chart looks
+broken. So the sparkline can ship earlier, against the 37%.
+
+### Order when picking this up
+
+1. **Run the baseline refresh** — Refresh All Retailers + Refresh eBay. This is
+   the mid-September task brought FORWARD, and it does four things: creates a
+   full-coverage baseline with provenance, turns 74 chartable models into
+   several hundred, resets the 30-day staleness clock to today (pushing the
+   deadline to ~1 October), and exercises `batch_id` at scale while a mistake is
+   still cheap to undo. Retailers first if only one — their numbers are the more
+   comparable ones.
+2. **Sparkline** in the variant price block.
+3. **Expandable per-source step chart** in October, once the second full
+   reading exists.
+
+### Price alerts — the idea that needs no history at all
+
+"Email me when this drops below AUD 200." Works from today's data, brings
+people BACK rather than once, and for a site whose stated purpose is feedback
+it produces a signal — what people actually want to be told about — that
+traffic numbers never will.
 
 ## Next up
 
