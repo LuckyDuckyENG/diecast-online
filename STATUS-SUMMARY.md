@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-02
+# Status Summary — last updated 2026-09-05
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -1285,6 +1285,82 @@ broken. So the sparkline can ship earlier, against the 37%.
 people BACK rather than once, and for a site whose stated purpose is feedback
 it produces a signal — what people actually want to be told about — that
 traffic numbers never will.
+
+## The exchange rate was a guess, and it was wrong — 2026-09-03
+
+`lib/currency.ts` held four undated constants from 31 July, and `price_aud` —
+which decides which shop the site calls cheapest — was computed from them.
+Against ECB reference rates:
+
+```
+USD  we used 1.5000, actual 1.3902   +7.9%   964 links
+EUR  we used 1.6000, actual 1.6147   -0.9%   210 links
+GBP  we used 1.9000, actual 1.8764   +1.3%   519 links
+```
+
+EUR and GBP were close enough to ignore. USD was not, and the error ran one
+way: **every American shop looked 7.9% dearer than it was.** Measured against
+live data that handed "cheapest" to the wrong shop on 31 of 413 contested
+models, and every flip was a US shop that should have won. The quoted lowest
+price was 4.45% too high across 783 of 1,109 models.
+
+**Migration 019 replaces it with an `fx_rates` table** — one row per (day,
+base, quote), so adding a currency is an insert rather than a migration. Source
+is Frankfurter republishing ECB rates, chosen above accuracy for one reason:
+**no API key.** This repo has already had a service_role key in a public GitHub
+repo, and a currency display is not worth another secret.
+
+`scripts/fetch-fx.mjs` pulls the day's rates and reports drift against what is
+stored. Idempotent — re-running on the same day upserts the same row.
+
+**1,693 stored `price_aud` values were recomputed** on `price_history`.
+`ebay_links` needed none — all 3,218 are already AUD. `price_observations` was
+deliberately NOT touched: those rows say "we converted it this way on that
+day", and rewriting history to look correct is what an append-only table exists
+to prevent. The raw `price` and `currency` sit beside them so the conversion
+can always be redone by a reader.
+
+### The habit this creates
+
+**Run `node scripts/fetch-fx.mjs` before any refresh or sweep.** Those jobs bake
+whatever rate is current into thousands of rows. It takes five seconds.
+
+The difference from before is that staleness is now VISIBLE — every row carries
+`as_of`, so a rate cannot quietly rot for five weeks again.
+
+The old constants survive as a last-resort fallback, deliberately left at their
+historical values. Replacing them with today's numbers would make a fallback
+indistinguishable from a live rate, and the failure being fixed is precisely
+that a plausible constant went unquestioned.
+
+### One number moved
+
+eBay beats every shop on **46%** of models carrying both prices. It read 51%
+before this fix — US shops got cheaper, so eBay wins less often. Worth knowing
+if the figure is ever quoted publicly.
+
+## Posting about the site — draft ready, not yet posted
+
+Decided on r/buildinpublic first: low friction, self-promotion is the point of
+the sub, and a flop costs nothing. It will NOT answer the question that matters
+though — builders cannot say whether an Australian F1 site works for someone in
+Manchester. That needs r/diecast, r/modelcars, or a big F1 sub's daily
+discussion thread, where self-promo rules usually relax.
+
+**The one question to ask, wherever it goes:** is AUD / eBay-Australia a
+dealbreaker? That decides whether multi-marketplace eBay is worth the work, and
+it is the only thing strangers can answer that cannot be worked out alone.
+
+Lead with a concrete example, not percentages. "$424 at one shop and $760 at
+another, same part number" lands; "24% below the dearest" makes people do
+arithmetic. Verified example: 2025 1:18 Looksmart LS18F1076, AUD 424.00–759.94
+across 3 shops.
+
+Name the gaps in the post — AUD only, no price history yet, 36 cars without a
+photo. Naming them kills the "well actually" replies.
+
+Disclose the eBay affiliate links. Reddit forgives disclosed monetisation and
+punishes discovered monetisation.
 
 ## Next up
 
