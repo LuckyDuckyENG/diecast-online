@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
-import { toAud } from '@/lib/currency';
+import { toAud, primeRates } from '@/lib/currency';
 import { recordObservations, newBatchId, type Observation } from '@/lib/priceObservation';
 import { selectAll } from '@/lib/selectAll';
 
@@ -221,6 +221,9 @@ function interleaveByRetailer<T extends { retailer_id: string | null }>(rows: T[
 
 export async function POST(request: NextRequest) {
   try {
+    // Real FX rates before any conversion. price_aud decides which shop the
+    // site calls cheapest, and the fallback constants were 7.9% wrong on USD.
+    await primeRates(supabase);
     const {
       modelId,
       priceHistoryId,

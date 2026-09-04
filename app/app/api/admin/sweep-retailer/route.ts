@@ -4,7 +4,7 @@ import { fetchShopifyFeed, isShopify, shopCurrency } from '@/lib/shopifyFeed';
 import { fetchSitemapFeed, sitemapShopFor, type CandidateModel } from '@/lib/sitemapFeed';
 import { classifyMatches, type SweepModel, type SweepAction } from '@/lib/retailerSweep';
 import { recordObservations, isRecordable, newBatchId, type Observation } from '@/lib/priceObservation';
-import { toAud } from '@/lib/currency';
+import { toAud, primeRates } from '@/lib/currency';
 import { attachRetailerLink, fillMissingModelImage, looksLikePlaceholderImage } from '@/lib/retailerLink';
 import { selectAll } from '@/lib/selectAll';
 
@@ -123,6 +123,10 @@ export async function POST(request: NextRequest) {
 
     const host = retailer.url.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     const t0 = Date.now();
+
+    // Before any conversion. price_aud decides which shop the site calls
+    // cheapest, and the fallback rates are known to be 7.9% wrong on USD.
+    await primeRates(supabase);
 
     const declared = await shopCurrency(host);
 

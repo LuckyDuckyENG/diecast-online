@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { toAud } from '@/lib/currency';
+import { toAud, primeRates } from '@/lib/currency';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -19,6 +19,9 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
  */
 export async function POST(request: NextRequest) {
   try {
+    // Real FX rates before any conversion. price_aud decides which shop the
+    // site calls cheapest, and the fallback constants were 7.9% wrong on USD.
+    await primeRates(supabase);
     const {
       modelId,
       ebayUrl,

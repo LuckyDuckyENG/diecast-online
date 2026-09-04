@@ -8,7 +8,7 @@ import {
   type PriceReference,
 } from '@/lib/ebayBatch';
 import { teamMatches } from '@/lib/teamName';
-import { toAud } from '@/lib/currency';
+import { toAud, primeRates } from '@/lib/currency';
 import { selectAll } from '@/lib/selectAll';
 
 const supabase = createClient(
@@ -129,6 +129,9 @@ async function searchPool(token: string, query: string) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Real FX rates before any conversion. price_aud decides which shop the
+    // site calls cheapest, and the fallback constants were 7.9% wrong on USD.
+    await primeRates(supabase);
     const { season, team, all, dryRun = true, recheckAfterDays = 30 }: Body =
       await request.json();
 
