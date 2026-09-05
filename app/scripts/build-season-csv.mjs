@@ -920,8 +920,25 @@ function hasChassis(tk, chassis) {
   return false;
 }
 
-function extract(title) {
-  const scale = scaleOf(title);
+function extract(title, sku) {
+  /**
+   * The title states the scale, and where it does not, the SKU does.
+   *
+   * Requiring it in the title threw away an entire shop. Mini Model Shop writes
+   * every product as "Red Bull Racing RB18 Sergio Perez (No.11 Winner Monaco GP
+   * 2022) in Blue" — team, chassis, driver, race, livery colour, and no scale
+   * anywhere. All 460 of its F1 listings look like that, so all 460 were
+   * dropped, and it was the single largest category of loss in the whole
+   * script: 179 of 2022's 338 field-match failures and 95 of 2023's 230.
+   *
+   * A part number answers it for 354 of them. This only became safe once the
+   * prefix table was corrected — it used to claim 537 meant 1:43 when the 5xx
+   * series runs across scales, so falling back to it would have invented a
+   * scale rather than read one. scaleFromSku returns null for anything
+   * ambiguous, so a title with no scale and an unrecognisable SKU is still
+   * skipped rather than guessed at.
+   */
+  const scale = scaleOf(title) || scaleFromSku(sku);
   if (!scale) return { skip: 'scale' };
   const tk = tokens(title);
   const has = t => tk.includes(t);
@@ -1103,7 +1120,7 @@ for (const shop of SHOPS) {
       continue;
     }
 
-    const f = extract(v.title);
+    const f = extract(v.title, v.sku);
     if (f?.skip) {
       skipped.noMatch++;
       why[f.skip] = (why[f.skip] || 0) + 1;
