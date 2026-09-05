@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const description = summarise(hub);
   return {
-    title: `${hub.subject} diecast models — compare prices`,
+    title: `${hub.subject} model cars and diecast — compare prices`,
     description,
     alternates: { canonical: `/drivers/${slug}` },
     openGraph: { title: hub.title, description, type: 'website' },

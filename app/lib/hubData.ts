@@ -144,7 +144,23 @@ export async function getDriverHub(slug: string): Promise<HubData | null> {
   const match = cars.find((c: any) => slugify((c.driver as any)?.name || '') === slug);
   const name = (match?.driver as any)?.name as string | undefined;
   if (!name) return null;
-  return buildHub(c => c.driver?.name === name, name, `${name} F1 diecast models`);
+  /**
+   * "model cars AND diecast", because Search Console says people type both.
+   *
+   * The first real queries this site received split almost evenly between the
+   * two words for the same object:
+   *
+   *   charles leclerc model cars · fernando alonso model cars · liam lawson
+   *   model car · daniel ricciardo model car        8 impressions
+   *   max verstappen diecast · sebastian vettel diecast · mcl40 diecast ·
+   *   rb22 diecast                                  5 impressions
+   *
+   * The heading said "F1 diecast models", which half-matches both phrasings and
+   * exactly matches neither. Every one of those queries returned an impression
+   * and zero clicks at an average position of 19 — the pages exist and hold the
+   * cars, they were just not saying the words people searched for.
+   */
+  return buildHub(c => c.driver?.name === name, name, `${name} F1 model cars and diecast`);
 }
 
 export async function getTeamHub(slug: string): Promise<HubData | null> {
@@ -152,13 +168,13 @@ export async function getTeamHub(slug: string): Promise<HubData | null> {
   const match = cars.find((c: any) => teamSlug((c.team as any)?.name) === slug);
   const name = (match?.team as any)?.name as string | undefined;
   if (!name) return null;
-  return buildHub(c => teamSlug(c.team?.name) === slug, name, `${name} F1 diecast models`);
+  return buildHub(c => teamSlug(c.team?.name) === slug, name, `${name} F1 model cars and diecast`);
 }
 
 export async function getSeasonHub(year: string): Promise<HubData | null> {
   const y = parseInt(year, 10);
   if (isNaN(y)) return null;
-  return buildHub(c => c.season?.year === y, `${y}`, `${y} F1 season diecast models`);
+  return buildHub(c => c.season?.year === y, `${y}`, `${y} F1 season model cars and diecast`);
 }
 
 /** Subjects with enough buyable cars to deserve a page — used for prerendering and the sitemap. */
