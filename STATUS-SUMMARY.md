@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-05
+# Status Summary — last updated 2026-09-08
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -14,7 +14,7 @@
 > ```
 >
 > **Around mid-September, run 🔄 Refresh All Retailers and 🔁 Refresh eBay.**
-> About an hour each, from localhost. Nothing breaks if they are late — prices
+> About THREE hours for retailers now, from localhost — the estimate of an hour was written at 1,744 links and there are 3,385. Run scripts/fetch-fx.mjs first. Nothing breaks if they are late — prices
 > stop being displayed, links stay, and a refresh brings them all back. This is
 > the one job that cannot be deferred indefinitely.
 
@@ -1361,6 +1361,128 @@ photo. Naming them kills the "well actually" replies.
 
 Disclose the eBay affiliate links. Reddit forgives disclosed monetisation and
 punishes discovered monetisation.
+
+## The admin was open to anyone. It is not now — 2026-09-08
+
+All 31 routes under `/api/admin` run with the SERVICE ROLE key and **not one of
+them checked anything**. The chain was complete without a password:
+
+```
+GET  /api/admin/get-f1-data   -> every car id, no auth
+POST /api/admin/delete-car    -> takes an id, no auth
+```
+
+A stranger could have enumerated the catalogue and deleted it in a loop. 786
+cars, 1,788 models, six weeks of work, from a browser. `robots.txt` disallows
+`/admin`, which stops it being INDEXED and does nothing to stop it being
+visited — and it publishes the path, which is one of the standard ways admin
+panels are found.
+
+**Fixed in `proxy.ts`** (e7cbe5b). Note the filename: Next 16 renamed the
+middleware convention, so a `middleware.ts` here would never have run at all.
+
+A shared secret, not a user system — there is one operator, and accounts,
+sessions, resets and deletion obligations would be maintenance for a user base
+of one. Sign in once with `?key=…`, exchanged for an httpOnly cookie and
+stripped from the URL. The cookie holds a sha256 digest, never the secret.
+
+**It fails CLOSED.** No `ADMIN_SECRET` means locked. A forgotten environment
+variable must not silently restore the hole with nothing looking wrong. Being
+locked out is a two-minute fix; a deleted catalogue is not.
+
+**Dev is deliberately open.** The refreshes are run from localhost for hours at
+a time and anyone with the dev server already holds the service key.
+
+### Two process lessons, both from today
+
+**A green deploy proves nothing.** The first deploy went green with the admin
+still wide open, because `proxy.ts` had never been pushed — a Vercel *Redeploy*
+rebuilds the same commit, and the environment variable was the only new thing.
+Checking from outside is what caught it. Had we trusted the deploy, the site
+would have run "locked" while being open.
+
+**`ADMIN_SECRET` is stored as a Vercel SECRET, so it is write-only.** It cannot
+be revealed after saving. Losing it means overwriting the value and
+redeploying — two minutes, nothing lost, but keep it in a password manager.
+
+## Search Console answered the question the Reddit post did not
+
+Three weeks of data. 138 impressions, 12 clicks, average position 19 — but an
+8.7% CTR at position 19 is roughly NINE TIMES the normal rate for that
+position, so the pages that do appear are exactly what the searcher wanted.
+
+**Every query is driver-shaped. Not one is a part number:**
+
+```
+charles leclerc model cars  4     max verstappen diecast    2
+fernando alonso model cars  3     mcl40 diecast             1
+liam lawson model car       2     rb22 diecast              1
+```
+
+That makes the DRIVER HUBS the pages that matter, not the car pages — the
+opposite of the assumption. All six drivers already have hubs with 13–73
+buyable cars, and both MCL40 and RB22 are in the catalogue. The content was
+never the problem.
+
+**The queries split between two names for the same object** — "model car(s)" 8
+impressions, "diecast" 5 — and the h1 and title both said "diecast models",
+half-matching each and exactly matching neither. Now "model cars and diecast"
+(eef4c9f), deployed and verified live.
+
+### The sitemap was advertising 505 pages, not 729
+
+Ninth instance of the 1000-row cap. `prices` and `ebay` were paged in
+`sitemap.ts` and `cars` and `models` were not, so every car whose models sat in
+the truncated tail failed the sellable test. 505 cars plus hubs plus static is
+almost exactly the 545 Search Console reported as "known" — Google was not being
+slow, **we had not told it** (e724665).
+
+`lastModified` was also the row's creation date, so a car whose prices were
+re-verified yesterday advertised a lastmod from months earlier. It now tracks
+the newest price check.
+
+Sitemap verified live at **792 URLs** and resubmitted in Search Console.
+
+## The number to watch, and the one that corrects an old claim
+
+**Watch impressions on driver queries.** "charles leclerc model cars" at 4
+impressions is the baseline. If it becomes 40, the title change worked. If
+impressions climb and clicks do not, it is a ranking problem needing links
+rather than words. Two weeks minimum before either answer means anything.
+
+**"1,012 missing models" was misleading and I quoted it repeatedly.** Fixing
+the parser to read the scale from the SKU when a shop omits it (7d506d8 — Mini
+Model Shop states a scale on ZERO of its 460 F1 listings) let 354 listings
+through. **291 were SKUs already held.** 35 are importable. The parser has
+perhaps 75 models of runway left, not a thousand — the rest are duplicates,
+MotoGP, 1:12/1:64, or multi-car sets.
+
+## The genuinely interesting find: historic drivers
+
+Hubs are per DRIVER, and the demand is driver-shaped. So going backwards adds
+*pages people search for*, which the season-by-season framing had hidden:
+
+```
+distinct unheld SKUs, drivers with NO hub page at all
+  senna 92    prost 25    mansell 25    lauda 23
+  villeneuve 14  hakkinen 12  berger 12  alesi 12
+  246 across the top twelve
+```
+
+**Senna alone is 92 models** — against the Lawson hub's 13 cars, which drew 2
+impressions. "ayrton senna model car" is one of the most enduring search terms
+in the hobby. Mostly stocked by Anthony's, which is the structured-title shop
+the bootstrap parser was built to read.
+
+**The cost is real though.** Senna spans 1984–1994: eleven seasons of teams,
+chassis and calendars the catalogue has never held, so `--seed` gives nothing
+and there is no vocabulary fence behind the generator. That is exactly where
+inventing a car that never existed is most likely.
+
+**Treat it as a bounded experiment, not a plan.** Run 1988 — Senna's first
+title, and the MP4/4 is the most collected F1 car there is — and read the CSV.
+Clean vocabulary means the pattern extends to eleven more drivers. Nonsense
+means an hour spent confirming the floor.
 
 ## Next up
 
