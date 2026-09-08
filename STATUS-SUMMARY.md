@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-08
+# Status Summary — last updated 2026-09-08 (evening)
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -1407,9 +1407,14 @@ redeploying — two minutes, nothing lost, but keep it in a password manager.
 
 ## Search Console answered the question the Reddit post did not
 
-Three weeks of data. 138 impressions, 12 clicks, average position 19 — but an
-8.7% CTR at position 19 is roughly NINE TIMES the normal rate for that
-position, so the pages that do appear are exactly what the searcher wanted.
+Three weeks of data. 138 impressions, 12 clicks, average position 19.
+
+> **CORRECTED 2026-09-08.** This section originally read that an 8.7% CTR at
+> position 19 was "nine times the normal rate, so the pages that do appear are
+> exactly what the searcher wanted". That was almost certainly measuring the
+> operator: Search Console counts your own clicks. See the correction below —
+> Australia shows 15.9% at position 9 where 2–3% is normal, and New Zealand
+> shows 3.0% at the same position. Trust impressions, not clicks.
 
 **Every query is driver-shaped. Not one is a part number:**
 
@@ -1483,6 +1488,124 @@ inventing a car that never existed is most likely.
 title, and the MP4/4 is the most collected F1 car there is — and read the CSV.
 Clean vocabulary means the pattern extends to eleven more drivers. Nonsense
 means an hour spent confirming the floor.
+
+## The baseline is in — 2026-09-08
+
+Both refreshes run. This is the day the price data became a series.
+
+```
+observations      1,748 -> 8,340
+recording days    17 Aug 430 · 18 Aug 1,142 · 31 Aug 176 · 8 Sept 6,581
+chartable models  74 -> 603      (a source seen on 2+ days)
+of those, where the shop's own price MOVED   412
+eBay links        3,218 -> 3,207   (11 died; their last price was rescued first)
+```
+
+Retail: 3,385 checked, 998 updated, 1 quarantined (`399.99 -> 5000 AUD`, 12.5x,
+at Anthony's — and 399.99 is their price on a cluster of Minichamps models, so
+suspect a page-structure change rather than a repricing. **Worth opening that URL
+before the next refresh**, because if their markup moved, the quarantine count
+will climb).
+
+eBay: 3,218 checked, 672 changed (21%), 53 sold out, 136 condition/seller
+back-filled. Note the mid-run figure read 52% — the plan runs oldest-checked
+first, so early batches are the least representative part of any run.
+
+### The FX artefact, proven
+
+A chart on `price_aud` would have shown every American shop dropping ~7% between
+18 August and 8 September. Nothing happened; a constant changed.
+
+```
+           "moved" in price_aud     moved in the shop's OWN number
+  USD      362 of 363  (100%)        7 of 363  (2%)
+  GBP      176 of 177  ( 99%)       46 of 177  (26%)
+  TOTAL    688 of 1241 ( 55%)      203 of 1241 (16%)
+```
+
+**Any chart MUST read raw `price` + `currency` and convert once for the whole
+series.** Documented on the Observation interface where it will be seen.
+
+`price_aud` is still right for sorting "cheapest", where everything is compared
+at one instant. It is only wrong across time — and it is also the reason it
+cannot serve international visitors: it can only ever produce AUD, and going
+AUD -> USD would round-trip a price that started as USD.
+
+## Backups: the free plan has NONE
+
+Not short retention. None. `scripts/export-observations.mjs` dumps the whole
+database — 19,432 rows across 12 tables, ~8 MB — to `../../diecasts-backups`,
+which happens to sit inside OneDrive, so it is genuinely off-machine.
+
+Scope grew from "just price_observations" once the plan was known. A rebuild
+from the CSVs would lose every hand-made repair: the Zhou merge, "Bahrain" ->
+"Bahrain GP", the 537 scale corrections, the Season repairs, hand-picked
+retailer URLs, and every manual eBay accept/reject. Verified those are all
+present in the file.
+
+**The first run was silently 1,791 rows short** and reported success: rows are
+ordered by `id` for stable output, `fx_rates` and `ebay_search_log` have no
+`id`, and the resulting "column does not exist" matched the table-missing check.
+Same failure as every truncation this month, and worst of all in a backup —
+you find out when you need it.
+
+**Run it after each refresh**, alongside `fetch-fx.mjs` before.
+
+## Structured data is live
+
+Product + Offer/AggregateOffer on car pages (d600bc3). One Product per variant,
+never per car — a page spans a Bburago at AUD 22.99 and a BBR at 831.78.
+
+Offers are gated on `isQuotable`, now exported from carPageData and imported by
+both, so markup cannot contradict the visible price. Verified across 60 pages,
+173 products, 98 with offers, **zero disagreements**. A single shop emits
+`Offer`, not an AggregateOffer spanning one number.
+
+Test with a CAR page, not the home page — the home page has no markup and will
+report "no items detected".
+
+## Search Console: read impressions, distrust clicks
+
+```
+              then     now
+impressions    138      243     +76%
+clicks          12       13
+position         19       15
+```
+
+**The sitemap fix is working.** Impressions climbing steeply from 1 September is
+224 previously-unadvertised pages being discovered.
+
+### CORRECTION: the CTR figures are contaminated
+
+This doc previously said "8.7% CTR at position 19 is nine times the normal rate,
+so the pages that appear are exactly what searchers wanted". **That was probably
+measuring the operator.** Search Console counts your own clicks, and weeks were
+spent searching for these pages to see if they ranked.
+
+By country the picture is unambiguous:
+
+```
+Australia      position 9.0   44 impressions   7 clicks   15.9%
+New Zealand    position 9.0   33 impressions   1 click     3.0%
+```
+
+Typical CTR at position 9 is 2–3%. **New Zealand is normal; Australia is
+impossible.** The anomaly is the local number, and the obvious source is an
+Australian clicking his own results.
+
+So there is **no evidence of an international CTR problem** — NZ at 3% and the
+US at 4% (position 13.7) are unremarkable. The UK, India, Philippines and Turkey
+zeros are explained by position alone (20–38).
+
+**The currency question is unanswered, not answered.** Revisit when impressions
+are in the thousands, which at the current rate is a month.
+
+**Stop clicking your own results.** Use URL Inspection, a bookmark, or type the
+address. Existing contamination takes weeks to leave the 3-month window.
+
+**Impressions cannot be faked by clicking** — that is the number to trust, and
+the one that showed the sitemap fix landing.
 
 ## Next up
 
