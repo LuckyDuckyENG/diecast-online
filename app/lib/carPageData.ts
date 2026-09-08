@@ -83,6 +83,22 @@ export interface CarPageData {
 }
 
 /**
+ * A price the site is willing to state as this model's cost.
+ *
+ * In stock, verified recently, from a shop rather than eBay, and not a
+ * pre-order. Exported because the JSON-LD has to be gated on exactly the same
+ * rule as the visible price: markup claiming AUD 199.54 on a page that reads
+ * "Check price on site" is both a lie to a reader and, to Google, structured
+ * data that disagrees with the page — which gets the markup ignored at best.
+ *
+ * One predicate, imported by both, so they cannot drift the way hubData and
+ * get-f1-data did over the row cap.
+ */
+export function isQuotable(r: CarRetailer): boolean {
+  return !!r.inStock && !r.priceHidden && !r.isSecondary && !r.isPreorder;
+}
+
+/**
  * Every slug, for generateStaticParams.
  *
  * Paged before it needs to be. `cars` is at 736 and the 1000-row PostgREST cap
@@ -247,9 +263,7 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
     // page and should mean buyable now — a price you cannot receive for months
     // sitting under that heading is the same overstatement as quoting an
     // out-of-stock shop. The row still shows its price, badged.
-    const quotable = retailers.filter(
-      r => r.inStock && !r.priceHidden && !r.isSecondary && !r.isPreorder
-    );
+    const quotable = retailers.filter(isQuotable);
 
     /**
      * What the same model costs at the cheapest and the dearest place selling it.

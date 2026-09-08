@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import CarDetail from './CarDetail';
 import { getCarPageData, getAllCarSlugs, carTitle } from '@/lib/carPageData';
+import { carPageJsonLd, jsonLdScript } from '@/lib/structuredData';
 import { getRelatedCars } from '@/lib/relatedCars';
 import { getHubSlugs } from '@/lib/hubData';
 import { slugify, teamSlug } from '@/lib/carSlug';
@@ -96,13 +97,33 @@ export default async function MasterCarPage({ params }: Props) {
     season: hubs.seasons.includes(year) ? `/seasons/${year}` : null,
   };
 
+  /**
+   * Structured data, so a search result can say what this costs.
+   *
+   * Rendered here rather than inside CarDetail because that is a client
+   * component: this has to be in the server HTML, which is the only version a
+   * crawler reads.
+   *
+   * Prices in it are gated on the same isQuotable rule as the visible ones, so
+   * markup and page cannot disagree — see lib/structuredData.ts.
+   */
+  const jsonLd = carPageJsonLd(data, data.car.slug || id, carTitle(data.car));
+
   return (
-    <CarDetail
-      car={data.car}
-      variants={data.variants}
-      urlParam={id}
-      related={related}
-      hubLinks={hubLinks}
-    />
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }}
+        />
+      )}
+      <CarDetail
+        car={data.car}
+        variants={data.variants}
+        urlParam={id}
+        related={related}
+        hubLinks={hubLinks}
+      />
+    </>
   );
 }
