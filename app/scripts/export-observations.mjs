@@ -1,30 +1,38 @@
 /**
- * Copy price_observations out of the database, to a file you keep.
+ * Copy the whole database out to a file you keep.
  *
  *   node scripts/export-observations.mjs [--out DIR]
  *
- * WHY ONLY THIS TABLE
+ * WHY EVERYTHING, NOT JUST THE HISTORY
  *
- * Almost everything else is rebuildable. Cars and models can be reimported from
- * the season CSVs in the repo; retailer links come back by re-running the
- * sweeps; eBay links by re-running the matcher. Slow and irritating, but
- * possible.
+ * The first version of this saved only price_observations, on the reasoning
+ * that everything else could be rebuilt: cars and models from the season CSVs,
+ * retailer links by re-running the sweeps, eBay links by re-running the
+ * matcher.
  *
- * Price history cannot. There is no shop you can ask what something cost three
- * weeks ago, no API, no second copy. It is the only thing here that took TIME
- * rather than compute to acquire, which makes it the only thing worth insuring.
+ * That was too optimistic, and the Supabase plan settled it — the free tier
+ * includes NO project backups at all. Not short retention: none. So this file
+ * is the only copy that exists.
  *
- * READ-ONLY. This writes a file and touches nothing in the database.
+ * And a rebuild would lose every hand-made decision layered on top of the
+ * imports: the Zhou Guanyu / Guanyu Zhou merge, "Bahrain" renamed to "Bahrain
+ * GP", the 537 scale corrections, the Season-mislabelling repairs, hand-picked
+ * retailer URLs that the sweep deliberately preserves, and every manual
+ * accept/reject in the eBay review queue. Weeks of judgement that no script
+ * reproduces.
  *
- * WHAT IS SAVED
+ * 19,432 rows across thirteen tables is a few megabytes. There is no reason to
+ * be selective.
  *
- * Every column, including the raw `price` and `currency` — NOT just price_aud.
- * A restore from a file holding only converted values would bake in whatever
- * rate was current when the export ran, which is the same trap documented on
- * the Observation interface: on 2026-09-08 that would have made 485 of 688
- * apparent price movements pure exchange-rate artefact.
+ * READ-ONLY. Writes a file and touches nothing in the database.
+ *
+ * The raw `price` and `currency` are saved everywhere they exist, never just
+ * the converted price_aud — a restore from converted values alone would bake in
+ * whatever rate was current when the export ran. See the note on the
+ * Observation interface: on 2026-09-08 that would have turned 485 of 688
+ * apparent price movements into pure exchange-rate artefact.
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync } from 'fs';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
 
@@ -43,62 +51,109 @@ const arg = (flag, fallback) => {
 };
 
 /**
- * Default is OUTSIDE the repo.
- *
- * A backup committed alongside the thing it protects is not a backup — one bad
- * `git checkout` or a deleted clone takes both. It also has no business in
- * version control at 8,000 rows and growing.
+ * Default is OUTSIDE the repo. A backup committed alongside the thing it
+ * protects is not a backup — one bad checkout or a deleted clone takes both.
  */
 const OUT = arg('--out', path.join('..', '..', 'diecasts-backups'));
 
+/**
+ * Reference tables first, then the rows that point at them. Not required to
+ * read, but it means a restore can walk the file top to bottom without
+ * tripping a foreign key.
+ */
+const TABLES = [
+  'seasons', 'teams', 'drivers', 'manufacturers', 'retailers',
+  'cars', 'models',
+  'price_history', 'ebay_links', 'price_observations',
+  'fx_rates', 'ebay_search_log', 'ebay_inventory',
+];
+
 const PAGE = 1000;
-const rows = [];
-for (let from = 0; ; from += PAGE) {
-  const { data, error } = await supabase
-    .from('price_observations')
-    .select('*')
-    // Ordered so two exports of the same data produce the same file, which is
-    // what makes them diffable and makes a truncated one obvious.
-    .order('id', { ascending: true })
-    .range(from, from + PAGE - 1);
+const dump = {};
+const counts = {};
+let grand = 0;
 
-  if (error) {
-    console.error(`failed reading price_observations: ${error.message}`);
-    process.exit(1);
+/**
+ * Read one table, paged.
+ *
+ * `ordered` exists because not every table has an `id`. fx_rates is keyed on
+ * (as_of, base, quote) and ebay_search_log on the model, so ordering by id
+ * fails there with "column ... does not exist" — which the first version of
+ * this matched against its "table missing" check and quietly skipped BOTH
+ * tables, 1,791 rows, while reporting success.
+ *
+ * That is the same failure as every truncation this month: a plausible-looking
+ * result that is silently short. In a backup it is the worst version of it,
+ * because you only find out when you need the file.
+ */
+async function readTable(table, ordered = true) {
+  const rows = [];
+  for (let from = 0; ; from += PAGE) {
+    let q = supabase.from(table).select('*');
+    if (ordered) q = q.order('id', { ascending: true });
+    const { data, error } = await q.range(from, from + PAGE - 1);
+
+    if (error) {
+      // A missing COLUMN means this table has no `id` — read it unordered
+      // rather than pretending it does not exist.
+      if (ordered && /column/i.test(error.message)) return readTable(table, false);
+      // A missing TABLE is not a failure: migrations differ between
+      // environments. Anything else is, and must stop the run.
+      if (/relation|find the table|schema cache/i.test(error.message)) return null;
+      console.error(`\nfailed reading ${table}: ${error.message}`);
+      process.exit(1);
+    }
+    rows.push(...data);
+    if (data.length < PAGE) return rows;
   }
-  rows.push(...data);
-  process.stdout.write(`\r  read ${rows.length}`);
-  if (data.length < PAGE) break;
 }
-console.log('');
 
-if (!rows.length) {
-  // Never overwrite a good backup with an empty one.
-  console.error('no rows returned — refusing to write an empty backup');
+for (const table of TABLES) {
+  const rows = await readTable(table);
+  if (rows === null) { console.log(`  ${table.padEnd(20)} (not present, skipped)`); continue; }
+  dump[table] = rows;
+  counts[table] = rows.length;
+  grand += rows.length;
+  console.log(`  ${table.padEnd(20)} ${String(rows.length).padStart(6)} rows`);
+}
+
+/**
+ * Never overwrite a good backup with an empty one. An export that read nothing
+ * is a failure wearing a success's clothes, and it is the one moment when
+ * writing the file is worse than crashing.
+ */
+if (!grand) {
+  console.error('no rows returned from any table — refusing to write an empty backup');
   process.exit(1);
 }
 
 if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true });
 
-// Named by the newest observation it contains, not by "now": that is the fact
-// the file is a record of, and it makes two exports on the same day collapse
-// to one name rather than piling up.
-const newest = rows.reduce((a, r) => (r.observed_at > a ? r.observed_at : a), '');
-const stamp = String(newest).slice(0, 10);
-const file = path.join(OUT, `price_observations_${stamp}.json`);
+const payload = {
+  exportedAt: new Date().toISOString(),
+  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  counts,
+  tables: dump,
+};
+const json = JSON.stringify(payload);
 
-writeFileSync(file, JSON.stringify(rows));
-
-const days = new Set(rows.map(r => String(r.observed_at).slice(0, 10)));
-const withBatch = rows.filter(r => r.batch_id).length;
-const kb = Math.round(Buffer.byteLength(JSON.stringify(rows)) / 1024);
+// Dated by the day it was taken. Re-running on the same day replaces rather
+// than accumulates, which keeps the folder readable.
+const stamp = new Date().toISOString().slice(0, 10);
+const file = path.join(OUT, `diecasts_${stamp}.json`);
+writeFileSync(file, json);
 
 console.log(`\nwrote ${file}`);
-console.log(`  ${rows.length} observations across ${days.size} recording days, ${kb} KB`);
-console.log(`  ${withBatch} carry batch_id (rows written before migration 018 do not)`);
-console.log(`  newest observation: ${newest}`);
+console.log(`  ${grand} rows across ${Object.keys(dump).length} tables, ${Math.round(Buffer.byteLength(json) / 1024)} KB`);
 
-const kept = readdirSync(OUT).filter(f => f.startsWith('price_observations_')).sort();
+const kept = readdirSync(OUT).filter(f => f.startsWith('diecasts_')).sort();
 console.log(`\n${kept.length} backup(s) in ${OUT}:`);
-for (const f of kept.slice(-5)) console.log(`  ${f}`);
-if (kept.length > 5) console.log(`  … and ${kept.length - 5} older`);
+for (const f of kept.slice(-6)) {
+  const kb = Math.round(statSync(path.join(OUT, f)).size / 1024);
+  console.log(`  ${f}  ${kb} KB`);
+}
+if (kept.length > 6) console.log(`  … and ${kept.length - 6} older`);
+console.log(
+  `\nSupabase's free plan takes no backups, so this file is the only copy.\n` +
+  `Keep at least one somewhere off this machine.`
+);
