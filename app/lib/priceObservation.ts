@@ -43,6 +43,29 @@ export function newBatchId(): string {
   return globalThis.crypto.randomUUID();
 }
 
+/**
+ * ANY CHART BUILT ON THIS TABLE MUST CONVERT AT READ TIME.
+ *
+ * Use `price` and `currency`, with ONE current rate for the whole series. Never
+ * plot the stored `price_aud`.
+ *
+ * price_aud is a snapshot of what the conversion was on the day the row was
+ * written, and the rate has changed since — USD went from a hardcoded 1.5 to an
+ * ECB 1.3902 on 2026-09-03. Measured across every source with two readings:
+ *
+ *   currency   "moved" in price_aud   moved in the shop's OWN number
+ *   USD        362 of 363  (100%)      7 of 363  (2%)
+ *   GBP        176 of 177  ( 99%)     46 of 177  (26%)
+ *   TOTAL      688 of 1241 ( 55%)    203 of 1241 (16%)
+ *
+ * So a series drawn from price_aud shows every American shop dropping ~7% on
+ * the same day, which looks like a market event and is a code edit. The raw
+ * price says those shops moved 2%.
+ *
+ * This is exactly why the raw price and currency are stored beside the
+ * converted one, and why the rows are never back-filled when a rate changes:
+ * the observation stays true and the conversion stays redoable.
+ */
 export interface Observation {
   modelId: string;
   /** The run that recorded this. See newBatchId. */
