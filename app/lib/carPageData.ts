@@ -70,6 +70,8 @@ export interface CarVariant {
   manufacturers: any;
   retailers: CarRetailer[];
   lowestPrice: number | null;
+  /** The shop lowestPrice came from, so a line can be matched to the figure. */
+  lowestSeller: string | null;
   /** Cheapest and dearest SHOP price, on the same terms as lowestPrice. */
   shopRange: PriceSpan | null;
   /** Cheapest and dearest live eBay listing. Never merged with shopRange. */
@@ -287,10 +289,27 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
     // asking price nobody can accept is not what the model costs.
     const ebayLive = retailers.filter(r => r.isSecondary && !r.soldOut && !r.priceHidden);
 
+    /**
+     * WHICH shop the headline price came from.
+     *
+     * Derived from the same `quotable` array and the same minimum, so it can
+     * never name a different shop from the one the figure belongs to.
+     *
+     * It exists so the price history line can follow the headline. Left to its
+     * own ordering the sparkline shows the best-evidenced series, which is not
+     * the same shop: a page headlining AUD 347.48 at LIVECARMODEL drew "-2% at
+     * Motorsport Model Shop" — a shop that was out of stock at twice the price.
+     * Both numbers were true and the pairing still read as "347.48, down 2%".
+     */
+    const lowest = quotable.length
+      ? quotable.reduce((a, b) => (b.priceAUD < a.priceAUD ? b : a))
+      : null;
+
     return {
       ...variant,
       retailers,
-      lowestPrice: quotable.length > 0 ? Math.min(...quotable.map(r => r.priceAUD)) : null,
+      lowestPrice: lowest ? lowest.priceAUD : null,
+      lowestSeller: lowest ? lowest.name : null,
       shopRange: span(quotable),
       ebayRange: span(ebayLive),
     };

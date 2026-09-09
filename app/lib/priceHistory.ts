@@ -65,6 +65,33 @@ export interface ModelHistory {
  */
 const MIN_DAYS = 2;
 
+/**
+ * The one series to draw, given which shop the page is headlining.
+ *
+ * The default ordering picks the best-EVIDENCED line — shops before eBay, most
+ * readings first — which is the right default when nothing else is known and
+ * the wrong one directly under a price. A page headlining AUD 347.48 at
+ * LIVECARMODEL drew "-2% at Motorsport Model Shop", a shop that was out of
+ * stock at nearly twice that. Both figures were true; stacked, they read as
+ * "347.48, down 2%", which is a claim neither of them makes.
+ *
+ * So the headline shop wins when it has a series of its own. It often does not
+ * — a shop we have only checked once has no line — and then this falls back to
+ * the best-evidenced series, which is still labelled with its own name and so
+ * is still a claim the reader can check against the list.
+ */
+export function pickSeries(
+  history: ModelHistory | undefined,
+  headlineSeller: string | null
+): PriceSeries | null {
+  if (!history?.series.length) return null;
+  if (headlineSeller) {
+    const own = history.series.find(s => s.kind === 'shop' && s.label === headlineSeller);
+    if (own) return own;
+  }
+  return history.series[0];
+}
+
 export async function getPriceHistory(
   supabase: SupabaseClient,
   modelIds: string[]

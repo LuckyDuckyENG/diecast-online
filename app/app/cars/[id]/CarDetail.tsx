@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import PriceSparkline from '@/app/components/PriceSparkline';
-import type { ModelHistory } from '@/lib/priceHistory';
+import { pickSeries, type ModelHistory } from '@/lib/priceHistory';
 import TeamColorFallback from '../../components/TeamColorFallback';
 
 import { useState } from 'react';
@@ -475,19 +475,24 @@ export default function CarDetail({
                         tall with no axis and no dates, a reader would have
                         nothing to catch that with.
 
-                        Shops before eBay, most-observed first, so the line
-                        shown is the best-evidenced one on the page.
+                        The shop behind the headline price is preferred, so the
+                        line under a figure describes that figure — see
+                        pickSeries for what went wrong when it did not.
                       */}
-                      {history[variant.id]?.series?.[0] && (
-                        <div className="mt-2 flex sm:justify-end">
-                          <span className="inline-flex items-center gap-1.5">
-                            <PriceSparkline series={history[variant.id].series[0]} />
-                            <span className="text-[10px] text-[var(--text-tertiary)] whitespace-nowrap">
-                              at {history[variant.id].series[0].label}
+                      {(() => {
+                        const s = pickSeries(history[variant.id], variant.lowestSeller);
+                        if (!s) return null;
+                        return (
+                          <div className="mt-2 flex sm:justify-end">
+                            <span className="inline-flex items-center gap-1.5">
+                              <PriceSparkline series={s} />
+                              <span className="text-[10px] text-[var(--text-tertiary)] whitespace-nowrap">
+                                at {s.label}
+                              </span>
                             </span>
-                          </span>
-                        </div>
-                      )}
+                          </div>
+                        );
+                      })()}
                       {(variant.shopRange || variant.ebayRange) && (
                         <div className="mt-2 space-y-0.5 text-xs text-[var(--text-tertiary)]">
                           {variant.shopRange && (
