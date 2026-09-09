@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-08 (evening)
+# Status Summary — last updated 2026-09-09
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -1606,6 +1606,86 @@ address. Existing contamination takes weeks to leave the 3-month window.
 
 **Impressions cannot be faked by clicking** — that is the number to trust, and
 the one that showed the sitemap fix landing.
+
+## The chart is live — 2026-09-09
+
+Shop lines are on car pages. `lib/priceHistory.ts` + `app/components/PriceSparkline.tsx`.
+
+```
+car pages on /browse            729
+  showing at least one line     362   (50%)
+variants with a line            603
+price_observations            8,340   (4,692 retailer · 3,648 eBay)
+```
+
+One line per variant, belonging to ONE named seller — never "cheapest
+anywhere", which moves when the number of shops checked changes rather than
+when a price does.
+
+### Three bugs the data layer could not have caught
+
+**The shape was lying.** A sparkline normally scales to its own min/max. Real
+moves here are tiny — median mover under 2% — so a shop going 326 → 323 drew a
+line from the top of the box to the floor, shaped exactly like a crash. Every
+non-flat line looked like a collapse. The box is now a fixed **10% of the
+price**: 1% is a tenth of the box, 10% fills it, bigger moves keep their own
+span so nothing clips.
+
+**The gate was backwards.** The price column only rendered when there was a
+price *today*, so a variant with three weeks of history but nothing in stock
+showed nothing — the exact case where "it was AUD 146.78 three weeks ago" is
+the only number the page has.
+
+**The line described a different shop than the price above it.** Caught from a
+screenshot, not from sampling: a variant headlining AUD 347.48 at LIVECARMODEL
+drew "−2% at Motorsport Model Shop", which was out of stock at nearly twice
+that. Both true; stacked they read as "347.48, down 2%". `carPageData` now
+reports `lowestSeller` from the same array and same minimum that produced the
+figure, and `pickSeries` follows it. **68 of 202 variants were wrong.**
+
+## eBay history is an exchange rate, not a market — 2026-09-09
+
+Tried to add eBay to the chart. It cannot be drawn honestly yet, and this is
+the most important thing on this page.
+
+Every listing is `EBAY_AU / AUD`, and **eBay converts a foreign seller's price
+into AUD before the API returns it**. So an eBay "price change" is frequently
+the exchange rate. The histogram is not subtle:
+
+```
+of 391 eBay series that moved in three weeks
+  208 moved by an identical  -1.85%   across 45 DIFFERENT sellers
+   79 moved by an identical  -9.09%
+   38 did not move at all
+```
+
+45 independent sellers — among them `hobbyland.bg` and two Japanese shops — do
+not discount by the same figure on the same day.
+
+**This is the price_aud artefact a second time**, and unlike price_aud it
+cannot be undone at read time: the conversion happened upstream and the native
+price never reaches us. A line reading "−2% asking" would state a fall no
+seller made.
+
+The earlier survivorship reading (359 down vs 27 up, listings that sold leave
+the set) is real but is the smaller half. Both are true; FX dominates.
+
+**What was done instead:** no eBay line, and `pickSeries` no longer falls back
+to one either. `refresh-ebay` now records `itemLocation.country` (**migration
+020**, run 2026-09-09, nullable, no backfill — every existing row is genuinely
+unknown and a guessed `'AU'` would put a fabricated line on a page). An
+AU-located seller lists natively in AUD with no conversion, so after the next
+refresh those can be drawn and the rest held back. `pickEbaySeries` and
+`ebayLowItemId` are already in place, matching by item id.
+
+**Ask this after the next refresh:** what share of the 3,207 listings are
+`item_country = 'AU'`? If it is small, that also undercuts **"eBay beats every
+shop on 46% of models"** — that comparison comes from converted AUD on both
+sides.
+
+Also kept, right regardless: eBay series carry the **seller username** instead
+of the anonymous "eBay seller", and every series carries `sourceId` so a caller
+matches a line to a specific seller rather than trusting the ordering.
 
 ## Next up
 
