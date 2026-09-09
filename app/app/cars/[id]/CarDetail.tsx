@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import PriceSparkline from '@/app/components/PriceSparkline';
-import { pickSeries, type ModelHistory } from '@/lib/priceHistory';
+import { pickSeries, pickEbaySeries, type ModelHistory } from '@/lib/priceHistory';
 import TeamColorFallback from '../../components/TeamColorFallback';
 
 import { useState } from 'react';
@@ -511,6 +511,31 @@ export default function CarDetail({
                               </span>
                             </p>
                           )}
+                          {/*
+                            NO eBay price line here yet, and the reason is in
+                            the data rather than in the design.
+
+                            Every listing is EBAY_AU/AUD, and eBay converts a
+                            foreign seller's price into AUD before we ever see
+                            it. So a "price change" on those listings is very
+                            often eBay's exchange rate moving, not the seller
+                            touching anything: of 391 eBay series that moved in
+                            the first three weeks, 208 moved by an identical
+                            -1.85%, across 45 DIFFERENT sellers including a
+                            Bulgarian shop and two Japanese ones. Another 79
+                            share -9.09%.
+
+                            That is the price_aud artefact again — a correlated,
+                            market-looking move that is really a constant — and
+                            this time it cannot be stripped, because the
+                            conversion happened before the number reached us.
+                            Drawing it would state a fall no seller made.
+
+                            refresh-ebay now records itemLocation.country, so
+                            after the next refresh the AU-located listings can be
+                            told apart: those are natively AUD and their line is
+                            the seller's own. pickEbaySeries is ready for them.
+                          */}
                         </div>
                       )}
                     </div>

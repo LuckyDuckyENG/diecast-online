@@ -40,9 +40,17 @@ export interface PricePoint {
 }
 
 export interface PriceSeries {
-  /** Retailer name, or an eBay seller. */
+  /** Retailer name, or an eBay seller username. */
   label: string;
   kind: 'shop' | 'ebay';
+  /**
+   * Retailer id, or eBay item id.
+   *
+   * Carried so a caller can match a line to a SPECIFIC seller rather than
+   * trusting the ordering — the car page uses it to draw the line belonging to
+   * the price printed above it.
+   */
+  sourceId: string;
   points: PricePoint[];
   /** Movement across the series, as a fraction of the higher price. */
   change: number;
@@ -85,11 +93,54 @@ export function pickSeries(
   headlineSeller: string | null
 ): PriceSeries | null {
   if (!history?.series.length) return null;
+  const shops = history.series.filter(s => s.kind === 'shop');
+  if (!shops.length) return null;
   if (headlineSeller) {
-    const own = history.series.find(s => s.kind === 'shop' && s.label === headlineSeller);
+    const own = shops.find(s => s.label === headlineSeller);
     if (own) return own;
   }
-  return history.series[0];
+  return shops[0];
+}
+
+/**
+ * The line for ONE eBay listing, matched by item id — or nothing.
+ *
+ * There is no fallback here, deliberately, and that is the difference from
+ * pickSeries above. A shop's line falls back to another shop because every
+ * shop sells the same restockable SKU, so a different shop's line is still a
+ * fact about that model. An eBay listing is one physical object: when it
+ * sells the line stops, and another seller's asking price is not a substitute
+ * for it. Showing a different listing's line under the eBay low would repeat
+ * exactly the mistake pickSeries exists to fix.
+ *
+ * NOT DRAWN YET, AND WHY — READ THIS BEFORE RENDERING IT
+ *
+ * Every listing is EBAY_AU/AUD, and eBay converts a foreign seller's price
+ * into AUD before we ever see it. Most eBay "price moves" in this data are
+ * therefore eBay's exchange rate, not a seller: of 391 series that moved over
+ * the first three weeks, 208 moved by an identical -1.85% across 45 DIFFERENT
+ * sellers — including hobbyland.bg and two Japanese shops — and another 79
+ * share -9.09%. Independent sellers do not discount by the same figure on the
+ * same day. That is the price_aud artefact again, and unlike price_aud it
+ * cannot be undone here, because the conversion happened upstream of us.
+ *
+ * refresh-ebay now records itemLocation.country. An AU-located seller lists
+ * natively in AUD and has no conversion applied, so once the next refresh has
+ * populated it, those listings can be drawn honestly and the rest held back.
+ * That filter belongs to the caller, which knows the listing; this function
+ * only finds the series.
+ *
+ * Two things stay true even then. It is an ASKING price, never a sale — we
+ * hold no sold data. And it survives selection: a listing still standing after
+ * three weeks is one that did not sell, while the 53 that sold left the set,
+ * so the surviving lines lean down on their own.
+ */
+export function pickEbaySeries(
+  history: ModelHistory | undefined,
+  itemId: string | null
+): PriceSeries | null {
+  if (!history?.series.length || !itemId) return null;
+  return history.series.find(s => s.kind === 'ebay' && s.sourceId === itemId) || null;
 }
 
 export async function getPriceHistory(
@@ -134,6 +185,25 @@ export async function getPriceHistory(
     for (const r of data || []) names.set(r.id, r.name);
   }
 
+  /**
+   * eBay seller usernames, for the same reason.
+   *
+   * "eBay seller" as a label is unverifiable — the page lists several, and a
+   * reader cannot tell which one the line belongs to. The username appears in
+   * the listing row above it, so naming it makes the line checkable in exactly
+   * the way a shop's name does. Every live listing has one.
+   *
+   * Chunked for the same URL-length reason as the observations above.
+   */
+  const itemIds = [...new Set(rows.map(r => r.ebay_item_id).filter(Boolean))];
+  for (let i = 0; i < itemIds.length; i += CHUNK) {
+    const { data } = await supabase
+      .from('ebay_links')
+      .select('ebay_item_id, seller')
+      .in('ebay_item_id', itemIds.slice(i, i + CHUNK));
+    for (const r of data || []) if (r.seller) names.set(r.ebay_item_id, r.seller);
+  }
+
   /** model -> source -> day -> price. */
   const byModel = new Map<string, Map<string, { kind: 'shop' | 'ebay'; days: Map<string, PricePoint> }>>();
 
@@ -169,8 +239,9 @@ export async function getPriceHistory(
       const first = points[0].priceAud;
       const last = points[points.length - 1].priceAud;
       series.push({
-        label: s.kind === 'shop' ? names.get(sourceId) || 'A shop' : 'eBay seller',
+        label: names.get(sourceId) || (s.kind === 'shop' ? 'A shop' : 'an eBay seller'),
         kind: s.kind,
+        sourceId,
         points,
         change: first > 0 ? (last - first) / Math.max(first, last) : 0,
       });

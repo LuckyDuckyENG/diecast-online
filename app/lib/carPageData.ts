@@ -46,6 +46,8 @@ export interface CarRetailer {
   condition?: string | null;
   /** eBay seller username. Listings are deduped to the cheapest per seller. */
   seller?: string | null;
+  /** eBay item id, so a price history line can be matched to this listing. */
+  ebayItemId?: string | null;
   /**
    * Listed, but nothing left to sell.
    *
@@ -76,6 +78,8 @@ export interface CarVariant {
   shopRange: PriceSpan | null;
   /** Cheapest and dearest live eBay listing. Never merged with shopRange. */
   ebayRange: PriceSpan | null;
+  /** The listing that set the eBay low, so its line can be drawn under it. */
+  ebayLowItemId: string | null;
 }
 
 
@@ -250,6 +254,7 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
         marketplace: ebayLink.marketplace || null,
         condition: ebayLink.item_condition || null,
         seller: ebayLink.seller || null,
+        ebayItemId: ebayLink.ebay_item_id || null,
         soldOut: isSoldOut(ebayLink),
       });
     }
@@ -305,6 +310,17 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
       ? quotable.reduce((a, b) => (b.priceAUD < a.priceAUD ? b : a))
       : null;
 
+    /**
+     * The listing behind the eBay low, for the same reason as `lowest` above.
+     *
+     * Taken from `ebayLive` — the identical array `ebayRange` is drawn from —
+     * so the line can never belong to a listing outside the range printed
+     * beside it, and never to a sold-out one.
+     */
+    const ebayLowest = ebayLive.length
+      ? ebayLive.reduce((a, b) => (b.priceAUD < a.priceAUD ? b : a))
+      : null;
+
     return {
       ...variant,
       retailers,
@@ -312,6 +328,7 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
       lowestSeller: lowest ? lowest.name : null,
       shopRange: span(quotable),
       ebayRange: span(ebayLive),
+      ebayLowItemId: ebayLowest ? ebayLowest.ebayItemId ?? null : null,
     };
   });
 

@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       .from('ebay_links')
       .select(
         'id, model_id, ebay_item_id, ebay_url, ebay_price, price_aud, currency, ' +
-          'marketplace, item_condition, seller, availability, ' +
+          'marketplace, item_condition, seller, availability, item_country, ' +
           // Needed to date a rescued observation honestly: when a dead listing's
           // last price is preserved, it is stamped with when we actually read it.
           'last_checked_at, last_updated'
@@ -322,11 +322,31 @@ export async function POST(request: NextRequest) {
         const moved =
           !(stored > 0) || Math.abs(livePrice - stored) / stored > NOISE_THRESHOLD;
 
+        /**
+         * Where the listing physically is.
+         *
+         * Recorded because every link is EBAY_AU and eBay converts a foreign
+         * seller's price into AUD before we see it, which makes most eBay
+         * "price moves" an exchange rate rather than a seller: 208 of 391
+         * movers in the first three weeks shared an identical -1.85%, across 45
+         * different sellers. An AU-located seller lists natively in AUD, so
+         * this is what lets the price history draw a real repricing and hold
+         * back a currency wobble. See migration 020.
+         *
+         * Re-read every time rather than only when missing, unlike the two
+         * below: this is cheap, it is already in the response, and a listing
+         * that was relisted from a different warehouse should not keep a stale
+         * country that decides whether its line is drawn.
+         */
+        const itemCountry: string | null = item?.itemLocation?.country || null;
+
         // Condition and seller were added by migration 015, so the 387 rows that
         // predate it have neither and a re-search never revisits them (the pool
         // excludes listings we already hold). This read has both, so fill them.
         const backfill =
-          (!link.item_condition && item?.condition) || (!link.seller && item?.seller?.username);
+          (!link.item_condition && item?.condition) ||
+          (!link.seller && item?.seller?.username) ||
+          (!link.item_country && itemCountry);
         if (backfill) summary.backfilled++;
 
         const patch: Record<string, any> = {
@@ -336,6 +356,7 @@ export async function POST(request: NextRequest) {
           available_qty: avail.estimatedAvailableQuantity ?? null,
           item_condition: link.item_condition || item?.condition || null,
           seller: link.seller || item?.seller?.username || null,
+          item_country: itemCountry || link.item_country || null,
         };
 
         if (moved) {
