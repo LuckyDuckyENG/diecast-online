@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import CarDetail from './CarDetail';
 import { getCarPageData, getAllCarSlugs, carTitle } from '@/lib/carPageData';
 import { carPageJsonLd, jsonLdScript } from '@/lib/structuredData';
+import { getPriceHistory } from '@/lib/priceHistory';
+import { supabase } from '@/lib/supabase';
 import { getRelatedCars } from '@/lib/relatedCars';
 import { getHubSlugs } from '@/lib/hubData';
 import { slugify, teamSlug } from '@/lib/carSlug';
@@ -84,6 +86,16 @@ export default async function MasterCarPage({ params }: Props) {
   // client-rendered, so without these there are no crawlable links to any car.
   const related = await getRelatedCars(data.car);
 
+  /**
+   * Price history, keyed by model id.
+   *
+   * A plain object rather than the Map getPriceHistory returns: CarDetail is a
+   * client component and a Map does not survive serialisation across that
+   * boundary.
+   */
+  const historyMap = await getPriceHistory(supabase, data.variants.map(v => v.id));
+  const history = Object.fromEntries(historyMap);
+
   // Only link up to hubs that actually exist — getHubSlugs applies the
   // minimum-cars threshold, so a driver with two models has no page to link to.
   const hubs = await getHubSlugs();
@@ -122,6 +134,7 @@ export default async function MasterCarPage({ params }: Props) {
         variants={data.variants}
         urlParam={id}
         related={related}
+        history={history}
         hubLinks={hubLinks}
       />
     </>

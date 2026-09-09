@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import PriceSparkline from '@/app/components/PriceSparkline';
+import type { ModelHistory } from '@/lib/priceHistory';
 import TeamColorFallback from '../../components/TeamColorFallback';
 
 import { useState } from 'react';
@@ -38,12 +40,14 @@ export default function CarDetail({
   variants,
   urlParam,
   related,
+  history,
   hubLinks,
 }: {
   car: any;
   variants: CarVariant[];
   urlParam: string;
   related: RelatedGroup[];
+  history: Record<string, ModelHistory>;
   hubLinks: { driver: string | null; team: string | null; season: string | null };
 }) {
   const [selectedManufacturer, setSelectedManufacturer] = useState<string>('all');
@@ -422,8 +426,17 @@ export default function CarDetail({
                     )}
                   </div>
 
-                  {/* Lowest Price Badge, and what the same model costs elsewhere */}
-                  {(variant.lowestPrice || variant.shopRange || variant.ebayRange) && (
+                  {/*
+                    Lowest Price Badge, and what the same model costs elsewhere.
+
+                    `history` is in this condition deliberately. The gate used to
+                    be current prices alone, which dropped the sparkline on
+                    exactly the variants it is most useful for: a model nobody
+                    stocks today has no price to show, and "it was AUD 146.78
+                    three weeks ago" is the only number the page can offer.
+                  */}
+                  {(variant.lowestPrice || variant.shopRange || variant.ebayRange ||
+                    history[variant.id]?.series?.[0]) && (
                     <div className="sm:ml-6 sm:text-right shrink-0">
                       {variant.lowestPrice && (
                         <>
@@ -453,6 +466,28 @@ export default function CarDetail({
                         in the data, so a saving cannot be promised, while a
                         range is simply true.
                       */}
+                      {/*
+                        What this seller has been charging.
+
+                        ONE seller's line, named — not "cheapest anywhere",
+                        which moves when the number of shops we checked changes
+                        rather than when a price does. In something 20 pixels
+                        tall with no axis and no dates, a reader would have
+                        nothing to catch that with.
+
+                        Shops before eBay, most-observed first, so the line
+                        shown is the best-evidenced one on the page.
+                      */}
+                      {history[variant.id]?.series?.[0] && (
+                        <div className="mt-2 flex sm:justify-end">
+                          <span className="inline-flex items-center gap-1.5">
+                            <PriceSparkline series={history[variant.id].series[0]} />
+                            <span className="text-[10px] text-[var(--text-tertiary)] whitespace-nowrap">
+                              at {history[variant.id].series[0].label}
+                            </span>
+                          </span>
+                        </div>
+                      )}
                       {(variant.shopRange || variant.ebayRange) && (
                         <div className="mt-2 space-y-0.5 text-xs text-[var(--text-tertiary)]">
                           {variant.shopRange && (
