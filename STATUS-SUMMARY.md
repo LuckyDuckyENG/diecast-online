@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-09
+# Status Summary — last updated 2026-09-10
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -8,15 +8,27 @@
 > The site refuses to quote a price older than **30 days** (`STALE_DAYS`), so
 > prices revert to "Check price on site" unless something re-checks them.
 >
+> As at **2026-09-10**, measured from `last_checked_at`:
+>
 > ```
-> retailer prices: first go stale 2026-08-28 · half by 2026-09-17
-> eBay prices    : first go stale 2026-09-16 · half by 2026-09-24
+> retailer  3,374 of 3,385 checked 08 Sept  ->  go stale 2026-10-08
+>              11 stragglers, 8 ALREADY STALE (see below)
+> eBay      3,203 of 3,203 checked 10 Sept  ->  go stale 2026-10-10
 > ```
 >
-> **Around mid-September, run 🔄 Refresh All Retailers and 🔁 Refresh eBay.**
-> About THREE hours for retailers now, from localhost — the estimate of an hour was written at 1,744 links and there are 3,385. Run scripts/fetch-fx.mjs first. Nothing breaks if they are late — prices
-> stop being displayed, links stay, and a refresh brings them all back. This is
-> the one job that cannot be deferred indefinitely.
+> **Next run: early October.** Both were done this week, so nothing is urgent.
+>
+> **11 retailer links were missed by the 8 Sept sweep** — 5 last read 29 July,
+> 1 on 30 July, 2 on 4 Aug, 3 on 30 Aug. The first eight are past 30 days and
+> are showing "Check price on site" on the site right now. Not worth a special
+> run; the October sweep collects them. Worth knowing the sweep does not always
+> reach every link.
+>
+> About THREE hours for retailers from localhost — the old estimate of an hour
+> was written at 1,744 links and there are 3,385. Run `scripts/fetch-fx.mjs`
+> first and `scripts/export-observations.mjs` after. Nothing breaks if they are
+> late: prices stop being displayed, links stay, and a refresh brings them all
+> back. This is the one job that cannot be deferred indefinitely.
 
 ## Where things stand
 
@@ -1339,6 +1351,12 @@ eBay beats every shop on **46%** of models carrying both prices. It read 51%
 before this fix — US shops got cheaper, so eBay wins less often. Worth knowing
 if the figure is ever quoted publicly.
 
+> **Quote this with a date on it.** 98.3% of eBay listings are foreign sellers
+> whose AUD price is eBay's own conversion, so this share moves with the
+> exchange rate. It is a fair comparison — that converted price is what an
+> Australian buyer actually pays — but it is a reading, not a constant. See
+> "1.7% of eBay listings are Australian", 2026-09-10.
+
 ## Posting about the site — draft ready, not yet posted
 
 Decided on r/buildinpublic first: low friction, self-promotion is the point of
@@ -1678,14 +1696,75 @@ AU-located seller lists natively in AUD with no conversion, so after the next
 refresh those can be drawn and the rest held back. `pickEbaySeries` and
 `ebayLowItemId` are already in place, matching by item id.
 
-**Ask this after the next refresh:** what share of the 3,207 listings are
-`item_country = 'AU'`? If it is small, that also undercuts **"eBay beats every
-shop on 46% of models"** — that comparison comes from converted AUD on both
-sides.
-
 Also kept, right regardless: eBay series carry the **seller username** instead
 of the anonymous "eBay seller", and every series carries `sourceId` so a caller
 matches a line to a specific seller rather than trusting the ordering.
+
+## Answered: 1.7% of eBay listings are Australian — 2026-09-10
+
+The refresh ran and populated `item_country` on all 3,203 links. The question
+from the day before is settled, and the hypothesis held exactly.
+
+```
+GB 855 (27%)  JP 792 (25%)  IT 495 (15%)  US 382 (12%)  BG 229 (7%)
+FR 134  PL 74  DE 65  SK 50  IE 22  CA 11  BE 11  ...
+AU  54 (1.7%)   across 49 models, 26 sellers
+```
+
+### The natural experiment
+
+8 Sept and 10 Sept are two days apart, so almost nothing should have been
+repriced. Split by country, over the identical window:
+
+```
+                     listings   moved          median move   clustered on it
+foreign (converted)     3,149   2,357 (74.8%)      +0.05%     85% within 0.2%
+AU (native AUD)            54       1 ( 1.9%)     +25%        the one real reprice
+```
+
+2,357 foreign listings moved by five hundredths of a percent **in unison**. 53
+of 54 Australian listings did not move at all, and the single one that did
+moved 25% — a seller actually changing their mind. `item_country` separates
+eBay's exchange rate from a human decision, exactly as intended.
+
+### The eBay price line is closed, not deferred
+
+54 listings across 49 models, against 1,788 models total. A chart that appears
+on 49 models and is missing from the other 1,739 is worse than no chart —
+nobody can infer the rule. **Do not build it.** `pickEbaySeries`,
+`ebayLowItemId` and `sourceId` stay because they are correct and cost nothing,
+and because they are the record of why.
+
+Note `NOISE_THRESHOLD = 0.02` in refresh-ebay already carried this finding in
+its comment, measured on 64 listings. This run confirms it at 3,203 and adds
+the discriminator that makes it provable rather than inferred. That threshold
+is why the DISPLAYED eBay prices do not jitter: sub-2% drift is never written.
+
+### CORRECTION: this does NOT undercut the 46% claim
+
+This doc said on 2026-09-09 that a small AU share would "undercut **eBay beats
+every shop on 46% of models**". **That was wrong.** eBay charges an Australian
+buyer in AUD at eBay's own rate, so the converted figure genuinely is what you
+would pay, and comparing it against a shop price is fair.
+
+What the finding actually means is that the 46% is **unstable over time, not
+invalid**: it read 51% before the rate fix and 46% after, and it will drift
+again with the exchange rate. True at any instant; not a fixed property of the
+catalogue. Quote it with a date attached.
+
+### Where the chart stands after this
+
+Today's run was eBay-only and eBay lines are not drawn, so the sparklines
+gained nothing:
+
+```
+variants with a shop line   578   (504 on two points · 74 on three)
+car pages showing a line    349
+price_observations       11,547
+```
+
+They get their third point at the next RETAIL refresh, due early October. Until
+then every sparkline is a straight segment between two readings.
 
 ## Next up
 
