@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-10
+# Status Summary — last updated 2026-09-12
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -1479,6 +1479,57 @@ Model Shop states a scale on ZERO of its 460 F1 listings) let 354 listings
 through. **291 were SKUs already held.** 35 are importable. The parser has
 perhaps 75 models of runway left, not a thousand — the rest are duplicates,
 MotoGP, 1:12/1:64, or multi-car sets.
+
+## 2019 ran too, and found the SAME defect as 1988 — 2026-09-12
+
+2019 is the `--seed` happy path and nearly free of the 1988 problem:
+
+```
+2019 vocabulary already held:  teams 9/10   drivers 19/20   races 20/21
+   missing: Toro Rosso · Daniil Kvyat · German GP
+```
+
+Against 1988's ~46 missing reference rows. Feeds are thinner than 2020 though
+— 403 products naming 2019 vs 716 for 2020, 1,918 for 2022 — and many of the
+403 are Bathurst, Sandown and Le Mans rather than F1.
+
+**Result: 17 rows, 15 distinct cars, 0 cross-confirmed.** Only 5 of 10 chassis
+were learned (SF90, W10, C38, RB15, RP19 — no MCL34, RS19, STR14, VF-19, FW42).
+
+### Where the title names the race, it is right every time
+
+And the Minichamps SKUs prove it independently, via the round+car encoding:
+
+```
+447190644  -> 1:43, year 19, round 06, car 44   = Hamilton, Monaco     MATCHES
+113191944  -> 1:18, year 19, round 19, car 44   = Hamilton, Austin     MATCHES
+```
+
+### THE DEFECT: a title naming no race still gets given one
+
+```
+"World Champion 1:43 Spark"                 -> Abu Dhabi GP   INVENTED
+"World Champion 1:43 Spark Figure"          -> Chinese GP     INVENTED
+"World Champion Spark 1:18 Figure Edition"  -> Monaco GP      INVENTED
+```
+
+This is the same root cause as 1988's `event_name = World`, and it is WORSE
+here: 1988 produced obvious junk, 2019 produces a plausible wrong answer that
+would pass a skim. A "World Champion" model is season-level and belongs on the
+`Season` event the catalogue already has.
+
+**3 of 17 rows affected — 18%.** Fixing this one rule serves both seasons.
+
+**Undecided, needs a human:** does "Figure Edition" mean a figurine or a car
+supplied with a driver figure? Spark uses the phrase for cars-with-figures, so
+excluding them wholesale would throw away real models. Do not guess this.
+
+**Do not import 2019 as-is.** With 0 cross-confirmed rows there is no automatic
+correctness signal, so the invented events would go in unchallenged.
+
+**A false alarm worth recording**, so it is not re-investigated: an empty notes
+column does NOT mean a row lacks evidence. Notes carry EXTRA title fragments,
+and good single-source rows in the 2024 CSV have it empty too.
 
 ## 1988 ran. The blocker is the generator, not the feeds — 2026-09-11
 
