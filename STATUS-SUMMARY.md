@@ -1480,6 +1480,84 @@ through. **291 were SKUs already held.** 35 are importable. The parser has
 perhaps 75 models of runway left, not a thousand — the rest are duplicates,
 MotoGP, 1:12/1:64, or multi-car sets.
 
+## 1988 ran. The blocker is the generator, not the feeds — 2026-09-11
+
+The bounded experiment happened. Result: **3 rows, all the same car** (McLaren
+MP4/4, Senna, 1988) in three manufacturers. But the interesting part is why,
+because it is not the reason the section below predicted.
+
+**Nothing was invented.** Everything the parser learned was correct: `MP4/4 ->
+McLaren`, `881 -> March`, and Ivan Capelli did drive the March 881 in 1988.
+The fear was fabricated cars and that did not happen.
+
+**The feeds are not the constraint either.** Across the 8 cached feeds:
+
+```
+Senna products in titles: 372
+  1988  55     1991 43     1984 30     1994 30     1993 29     1987 26
+  (no year) 83
+```
+
+55 products for Senna in 1988 alone. The generator saw ~50 of them and built 3.
+
+### The actual defect: vocabulary is all-or-nothing
+
+```
+mode        events                  drivers                      rows
+unseeded    learns 2 from feeds     learns Senna, Capelli   OK      3
+--seed      all 47 from catalogue   48 MODERN drivers only          0
+```
+
+Seeded mode fails 37 titles on driver — hunting for Verstappen in 1988
+listings. Unseeded finds Senna but only ever learns two events, so this gets
+rejected:
+
+```
+1:43 1988 Ayrton Senna -- Japanese GP Winner -- McLaren MP4/4 -- Spark F1 SH
+```
+
+Perfectly structured, thrown away because "Japanese GP" was not in a
+two-event vocabulary. The bootstrap is circular: it learns from titles that
+already match, so a thin season learns nothing and then matches nothing.
+
+**The two halves of the vocabulary age at completely different rates.** Drivers
+and teams turned over entirely since 1988; races barely moved. Japanese,
+Monaco, Canadian, British, Italian, Belgian, Hungarian, Australian and
+Brazilian GP are all sitting in the catalogue's 47 events, unused by the
+unseeded path. The fix is a hybrid — seed events, learn drivers and chassis —
+and both mechanisms already exist, wired to one flag.
+
+### NOT DONE, deliberately. What planning has to settle first
+
+Judged too risky to dive into on 2026-09-11. Open questions, in order:
+
+1. **The 23 scale failures are undiagnosed** and are the largest bucket (of 50
+   candidates: scale 23, event 9, driver 8, chassis 4). Some are legitimately
+   out-of-scope 1:64 Mini GTs and 1:12s. Unknown how many. **Measure before
+   changing anything** — a hybrid only addresses the 9.
+2. **Yield is unproven.** The cascade argument (each match teaches a driver,
+   unlocking more titles) is plausible and untested. It can be SIMULATED
+   against the cached feeds in `.feed-cache/` without touching the generator.
+3. **The reference rows are a hand-build, and a big one.** sync-csv only looks
+   up, never creates. 1988 needs a season row, ~16 teams that no longer exist
+   (Lotus, Benetton, Tyrrell, March, Arrows, Ligier, Minardi...) and ~30
+   drivers. Errors there propagate into every row.
+4. **Verification is harder than for a modern season.** For 2024 the real grid
+   is known and a wrong row is obvious. Telling MP4/4 from MP4/4B needs actual
+   F1 history. **Proposed rule: for historic seasons import only
+   CROSS-CONFIRMED rows** (2+ independent shops agreeing on a SKU). In this run
+   that was 1 of 3 — brutal, but it is the only automatic correctness signal
+   the pipeline has.
+5. **Any change must be ADDITIVE.** `--seed` is tuned for 2020-2023 and those
+   seasons are imported. A new flag, not new semantics for the old one.
+
+Artefacts left in the repo root, untracked: `f1_1988_NEW.csv` (the 3 rows) and
+`f1_1988_SEEDED.csv` (empty).
+
+**One defect worth fixing whenever this resumes:** `event_name` came out as
+`World`, parsed from "World Champion". That is a season-level model, not a
+race, and the catalogue already has a `Season` event for exactly this.
+
 ## The genuinely interesting find: historic drivers
 
 Hubs are per DRIVER, and the demand is driver-shaped. So going backwards adds
