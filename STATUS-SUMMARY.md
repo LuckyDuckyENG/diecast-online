@@ -1524,10 +1524,17 @@ creates one that silently matches the wrong shop listings, or none, forever.
 existed and what happened in each race, which is exactly what the generator
 cannot know. Use it to CHECK generator output, never to source part numbers.
 
-**One thing it proved.** It independently assigns `410191933` to the US GP,
-while the generator filed that SKU under Brazilian GP. Two unrelated methods
-agreeing makes that generator row a confirmed defect — see the round audit
-below, which flagged the same SKU.
+**RETRACTED — the one thing it "proved" was not proof.** It assigns `410191933`
+to the US GP while the generator says Brazilian GP, and that looked like
+independent confirmation of a defect. It was not: this file DERIVED its value
+from the Minichamps round rule, and the round audit applied the SAME rule. Two
+methods sharing an assumption agree by construction. Two shops title the car
+Brazil outright — Stone Model "Winner Brazil GP 2019" and Yuui "WINNAAR
+BRAZILIE GP" — so the generator is right and the round rule has exceptions.
+
+That leaves this file's real value narrower but intact: it knows which cars
+EXISTED and what happened in each race. It is a coverage and verification
+source, never a source of part numbers.
 
 ## Audited the live catalogue with the Minichamps SKU — 2026-09-12
 
@@ -1618,31 +1625,59 @@ And the Minichamps SKUs prove it independently, via the round+car encoding:
 113191944  -> 1:18, year 19, round 19, car 44   = Hamilton, Austin     MATCHES
 ```
 
-### THE DEFECT: a title naming no race still gets given one
+### RETRACTED — there was no invented-event defect
+
+**This section claimed on 2026-09-12 that three rows had invented races.** That
+was wrong, and the error was mine, not the parser's. Checked against the actual
+shop titles the next hour:
 
 ```
-"World Champion 1:43 Spark"                 -> Abu Dhabi GP   INVENTED
-"World Champion 1:43 Spark Figure"          -> Chinese GP     INVENTED
-"World Champion Spark 1:18 Figure Edition"  -> Monaco GP      INVENTED
+SP641    "...Lewis Hamilton Abu Dhabi GP Practice 2019 6x World Champion 1:43 Spark"
+WS002S   "...Lewis Hamilton Chinese GP 2019 6x World Champion 1:43 Spark Figure"
+WS016    "...Lewis Hamilton Monaco GP 2019 World Champion 1:43 Spark Figure Edition"
 ```
 
-This is the same root cause as 1988's `event_name = World`, and it is WORSE
-here: 1988 produced obvious junk, 2019 produces a plausible wrong answer that
-would pass a skim. A "World Champion" model is season-level and belongs on the
-`Season` event the catalogue already has.
+Abu Dhabi, Chinese and Monaco are all correct and all named in the source.
 
-**3 of 17 rows affected — 18%.** Fixing this one rule serves both seasons.
+**The cause of the mistake: the `notes` column is the RESIDUE**, the title with
+the matched driver, chassis, race and year stripped out. Reading "World
+Champion 1:43 Spark" as the whole title makes a correct row look fabricated.
+This doc had already recorded that notes carry extra fragments; it was misread
+anyway. **Never judge a row from `notes` alone — pull the title from
+`.feed-cache/`.**
+
+`if (!event)` in build-season-csv.mjs is sound: a title naming an unlearned
+race is SKIPPED, and only genuine silence becomes `Season`. No fix needed.
+
+**1988's `event_name = World` is still a real defect but a DIFFERENT one.**
+There the unseeded bootstrap LEARNED "World" as an event from "World Champion"
+titles. That is a vocabulary-learning fault, not a fallback fault, and it
+cannot happen in a seeded run.
+
+### What is actually wrong with the 17 rows
+
+Small, and none of it is invention:
+
+```
+S6078_01   Yuui appends a variant suffix; the Spark SKU is S6078   ("GP China")
+S6049_01   same                                                    ("3e GP USA")
+SP641      title says "Abu Dhabi GP Practice" — may belong on the
+           FP-style event rather than the race
+```
 
 **Undecided, needs a human:** does "Figure Edition" mean a figurine or a car
 supplied with a driver figure? Spark uses the phrase for cars-with-figures, so
 excluding them wholesale would throw away real models. Do not guess this.
 
-**Do not import 2019 as-is.** With 0 cross-confirmed rows there is no automatic
-correctness signal, so the invented events would go in unchallenged.
+### Also retracted: 410191933 was NOT confirmed wrong
 
-**A false alarm worth recording**, so it is not re-investigated: an empty notes
-column does NOT mean a row lacks evidence. Notes carry EXTRA title fragments,
-and good single-source rows in the 2024 CSV have it empty too.
+Two shops independently title it Brazil — Stone Model "Winner Brazil GP 2019"
+and Yuui "WINNAAR BRAZILIE GP". The generator is right. The claim that it was
+really the US GP came from the SKU round digits agreeing with the researched
+CSV, but that CSV derived its value from the SAME encoding rule. **Two methods
+sharing an assumption is not independent confirmation.** It is the round rule
+that has exceptions here, not the data — the third time that rule has produced
+a false positive in two days.
 
 ## 1988 ran. The blocker is the generator, not the feeds — 2026-09-11
 
