@@ -1480,6 +1480,55 @@ through. **291 were SKUs already held.** 35 are importable. The parser has
 perhaps 75 models of runway left, not a thousand — the rest are duplicates,
 MotoGP, 1:12/1:64, or multi-car sets.
 
+## A hand-researched 2019 CSV, and why it cannot be imported — 2026-09-12
+
+`f1_2019_models_by_team.csv` — 101 rows, 21 drivers, excellent race notes.
+Hamilton's eleven 2019 wins are all correct. **It must not be imported**, and
+the reason generalises to any future research-first CSV.
+
+Its own `verification_status` column says it: most rows read *"pattern-derived
+(roundNN+driverNN); not individually spot-checked"*. The SKUs were GENERATED
+from the Minichamps encoding, not read off a listing.
+
+```
+SKUs in the file                     119
+  appearing in any cached shop feed    7
+  appearing nowhere                  112
+  even among rows claiming CONFIRMED   5 of 47 found
+```
+
+Feeds are current AU stock, so absence alone is not proof. This is:
+
+```
+cars present in BOTH this file and the generator's CSV: 14
+  SKU matches the observed one:  0
+  SKU differs:                  14
+
+Hamilton Monaco   observed 113190644N / 447190644   derived 110190644 / 410190644
+Hamilton US GP    observed 113191944                derived 110191944
+Leclerc  Belgian  observed LS18BNF001 / LSBNF001    derived LS18F1023 / LSF1023
+```
+
+**The encoding predicts year+round+car but NOT the prefix.** Minichamps uses
+110, 113, 117, 410, 417 and 447 and nothing in the number says which. For
+Looksmart the scheme is unrelated, so those digits are pure invention.
+
+The file even caught itself: the Monaco note records that *"the retailer listing
+showed a related '113'-prefixed code instead"*, and kept the derived value.
+
+**Why this matters more than a normal bad row.** SKU is the join key for the
+whole price index. A wrong part number does not create a harmless car — it
+creates one that silently matches the wrong shop listings, or none, forever.
+
+**What the file IS good for:** verification and coverage. It says which cars
+existed and what happened in each race, which is exactly what the generator
+cannot know. Use it to CHECK generator output, never to source part numbers.
+
+**One thing it proved.** It independently assigns `410191933` to the US GP,
+while the generator filed that SKU under Brazilian GP. Two unrelated methods
+agreeing makes that generator row a confirmed defect — see the round audit
+below, which flagged the same SKU.
+
 ## Audited the live catalogue with the Minichamps SKU — 2026-09-12
 
 Every season from 2020 was imported by the parser now known to invent races, so
