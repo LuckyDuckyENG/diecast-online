@@ -1480,6 +1480,70 @@ through. **291 were SKUs already held.** 35 are importable. The parser has
 perhaps 75 models of runway left, not a thousand — the rest are duplicates,
 MotoGP, 1:12/1:64, or multi-car sets.
 
+## Audited the live catalogue with the Minichamps SKU — 2026-09-12
+
+Every season from 2020 was imported by the parser now known to invent races, so
+the question was whether wrong cars are on the site. The Minichamps part number
+encodes `prefix | year | round | car`, which is an INDEPENDENT check needing no
+calendar: two cars in one season decoding to the same round must be the same
+race.
+
+**Answer: no systematic damage.**
+
+```
+models with a decodable SKU            700 of 1,788
+SKU year disagrees with the season       0        <- the decoder is validated
+season+round groups -> exactly one race 102  (89%)
+                    -> more than one     12  (11%)
+```
+
+### Two false trails, both worth recording
+
+**The 5xx series does not use this encoding.** A first pass without a prefix
+whitelist produced conflicts in almost every season — and nearly all of them
+were `537`, `533`, `532`, `472`. Restricting to the documented prefixes
+(110/112/113/117/147 and 410/412/417/447) made them vanish. This is the
+`scaleFromSku` trap again: the rule was wrong, not the data.
+
+**43 "car number mismatches" are not errors.** Every one is Verstappen `#33`
+against a `drivers` table holding `#1`. He changed number in 2022 and the table
+stores one number per driver. Nothing to fix in `cars`.
+
+**And `Season` cars legitimately sit at round 01** — 38 of 42 of them. Minichamps
+numbers launch and show cars that way, so every Season-vs-race conflict was
+innocent, including the 27-model cluster in 2024.
+
+### The 12, minus 2 that are fine
+
+`Abu Dhabi GP` vs `Abu Dhabi GP (FP1)` (2020 r17) and `United States GP` vs
+`United States GP Sprint` (2025 r19) are the same race weekend. Not errors.
+
+The remaining ten, ~35 models, where the SKU round disagrees with the event:
+
+```
+2020 r09   Tuscan 2   vs  Eifel 1            417200903 Ricciardo
+2021 r01   Bahrain 22 vs  Emilia Romagna 6
+2021 r13   Belgian 7  vs  Dutch 1            round 13 in 2021 WAS the Dutch GP,
+                                             so here the MAJORITY may be wrong
+2021 r15   Russian 1  vs  Turkish 1          113211533 Verstappen
+2022 r01   Bahrain 28 vs  Saudi 1            447220111 Perez
+2023 r01   Bahrain 21 vs  Australian 6, British 5, Saudi 4
+2023 r03   Australian 8 vs Miami 4
+2025 r01   Australian 6 vs Spanish 1         417250127 Hulkenberg
+2025 r02   Chinese 11 vs  Japanese 1         447250201 Verstappen
+```
+
+**DO NOT bulk-correct these.** The 2021 r13 line is the warning: the seven
+Belgian entries disagree with the calendar while the single Dutch one matches
+it, so "majority wins" would corrupt the right answer. `scaleFromSku` produced
+39 such candidates and 38 were the rule being wrong.
+
+**The correct next step is to check a handful against the shops' own listings**,
+exactly as the scale question was settled. Ten groups is an hour, not a project.
+
+**Keep the year check.** 0 of 700 disagreeing is a genuinely useful invariant and
+cheap to re-run after any import.
+
 ## 2019 ran too, and found the SAME defect as 1988 — 2026-09-12
 
 2019 is the `--seed` happy path and nearly free of the 1988 problem:
