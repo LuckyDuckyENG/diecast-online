@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-12
+# Status Summary — last updated 2026-09-13
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -1480,7 +1480,66 @@ through. **291 were SKUs already held.** 35 are importable. The parser has
 perhaps 75 models of runway left, not a thousand — the rest are duplicates,
 MotoGP, 1:12/1:64, or multi-car sets.
 
-## A hand-researched 2019 CSV, and why it cannot be imported — 2026-09-12
+## 2019 IS IMPORTED — 2026-09-13
+
+```
+season 2019 row created   98c5bb95-b36c-411d-bece-6171f3f5405b
+cars created   15   (2 rows shared a car)
+models created 25   0 errors
+catalogue now  801 cars · 1,813 models
+```
+
+**Every one of the 25 SKUs was verified present in a real shop listing before
+import.** Nothing derived went in. That check is the whole reason this import
+is trustworthy and the 101-row researched CSV was not.
+
+```
+Mercedes    Hamilton   Abu Dhabi · British · Chinese · Monaco · US GP     5 cars
+Red Bull    Verstappen Brazilian · British · Chinese · Hungarian · US GP  5 cars
+Ferrari     Leclerc    Belgian · Italian        Vettel  Singapore         3 cars
+Racing Point Perez     Chinese                                            1 car
+Alfa Romeo  Raikkonen  Pre-season Testing (Fiorano)                       1 car
+```
+
+**It is a thin season and that is expected** — 15 cars against 2020's 79. Only
+5 of 10 chassis were learned, so McLaren, Renault, Toro Rosso, Haas and
+Williams have no 2019 cars at all. The researched CSV is the right tool for
+measuring that gap, since it knows which cars existed.
+
+All 15 have slugs. **0 models have images** — sweeps fill those.
+
+**Team mapping checked after the fact:** the CSV says `Mercedes` and the rows
+landed on `Mercedes-AMG Petronas`, which is correct — that row holds all 127
+Mercedes cars across every season. The other three Mercedes rows (`Mercedes`,
+`Mercedes ` with a trailing space, `Mercedes-AMG Petronas Formula One Team`)
+hold ZERO cars. Harmless, but they are why a CSV team name must never be
+trusted to create a row.
+
+### Still invisible on the site until links attach
+
+A car needs a retailer or eBay link to pass the store filter. Next:
+
+1. Sweep **Stone Model** first — it is the source of most of these 25 SKUs.
+   Yuui covers `S6078_01` and `S6049_01`, Anthony's `113191944`.
+2. eBay search for the 25 new models.
+
+The admin eBay-linking page shows them immediately, because that reads the
+catalogue rather than the links.
+
+### Two SKUs kept deliberately dirty
+
+`S6078_01` and `S6049_01` carry Yuui's variant suffix. Stripping it was tried
+and reverted: no shop lists the clean form, and the matcher exact-matches on
+`sku.trim().toUpperCase()` with NO suffix normalisation, so the tidy version
+would match nothing and leave both models linkless and invisible.
+
+**The real fix is suffix normalisation in the feed layer**, which also explains
+5 pre-existing models whose SKUs carry `_01` — and 3 of those 5 are duplicates
+of a clean-SKU model, because exact-match dedupe cannot see that
+`110210633_01` and `110210633` are the same part. That touches every shop and
+every sweep, so it is its own job.
+
+## A hand-researched 2019 CSV, and why it could not be imported — 2026-09-12
 
 `f1_2019_models_by_team.csv` — 101 rows, 21 drivers, excellent race notes.
 Hamilton's eleven 2019 wins are all correct. **It must not be imported**, and
