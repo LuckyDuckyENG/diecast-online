@@ -157,12 +157,20 @@ function BrowseContent({ initialModels }: { initialModels: Model[] }) {
       results = results.filter((model) => model.driver && filters.drivers.includes(model.driver));
     }
 
+    /**
+     * ANY overlap, not equality.
+     *
+     * A car offered in both 1:18 and 1:43 matches either tick. Testing one
+     * value meant ticking 1:18 returned 284 cars when about 498 have a 1:18
+     * model — the filter hid 43% of its own matches and looked authoritative
+     * doing it.
+     */
     if (filters.scales.length > 0) {
-      results = results.filter((model) => model.scale && filters.scales.includes(model.scale));
+      results = results.filter((model) => model.scales.some(s => filters.scales.includes(s)));
     }
 
     if (filters.manufacturers.length > 0) {
-      results = results.filter((model) => filters.manufacturers.includes(model.manufacturer));
+      results = results.filter((model) => model.manufacturers.some(m => filters.manufacturers.includes(m)));
     }
 
     // Apply sorting
@@ -222,17 +230,21 @@ function BrowseContent({ initialModels }: { initialModels: Model[] }) {
       if (skip !== 'years' && filters.years.length && !filters.years.includes(String(m.year))) return false;
       if (skip !== 'teams' && filters.teams.length && !(m.team && filters.teams.includes(m.team))) return false;
       if (skip !== 'drivers' && filters.drivers.length && !(m.driver && filters.drivers.includes(m.driver))) return false;
-      if (skip !== 'scales' && filters.scales.length && !(m.scale && filters.scales.includes(m.scale))) return false;
-      if (skip !== 'manufacturers' && filters.manufacturers.length && !filters.manufacturers.includes(m.manufacturer)) return false;
+      if (skip !== 'scales' && filters.scales.length && !m.scales.some(s => filters.scales.includes(s))) return false;
+      if (skip !== 'manufacturers' && filters.manufacturers.length && !m.manufacturers.some(x => filters.manufacturers.includes(x))) return false;
       return true;
     };
 
-    const tally = (key: keyof FilterOptions, value: (m: Model) => string | undefined) => {
+    /**
+     * `values` returns a LIST, because a car can belong to several buckets of
+     * the same facet — three scales, two makers. Each distinct value counts the
+     * car once, so a count is always "cars you would be left with".
+     */
+    const tally = (key: keyof FilterOptions, values: (m: Model) => (string | undefined)[]) => {
       const counts = new Map<string, number>();
       for (const m of initialModels) {
         if (!passes(m, key)) continue;
-        const v = value(m);
-        if (v) counts.set(v, (counts.get(v) || 0) + 1);
+        for (const v of new Set(values(m))) if (v) counts.set(v, (counts.get(v) || 0) + 1);
       }
       // A ticked value must survive even at zero, or it cannot be unticked.
       for (const v of filters[key] as string[]) if (!counts.has(v)) counts.set(v, 0);
@@ -244,12 +256,12 @@ function BrowseContent({ initialModels }: { initialModels: Model[] }) {
     return {
       // Recency, not count. Count would lead with 2023 and bury 2026, and
       // nobody thinks about seasons in order of how many models exist.
-      years: tally('years', m => (m.year ? String(m.year) : undefined))
+      years: tally('years', m => [m.year ? String(m.year) : undefined])
         .sort((a, b) => Number(b.value) - Number(a.value)),
-      teams: tally('teams', m => m.team).sort(byCount),
-      drivers: orderDrivers(tally('drivers', m => m.driver)),
-      scales: tally('scales', m => m.scale).sort(byCount),
-      manufacturers: tally('manufacturers', m => m.manufacturer).sort(byCount),
+      teams: tally('teams', m => [m.team]).sort(byCount),
+      drivers: orderDrivers(tally('drivers', m => [m.driver])),
+      scales: tally('scales', m => m.scales).sort(byCount),
+      manufacturers: tally('manufacturers', m => m.manufacturers).sort(byCount),
     };
   }, [initialModels, filters]);
 

@@ -50,7 +50,7 @@ function SearchResults() {
         // Get all models with SKUs
         const { data: allModels } = await supabase
           .from('models')
-          .select('id, car_id, manufacturer_sku, image_url, scale');
+          .select('id, car_id, manufacturer_sku, image_url, scale, manufacturers(name)');
 
         // Filter in JavaScript for better control
         const matchedCars = (allCars || []).filter((car: any) => {
@@ -95,12 +95,22 @@ function SearchResults() {
           const eventName = car.event_name || 'Grand Prix';
           const variantWithImage = variants.find((v: any) => v.image_url);
           const hasStore = variants.some((v: any) => modelIdsWithStore.has(v.id));
+          const scales = [...new Set(variants.map((v: any) => v.scale).filter(Boolean))] as string[];
+          const makers = [...new Set(variants.map((v: any) => v.manufacturers?.name).filter(Boolean))] as string[];
+          const makerLabel =
+            makers.length === 0 ? 'Unknown'
+            : makers.length <= 2 ? makers.join(' · ')
+            : `${makers.slice(0, 2).join(' · ')} +${makers.length - 2}`;
 
           return {
             id: car.id,
             slug: car.slug,
             name: `${eventName} - ${car.chassis_name} - ${driver?.name} - ${car.season?.year}`,
-            manufacturer: `${variants.length} manufacturers`,
+            // Same shape as browseData: every maker and scale, not the first
+            // variant's and a count. A search card is the same card.
+            manufacturer: makerLabel,
+            scales,
+            manufacturers: makers,
             year: car.season?.year || 2024,
             driver: driver?.name,
             team: car.team?.name,

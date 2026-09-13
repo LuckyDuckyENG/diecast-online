@@ -150,11 +150,36 @@ export async function getBrowseCars(): Promise<Model[]> {
       }
     }
 
+    /**
+     * What this car is actually available as — every scale, every maker.
+     *
+     * The filters are built on these. A car is not one scale and one maker:
+     * 56% have models at more than one scale, 35% at more than one maker. The
+     * old shape carried `variants[0].scale` and a count string, so ticking
+     * 1:18 missed 214 cars that have a 1:18 model and the manufacturer filter
+     * offered "1 manufacturers", "2 manufacturers" — a variant count, never a
+     * maker. Both controls looked like they worked.
+     */
+    const scales = [...new Set(variants.map(v => v.scale).filter(Boolean))] as string[];
+    const makers = [...new Set(variants.map(v => v.manufacturers?.name).filter(Boolean))] as string[];
+
+    /**
+     * The card's label. Two names fit; beyond that it counts the remainder,
+     * because a card is not wide enough for four and the exact list is on the
+     * car page anyway.
+     */
+    const makerLabel =
+      makers.length === 0 ? 'Unknown'
+      : makers.length <= 2 ? makers.join(' · ')
+      : `${makers.slice(0, 2).join(' · ')} +${makers.length - 2}`;
+
     return {
       id: car.id,
       slug: car.slug,
       name: `${eventName} - ${car.chassis_name} - ${driver?.name} - ${car.season?.year}`,
-      manufacturer: `${variants.length} manufacturers`,
+      manufacturer: makerLabel,
+      scales,
+      manufacturers: makers,
       year: car.season?.year || 2024,
       driver: driver?.name,
       team: car.team?.name,

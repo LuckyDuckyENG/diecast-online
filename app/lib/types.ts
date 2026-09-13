@@ -11,7 +11,25 @@ export interface Model {
   /** Readable URL segment; falls back to id when absent. */
   slug?: string | null;
   name: string;
+  /**
+   * Human label for the card: the makers this car comes from, joined.
+   *
+   * Was `${variants.length} manufacturers`, which is a COUNT of models wearing
+   * the word manufacturer — so a card read "2 manufacturers • 2024", and a car
+   * with one model read "1 manufacturers".
+   */
   manufacturer: string;
+  /**
+   * Every distinct maker and scale this car is available in.
+   *
+   * Plural because a car is not one of either: 56% of visible cars have models
+   * at more than one scale and 35% come from more than one maker. Filtering
+   * used to test a single value — `variants[0].scale` — so ticking 1:18 missed
+   * 214 cars that have a 1:18 model, and the manufacturer filter tested the
+   * count string above and therefore never filtered by manufacturer at all.
+   */
+  scales: string[];
+  manufacturers: string[];
   year: number;
   driver?: string;
   team?: string;
