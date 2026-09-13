@@ -178,6 +178,39 @@ export async function getSeasonHub(year: string): Promise<HubData | null> {
 }
 
 /** Subjects with enough buyable cars to deserve a page — used for prerendering and the sitemap. */
+/**
+ * Hub slugs for generateStaticParams, and NOTHING else.
+ *
+ * A build on 2026-09-13 died with `cars: Gateway Timeout` while collecting page
+ * data for /drivers/[slug]. One slow response from Supabase — free tier, and
+ * the builder runs in iad1 while the database does not — failed the entire
+ * deployment. The cost was not a missing hub page: it was that the sitemap
+ * could not regenerate, so 14 newly imported 2019 cars stayed undiscoverable
+ * while the site itself served them perfectly well.
+ *
+ * `dynamicParams` defaults to true, so returning nothing here means the hub
+ * pages render on demand instead of being prerendered. Slower first hit, every
+ * page still correct, deployment still ships. `getAllCarSlugs` already does
+ * exactly this, for the same reason.
+ *
+ * WHY NOT INSIDE getHubSlugs ITSELF: car pages call that at request time to
+ * decide which hubs to link to. Swallowing an error there would silently strip
+ * internal links on a page that otherwise looks fine — an invisible SEO
+ * regression, which is precisely the failure mode this codebase keeps getting
+ * bitten by. A request-time failure should stay loud.
+ */
+export async function getHubSlugsForBuild(): Promise<{ drivers: string[]; teams: string[]; seasons: string[] }> {
+  try {
+    return await getHubSlugs();
+  } catch (err: any) {
+    console.error(
+      `⚠️ hub slugs unavailable at build (${err?.message}) — ` +
+        `hub pages will render on demand instead of being prerendered`
+    );
+    return { drivers: [], teams: [], seasons: [] };
+  }
+}
+
 export async function getHubSlugs(): Promise<{ drivers: string[]; teams: string[]; seasons: string[] }> {
   const { cars, modelsByCar, sellable } = await loadCatalogue();
   const buyable = cars.filter((c: any) => (modelsByCar.get(c.id) || []).some(m => sellable.has(m.id)));

@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import HubPage from '../../components/HubPage';
-import { getTeamHub, getHubSlugs } from '@/lib/hubData';
+import { getTeamHub, getHubSlugsForBuild } from '@/lib/hubData';
 
 export const revalidate = 3600;
 
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateStaticParams() {
-  const { teams } = await getHubSlugs();
+  const { teams } = await getHubSlugsForBuild();
   return teams.map(slug => ({ slug }));
 }
 

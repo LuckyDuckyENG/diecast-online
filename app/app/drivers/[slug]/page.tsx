@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import HubPage from '../../components/HubPage';
-import { getDriverHub, getHubSlugs } from '@/lib/hubData';
+import { getDriverHub, getHubSlugsForBuild } from '@/lib/hubData';
 
 export const revalidate = 3600;
 
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateStaticParams() {
-  const { drivers } = await getHubSlugs();
+  const { drivers } = await getHubSlugsForBuild();
   return drivers.map(slug => ({ slug }));
 }
 

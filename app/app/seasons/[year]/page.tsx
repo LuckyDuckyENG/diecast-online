@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import HubPage from '../../components/HubPage';
-import { getSeasonHub, getHubSlugs } from '@/lib/hubData';
+import { getSeasonHub, getHubSlugsForBuild } from '@/lib/hubData';
 
 export const revalidate = 3600;
 
 type Props = { params: Promise<{ year: string }> };
 
 export async function generateStaticParams() {
-  const { seasons } = await getHubSlugs();
+  const { seasons } = await getHubSlugsForBuild();
   return seasons.map(year => ({ year }));
 }
 
