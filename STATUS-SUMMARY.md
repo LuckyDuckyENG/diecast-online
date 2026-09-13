@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-13
+# Status Summary — last updated 2026-09-14
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -1479,6 +1479,140 @@ Model Shop states a scale on ZERO of its 460 F1 listings) let 354 listings
 through. **291 were SKUs already held.** 35 are importable. The parser has
 perhaps 75 models of runway left, not a thousand — the rest are duplicates,
 MotoGP, 1:12/1:64, or multi-car sets.
+
+## The browse filters were lying — 2026-09-14
+
+Two of the five filters did not work, and the counts we added made that
+visible. Both were built on a shape that cannot describe a car:
+
+```
+manufacturer: `${variants.length} manufacturers`     a COUNT, not a maker
+scale:        variants[0]?.scale                     the FIRST variant only
+```
+
+56% of visible cars have models at more than one scale, 35% at more than one
+maker. So:
+
+```
+1:18    284 -> 506 cars        the filter hid 43% of its own matches
+1:43    461 -> 695
+makers  "1 manufacturers", "2 manufacturers" -> Minichamps 447, Spark 397,
+        Looksmart 69, Bburago 65, BBR 48, Solido 38, Amalgam 1
+```
+
+**The Manufacturer filter had never filtered by manufacturer.** Ticking "3
+manufacturers" selected cars with three variants.
+
+`Model` now carries `scales[]` and `manufacturers[]`, filtering is any-overlap,
+and facet counts count a car once per distinct value. Totals now exceed the car
+count, which is CORRECT for a multi-value facet and will look like a bug to
+anyone who forgets that.
+
+`/search` built the same object with the same two faults. **The type system
+found it** — adding required fields to `Model` turned silent wrong data into a
+build error. Worth remembering as an argument for required fields over
+optional ones on shared types.
+
+The card label is now the makers themselves, at most two then "+N". That
+deletes the old `1 manufacturers` pluralisation bug by deleting the string
+rather than fixing its grammar.
+
+### The panel itself
+
+```
+74 checkboxes -> 29, with Advanced extending every list
+```
+
+It also **did not scroll**: sticky but unbounded, so reaching Driver meant
+scrolling the page, which scrolls the car grid away — you had to leave the
+results to change what filters them. Now bounded to the viewport with
+`overscroll-contain`, and the header is pinned so Clear all survives.
+
+Each list has its own rule, because one rule does not fit: Scale and
+Manufacturer whole (they are the only filters with no hub page behind them, so
+the questions only this sidebar answers, and they now lead); Year newest-4 —
+count would lead with 2023 and bury 2026; Team top-6 by count; Driver a curated
+household-name list.
+
+**Why curated:** fame and catalogue size disagree exactly where it matters.
+Alonso is 11th by count, Ricciardo 15th, Vettel 18th, Raikkonen 29th — a pure
+top-8 drops four of the most recognisable names in the sport. The list is
+intersected with the catalogue and topped up by count, so it cannot go stale
+and cannot show a driver we do not hold. **That is not hypothetical: Michael
+Schumacher and Senna are obvious entries and NEITHER is in the data.**
+
+**Options are also now counted per facet against every OTHER facet.** They were
+derived from all models regardless of selection, so ticking 1:12 still offered
+all 41 drivers, nearly every one leading to an empty grid.
+
+## 2019 went live, and a failed build was hiding it — 2026-09-13
+
+```
+2019    15 cars · 25 models · 26 retailer links · 14 eBay links
+        14/15 visible   (Verstappen Hungarian GP still has no link)
+```
+
+eBay search: 25 of 25 models searched, 13 linked, 14 links created. Pool sizes
+12–668, no truncation. **New links carry `item_country = null`** — only
+refresh-ebay records location — so country coverage is 3,203 of 3,217 until the
+next refresh. Self-healing, but do not re-run the AU analysis before then.
+
+### The sitemap was frozen because the DEPLOY was failing
+
+Three days of "the sitemap is stale" had one cause:
+
+```
+Error: cars: Gateway Timeout
+Failed to collect page data for /drivers/[slug]
+```
+
+One slow Supabase response during `generateStaticParams` aborted the whole
+build. The last SUCCESSFUL deploy predated the 2019 import, so the sitemap was
+stuck at 729 car URLs while the site itself served the new cars perfectly —
+ISR renders car pages on demand, but the sitemap is built once per deploy.
+
+`getHubSlugsForBuild` now returns empty lists on failure and the three hub
+routes use it. `dynamicParams` defaults to true, so hub pages render on demand
+instead of being prerendered: nothing lost but prerendering, and the deploy
+ships. **Deliberately NOT applied to sitemap.ts** — if that read fails the
+build SHOULD die, because the alternative is publishing a seven-URL sitemap
+that tells Google the catalogue is empty.
+
+After the fix: **747 car URLs, 2019 included, `/seasons/2019` present.**
+
+Supabase timed out or refused three more times during the same session's
+scripts. It is a real characteristic of the free tier from this machine, not a
+one-off — scripts that matter should retry.
+
+## Maintenance audit — 2026-09-13
+
+```
+801 cars · 1,813 models · 3,512 retailer links · 3,217 eBay links
+cars with models but NO links (invisible) : 54
+models with no image                      : 205
+retailer links already stale              : 8
+same SKU on more than one model           : 0
+```
+
+**Of the 54 invisible cars, ~20 are recoverable right now.** 25 of their 85
+models have a SKU sitting in a shop feed:
+
+```
+LIVECARMODEL   ~15 models      Stone Model   ~10 (incl. GPWS2019)
+Anthony's        2 (both also at LIVECARMODEL)
+```
+
+The other 34 are genuinely unstocked — no feed has their SKU and all 85 models
+have already been eBay-searched with no match. Mostly discontinued 2020.
+
+**Sweeping those three shops is the highest-value maintenance job left**, and
+it will change every facet count on /browse, which is now load-bearing.
+
+Also found: 7 models carry a shop variant suffix (`S6078_01`), 3 of which
+duplicate a clean-SKU model — exact-match dedupe cannot see they are the same
+part. 5 empty team rows (`Ferrari`, `Mercedes`, `Mercedes ` with a trailing
+space, `Visa Cash App RB`, `Mercedes-AMG Petronas Formula One Team`), 4 empty
+driver rows, 14 retailers with no links.
 
 ## 2019 IS IMPORTED — 2026-09-13
 
