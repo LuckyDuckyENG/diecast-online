@@ -19,6 +19,47 @@ const INITIAL_FILTERS: FilterOptions = {
 };
 
 /**
+ * Drivers people recognise, in the order they would be recognised.
+ *
+ * The short driver list cannot be "the eight with the most models", because
+ * fame and catalogue size disagree exactly where it matters: Alonso has 26
+ * cars and ranks 11th, Ricciardo 20th at 15th, Vettel 15 at 18th, Raikkonen 7
+ * at 29th. A pure count list drops four of the most recognisable names in the
+ * sport because they are retired or only raced part of the covered era.
+ *
+ * Names absent from the catalogue are dropped rather than rendered, which is
+ * not hypothetical: Michael Schumacher and Senna are both obvious entries for
+ * a list like this and NEITHER is in the data, which only runs from 2019. A
+ * curated list that is not intersected with reality shows filters that match
+ * nothing.
+ *
+ * Short lists are then topped up by count, so a rookie who becomes a household
+ * name — Antonelli, Bortoleto, Hadjar — appears on merit without anyone
+ * editing this array.
+ */
+const HOUSEHOLD_DRIVERS = [
+  'Lewis Hamilton',
+  'Max Verstappen',
+  'Fernando Alonso',
+  'Charles Leclerc',
+  'Lando Norris',
+  'Daniel Ricciardo',
+  'Sebastian Vettel',
+  'Kimi Raikkonen',
+];
+
+function orderDrivers(opts: { value: string; count: number }[]) {
+  const rank = new Map(HOUSEHOLD_DRIVERS.map((n, i) => [n, i]));
+  return [...opts].sort((a, b) => {
+    const ra = rank.get(a.value), rb = rank.get(b.value);
+    if (ra !== undefined && rb !== undefined) return ra - rb;
+    if (ra !== undefined) return -1;
+    if (rb !== undefined) return 1;
+    return b.count - a.count;
+  });
+}
+
+/**
  * Filtering and sorting for /browse.
  *
  * The car list is fetched on the server and passed in, so the grid and its
@@ -164,19 +205,53 @@ function BrowseContent({ initialModels }: { initialModels: Model[] }) {
    * not contain; and ten of forty-six drivers, missing AlphaTauri and Alfa
    * Romeo entirely so 2021-2023 could not be filtered by team. Deriving them
    * means the lists cannot go stale again.
+   *
+   * COUNTED PER FACET, against everything EXCEPT that facet.
+   *
+   * They used to be derived from every model regardless of what was selected,
+   * which offered combinations that return nothing: ticking 1:12 still listed
+   * all 41 drivers, and almost every one of them led to an empty grid.
+   *
+   * Each facet is therefore counted against the models passing all the OTHER
+   * facets. Counting against the fully filtered set instead would zero every
+   * unticked driver the moment one driver was ticked, making multi-select
+   * impossible — which is how faceted search is meant to work.
    */
   const filterOptions = useMemo(() => {
-    const uniq = (xs: (string | undefined)[]) =>
-      [...new Set(xs.filter((x): x is string => !!x))];
-    return {
-      years: uniq(initialModels.map(m => m.year ? String(m.year) : undefined))
-        .sort((a, b) => Number(b) - Number(a)),
-      teams: uniq(initialModels.map(m => m.team)).sort(),
-      drivers: uniq(initialModels.map(m => m.driver)).sort(),
-      scales: uniq(initialModels.map(m => m.scale)).sort(),
-      manufacturers: uniq(initialModels.map(m => m.manufacturer)).sort(),
+    const passes = (m: Model, skip: keyof FilterOptions) => {
+      if (skip !== 'years' && filters.years.length && !filters.years.includes(String(m.year))) return false;
+      if (skip !== 'teams' && filters.teams.length && !(m.team && filters.teams.includes(m.team))) return false;
+      if (skip !== 'drivers' && filters.drivers.length && !(m.driver && filters.drivers.includes(m.driver))) return false;
+      if (skip !== 'scales' && filters.scales.length && !(m.scale && filters.scales.includes(m.scale))) return false;
+      if (skip !== 'manufacturers' && filters.manufacturers.length && !filters.manufacturers.includes(m.manufacturer)) return false;
+      return true;
     };
-  }, [initialModels]);
+
+    const tally = (key: keyof FilterOptions, value: (m: Model) => string | undefined) => {
+      const counts = new Map<string, number>();
+      for (const m of initialModels) {
+        if (!passes(m, key)) continue;
+        const v = value(m);
+        if (v) counts.set(v, (counts.get(v) || 0) + 1);
+      }
+      // A ticked value must survive even at zero, or it cannot be unticked.
+      for (const v of filters[key] as string[]) if (!counts.has(v)) counts.set(v, 0);
+      return [...counts].map(([value, count]) => ({ value, count }));
+    };
+
+    const byCount = (a: { count: number }, b: { count: number }) => b.count - a.count;
+
+    return {
+      // Recency, not count. Count would lead with 2023 and bury 2026, and
+      // nobody thinks about seasons in order of how many models exist.
+      years: tally('years', m => (m.year ? String(m.year) : undefined))
+        .sort((a, b) => Number(b.value) - Number(a.value)),
+      teams: tally('teams', m => m.team).sort(byCount),
+      drivers: orderDrivers(tally('drivers', m => m.driver)),
+      scales: tally('scales', m => m.scale).sort(byCount),
+      manufacturers: tally('manufacturers', m => m.manufacturer).sort(byCount),
+    };
+  }, [initialModels, filters]);
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
