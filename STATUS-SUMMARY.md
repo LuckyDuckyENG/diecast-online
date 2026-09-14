@@ -1480,6 +1480,79 @@ through. **291 were SKUs already held.** 35 are importable. The parser has
 perhaps 75 models of runway left, not a thousand — the rest are duplicates,
 MotoGP, 1:12/1:64, or multi-car sets.
 
+## Three seasons backfilled, and the method that works — 2026-09-14
+
+```
+catalogue   835 cars · 1,904 models      (was 801 · 1,813)
+2021        +11 models,  0 new cars
+2020        +23 cars,   +61 models
+2018        +11 cars,   +19 models   (season, 2 teams, 4 drivers created first)
+visible     773/835
+```
+
+**Every SKU was read from a shop's own `sku` field. None was computed.** That is
+the entire difference between this and the CSVs that had to be thrown away.
+
+### How it actually works, written down because it keeps being asked
+
+1. Fetch all 8 shop feeds — ~51,000 products, each with a `sku` and a `title`.
+2. Parse the TITLE for year, driver, event, chassis/team, scale, maker.
+3. `--seed` supplies the vocabulary from the catalogue itself — 47 events, 52
+   drivers, 22 teams — so the parser recognises rather than guesses.
+4. A row is emitted only when every field resolves. 2021: 454 SKUs -> 90 rows.
+5. Same SKU at 2+ shops = CONFIRMED.
+6. sync-csv creates only what is missing. 2021: 136 SKUs -> 11 new.
+
+**The vocabulary is what does the work.** 2020 yielded 61 models because the
+catalogue already knew its drivers, teams and races. 2019 yielded 25 because it
+was nearly complete. 1988 yielded 3 because none of it existed. Going back, the
+cost is not parsing — it is how many reference rows must be hand-created first.
+
+### GROSS UNHELD SKUs BADLY OVERSTATE THE OPPORTUNITY
+
+```
+season   gross unheld   actually imported
+2021          235             11
+2020          158             61
+2018           66             19
+```
+
+The ratio is not even stable. **The only way to know is to run the generator and
+read the CSV.** Do not plan a session off a gross count again — that is what
+sent this one round in circles twice.
+
+### The 2018 researched CSV: same failure as the 2019 one
+
+87 rows, excellent race notes, and SKUs derived from the Minichamps rule again.
+**5 of 108 appear in any shop feed.** Even the rows claiming "confirmed": 4 of
+33. The file states the scheme is "confirmed reliable across multiple prior
+seasons in this project" — **it is not**. It predicts year, round and driver and
+CANNOT predict the prefix (110/113/117/410/417/447), and Looksmart does not use
+the scheme at all.
+
+**The reframe worth keeping:** that CSV lists 87 cars that EXISTED in 2018. The
+feeds stock ~30. Importing the other ~57 would not add 57 cars — it would add 57
+INVISIBLE cars, because the store filter hides anything with no link. For a
+price-comparison site a car nobody sells is not inventory, it is dead weight.
+Use a researched CSV as a coverage map, never as a source of part numbers.
+
+### One bad row caught by its own SKU
+
+`Mick Schumacher · Ferrari · Pre-season Testing (Fiorano) · SF71H · BBR211847`
+— the `21` is 2021. Mick's 2021 Fiorano test in a 2018-spec car, dated from the
+CHASSIS rather than the event. Dropped before import. **Chassis year is not
+event year**, and the part number is what exposed it.
+
+### Reference rows created for 2018
+
+season 2018, teams Force India and Toro Rosso (`season_id` null, matching how
+Alfa Romeo and AlphaTauri are stored), drivers Ericsson #9, Hartley #28,
+Sirotkin #35, Vandoorne #2.
+
+**Sauber was NOT needed** — the 2018 car is titled `Alfa Romeo C37` in every
+feed and that team already existed. Checking the feeds before inventing a name
+saved a duplicate team row.
+
 ## The browse filters were lying — 2026-09-14
 
 Two of the five filters did not work, and the counts we added made that
