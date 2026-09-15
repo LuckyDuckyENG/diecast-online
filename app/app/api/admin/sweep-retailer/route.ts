@@ -47,6 +47,23 @@ interface Body {
    * sending it back here continues from exactly there.
    */
   offset?: number;
+  /**
+   * Only consider models with NO link at this retailer yet.
+   *
+   * A sitemap shop fetches one product page per candidate, and the candidate
+   * list is every model holding a SKU. At LIVECARMODEL that is 1,123 pages to
+   * reach the ~20 models actually missing a link — four passes of a 240s
+   * budget, each needing a human to press the button again without touching
+   * the dropdown, reloading, or switching mode, any of which resets the cursor
+   * to zero. In practice it never finished: after a week of attempts 807 of
+   * its links had not been re-read since the 8th.
+   *
+   * This drops the candidate list to the gaps, which is one short pass. It
+   * refreshes no prices — that is what a normal sweep is for — so it is the
+   * right tool immediately after importing a season, and the wrong one for
+   * keeping prices current.
+   */
+  gapsOnly?: boolean;
 }
 
 const readAll = <T = any>(table: string, columns: string) =>
@@ -105,7 +122,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { retailerId, dryRun = true, offset = 0 }: Body = await request.json();
+    const { retailerId, dryRun = true, offset = 0, gapsOnly = false }: Body = await request.json();
     if (!retailerId) {
       return NextResponse.json({ error: 'retailerId is required' }, { status: 400 });
     }
@@ -141,17 +158,32 @@ export async function POST(request: NextRequest) {
         'car:cars(event_name, chassis_name, driver:drivers(name), season:seasons(year))'
     );
 
+    /**
+     * In gapsOnly mode, narrow the candidates to models this retailer has no
+     * link for. Read BEFORE the feed because the sitemap prefilter is what
+     * turns 65,000 URLs into a few hundred fetches, and it can only narrow to
+     * what it is given.
+     */
+    const alreadyLinkedHere = new Set<string>();
+    if (gapsOnly) {
+      const rows = await readAll('price_history', 'model_id, retailer_id');
+      for (const r of rows || []) if (r.retailer_id === retailerId) alreadyLinkedHere.add(r.model_id);
+    }
+    const candidates = gapsOnly
+      ? (models || []).filter((m: any) => !alreadyLinkedHere.has(m.id))
+      : (models || []);
+
     const feed = sitemapShop
       ? await fetchSitemapFeed(
           host,
-          (models || []).map((m: any): CandidateModel => ({
+          candidates.map((m: any): CandidateModel => ({
             sku: m.manufacturer_sku || '',
             scale: m.scale || null,
             manufacturer: m.manufacturer?.name || null,
             driver: m.car?.driver?.name || null,
             event: m.car?.event_name || null,
             year: m.car?.season?.year ?? null,
-          })).filter(m => m.sku),
+          })).filter((m: CandidateModel) => m.sku),
           { offset }
         )
       : await fetchShopifyFeed(host);
@@ -225,8 +257,11 @@ export async function POST(request: NextRequest) {
       reference.get(k)!.push(p);
     }
 
+    // `candidates`, not `models`: in gapsOnly mode a model that already has a
+    // link here is not a candidate for a Shopify shop either, so both feed
+    // types narrow the same way and the mode means one thing everywhere.
     const pairs: { model: SweepModel; variant: any }[] = [];
-    for (const m of (models || []) as any[]) {
+    for (const m of candidates as any[]) {
       const sku = (m.manufacturer_sku || '').trim();
       if (!sku) continue;
       const variant = feed.bySku.get(sku.toUpperCase());
