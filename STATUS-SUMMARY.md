@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-14
+# Status Summary — last updated 2026-09-16
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -1479,6 +1479,58 @@ Model Shop states a scale on ZERO of its 460 F1 listings) let 354 listings
 through. **291 were SKUs already held.** 35 are importable. The parser has
 perhaps 75 models of runway left, not a thousand — the rest are duplicates,
 MotoGP, 1:12/1:64, or multi-car sets.
+
+## Search Console: which drivers are actually winnable — 2026-09-16
+
+```
+/drivers/liam-lawson       2 clicks · 41 impressions   4.9% CTR
+/drivers/charles-leclerc   0 clicks · 23 impressions
+/drivers/max-verstappen    0 clicks · 15 impressions
+/about                     7 clicks · 15 impressions
+```
+
+**Three driver hubs draw 79 impressions; the home page draws 4.** The demand is
+driver-shaped, now measured rather than inferred.
+
+**But look at WHICH driver converts.** Lawson gets clicks. Leclerc and
+Verstappen get none from 38 impressions between them — almost certainly
+position, because every diecast retailer on earth competes for "max verstappen
+model car" while "liam lawson diecast" is winnable. Lawson's hub held 13 cars
+and drew 2 impressions when first recorded; it is now the best-performing page
+on the site.
+
+**This cuts against the historic-drivers plan.** 92 unheld Senna SKUs reads as
+opportunity, but Senna is the most contested name in the hobby. The winnable
+ground looks like Lawson, Hadjar, Bortoleto — current drivers with real
+interest, thin competition, models already held and hubs already built.
+
+`/about` at 7 clicks is probably brand search: people looking for the site, not
+a car.
+
+### Four clicks were landing on a bare 404
+
+```
+/cars/b975b545-1cd7-46d7-8896-1427bd62153d   3 clicks · 4 impressions
+/cars/d43e4377-82e6-407a-989c-198628d3977d   1 click  · 8 impressions
+```
+
+Both cars were deleted before the earliest backup, so there is nothing to
+redirect to and no way to learn what they were. And there was **no not-found
+page at all**, so Next served its default: "404 — This page could not be found",
+system font, no navigation, nothing to click.
+
+Those two will leave the index on their own. The general case will not — every
+merge or delete leaves an indexed URL behind. `app/not-found.tsx` now explains
+that older car links break when a model is merged or dropped, offers search, and
+links the driver hubs, because those are what rank. It uses
+`getHubSlugsForBuild`, so a Supabase timeout cannot fail the deploy from a 404
+page.
+
+**A deploy is what makes a backfill discoverable.** The 34 cars imported on the
+14th were invisible to Google until the 16th, because the site renders car pages
+on demand but builds the sitemap once per deploy. Sitemap went 747 -> 777 car
+URLs the moment it shipped. **Import, then deploy** — the import alone is half
+the job.
 
 ## Three seasons backfilled, and the method that works — 2026-09-14
 
