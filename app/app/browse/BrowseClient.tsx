@@ -196,9 +196,36 @@ function BrowseContent({ initialModels }: { initialModels: Model[] }) {
       case 'price-high':
         results.sort((a, b) => (b.lowestPrice ?? -Infinity) - (a.lowestPrice ?? -Infinity));
         break;
+      /**
+       * Popular, on evidence rather than a shuffle.
+       *
+       * This was `Math.random()`, so the control did nothing except reorder the
+       * grid differently on every render — the same defect as "Price: Low to
+       * High" reading a field that was never set. A sort that lies about what
+       * it sorts by is worse than no sort, because it looks like it worked.
+       *
+       * Three keys, strongest evidence first:
+       *
+       *   unitsSold     what people actually BOUGHT on eBay. The only demand
+       *                 signal in the data, and the only one that cannot be
+       *                 explained by a shop's buying decisions.
+       *   listingCount  how many sellers are carrying it. Supply, but supply
+       *                 follows demand on a marketplace — sellers stock what
+       *                 moves.
+       *   shopCount     how many retail prices we hold. Weakest, and it breaks
+       *                 ties rather than deciding anything.
+       *
+       * The tiers matter because only 282 cars have ever recorded a sale.
+       * Sorting on units alone would rank those and leave everything else in
+       * whatever order it arrived, which is the old bug wearing a better name.
+       */
       case 'popular':
-        // Random order for now (would be based on actual popularity data)
-        results.sort(() => Math.random() - 0.5);
+        results.sort((a, b) =>
+          (b.unitsSold ?? 0) - (a.unitsSold ?? 0) ||
+          (b.listingCount ?? 0) - (a.listingCount ?? 0) ||
+          (b.shopCount ?? 0) - (a.shopCount ?? 0) ||
+          b.year - a.year
+        );
         break;
     }
 

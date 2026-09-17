@@ -74,8 +74,31 @@ export async function getBrowseCars(): Promise<Model[]> {
     selectAll<any>(supabase, 'price_history',
       'model_id, price_aud, in_stock, is_preorder, last_checked_at, recorded_at'),
     selectAll<any>(supabase, 'ebay_links',
-      'model_id, price_aud, availability, last_checked_at, created_at'),
+      'model_id, price_aud, availability, last_checked_at, created_at, sold_quantity'),
   ]);
+
+  /**
+   * How many of this car have actually SOLD on eBay.
+   *
+   * The only demand signal in the data. Everything else we hold is supply —
+   * how many shops stock it, how many sellers list it — which says what the
+   * trade bought, not what collectors did.
+   *
+   * Counted across EVERY listing including sold-out and stale ones, because
+   * `sold_quantity` is a lifetime figure: a listing that sold out is the
+   * strongest evidence of demand there is, and dropping it would count exactly
+   * the wrong things.
+   *
+   * 3,203 of 3,321 listings carry the figure and 282 are above zero, totalling
+   * 853 units. So it ranks the top of the grid meaningfully and says nothing
+   * about the long tail — which is why it is a first sort key with fallbacks
+   * beneath it, not a score on its own.
+   */
+  const soldByModel = new Map<string, number>();
+  for (const r of ebayRows) {
+    const n = Number(r.sold_quantity);
+    if (n > 0) soldByModel.set(r.model_id, (soldByModel.get(r.model_id) || 0) + n);
+  }
 
   // The same rules the car page quotes on: in stock, recently verified, and for
   // shops, not a pre-order. A price we would not print is not a price we can
@@ -180,6 +203,10 @@ export async function getBrowseCars(): Promise<Model[]> {
       manufacturer: makerLabel,
       scales,
       manufacturers: makers,
+      // Demand, then supply breadth — see the "Popular" case in BrowseClient.
+      unitsSold: variants.reduce((n: number, v: any) => n + (soldByModel.get(v.id) || 0), 0),
+      listingCount: variants.reduce((n: number, v: any) => n + (ebayByModel.get(v.id)?.length || 0), 0),
+      shopCount: variants.reduce((n: number, v: any) => n + (shopByModel.get(v.id)?.length || 0), 0),
       year: car.season?.year || 2024,
       driver: driver?.name,
       team: car.team?.name,

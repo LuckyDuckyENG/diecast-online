@@ -30,6 +30,16 @@ export interface Model {
    */
   scales: string[];
   manufacturers: string[];
+  /**
+   * What the "Popular" sort runs on.
+   *
+   * Optional because only /browse can compute them — /search reads neither
+   * eBay listings nor shop prices, and has no sort to feed. Absent is the
+   * truth there, rather than a zero that would read as "nothing sold".
+   */
+  unitsSold?: number;
+  listingCount?: number;
+  shopCount?: number;
   year: number;
   driver?: string;
   team?: string;
