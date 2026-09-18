@@ -96,6 +96,19 @@ const BRAND_MIN_SAMPLES = 3;
 const CURRENCY_SHIFT = 0.25;
 
 /**
+ * How much of a shop has to jump before it reads as a currency change rather
+ * than a sale. Half is deliberately blunt: a currency change moves everything,
+ * a sale moves a few, and there is no middle case worth tuning for.
+ */
+const SHIFT_MAJORITY = 0.5;
+
+/**
+ * Fewer comparable products than this and the share means nothing, so the
+ * sweep keeps the old conservative behaviour and holds every large move.
+ */
+const MIN_SHIFT_SAMPLES = 10;
+
+/**
  * Shops that mark an item as not-yet-shipping in the title.
  *
  * On its own this says nothing about the price. Anthony's uses "Pre-Order" for
@@ -182,6 +195,40 @@ export function classifyMatches(
   for (const [key, prices] of byBrand) {
     if (prices.length >= BRAND_MIN_SAMPLES) brandMedians.set(key, median(prices));
   }
+
+  /**
+   * Did this shop's prices move TOGETHER, or did a few products move?
+   *
+   * CURRENCY_SHIFT blocks any move over 25% because a jump that big usually
+   * means the feed changed currency. That is right, and on its own it is also
+   * a trap: when the STORED price is the wrong one, the correction is exactly
+   * the move it refuses, so the bad price is protected and every later sweep
+   * re-flags the same rows forever.
+   *
+   * Car Model Store sat that way for weeks. 17 of its prices were stale-high
+   * because the shop cut them ~30%, and each sweep dutifully reported
+   * "177 -> 124.00 is a -30% jump" and wrote nothing.
+   *
+   * The two cases look different in aggregate. A currency change moves the
+   * WHOLE feed at once and by roughly one factor. A sale moves a handful of
+   * products while everything else holds. So measure the share that moved: at
+   * Car Model Store 10 of 77 did, which is a sale. If half the shop jumps, it
+   * is the currency and everything still goes to review.
+   *
+   * Below MIN_SHIFT_SAMPLES comparable products there is not enough to tell
+   * the cases apart, so it stays conservative and holds — the old behaviour.
+   */
+  const shiftRatios: number[] = [];
+  for (const { model, variant } of pairs) {
+    const was = model.existing?.price;
+    const now = variant.price;
+    if (was != null && was > 0 && now != null && now > 0) shiftRatios.push(now / was);
+  }
+  const shiftedShare = shiftRatios.length
+    ? shiftRatios.filter(r => r > 1 + CURRENCY_SHIFT || r < 1 - CURRENCY_SHIFT).length / shiftRatios.length
+    : 0;
+  const wholeShopMoved =
+    shiftRatios.length < MIN_SHIFT_SAMPLES ? true : shiftedShare >= SHIFT_MAJORITY;
 
   const out: SweepMatch[] = [];
 
@@ -276,10 +323,13 @@ export function classifyMatches(
      */
     if (was != null && was > 0) {
       const ratio = price / was;
-      if (ratio > 1 + CURRENCY_SHIFT || ratio < 1 - CURRENCY_SHIFT) {
+      const bigMove = ratio > 1 + CURRENCY_SHIFT || ratio < 1 - CURRENCY_SHIFT;
+      // Only a hold when the rest of the shop moved too — see wholeShopMoved.
+      if (bigMove && wholeShopMoved) {
         out.push(mk('review',
-          `${was} → ${price.toFixed(2)} is a ${((ratio - 1) * 100).toFixed(0)}% jump. ` +
-          `Too large for a price change — check the shop is quoting the same currency we stored.`,
+          `${was} → ${price.toFixed(2)} is a ${((ratio - 1) * 100).toFixed(0)}% jump, and ` +
+          `${(shiftedShare * 100).toFixed(0)}% of this shop's prices moved with it. ` +
+          `That is a change of currency, not of price — check what the feed is quoting.`,
           false));
         continue;
       }
