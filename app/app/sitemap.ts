@@ -20,6 +20,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: SITE_URL, changeFrequency: 'daily', priority: 1 },
     { url: `${SITE_URL}/browse`, changeFrequency: 'daily', priority: 0.9 },
+    // Changes whenever a sweep moves a price, so daily — and high priority
+    // because it is the one page that states the site's claim directly.
+    { url: `${SITE_URL}/savings`, changeFrequency: 'daily', priority: 0.9 },
     { url: `${SITE_URL}/retailers`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${SITE_URL}/about`, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${SITE_URL}/contact`, changeFrequency: 'yearly', priority: 0.3 },

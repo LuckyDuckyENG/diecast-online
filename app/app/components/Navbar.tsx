@@ -49,6 +49,15 @@ export default function Navbar() {
           <Link href="/browse" className="font-semibold text-[15px] hover:text-[var(--accent)] transition-colors flex-none" style={{ color: '#3a3833' }}>
             Browse
           </Link>
+          {/*
+            Desktop only, beside Browse. The mobile bar stays as it is — it
+            already carries a logo, Browse and a search field in a row that has
+            no space left, and a fourth item there would cost more than the
+            page is worth on a phone.
+          */}
+          <Link href="/savings" className="font-semibold text-[15px] hover:text-[var(--accent)] transition-colors flex-none" style={{ color: '#3a3833' }}>
+            Best prices
+          </Link>
 
           {/* Search Bar */}
           <form onSubmit={handleSearch} className="flex-1 max-w-[448px]">
