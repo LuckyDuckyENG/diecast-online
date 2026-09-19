@@ -44,25 +44,37 @@ function Row({ r }: { r: SavingRow }) {
             {r.event ? ` · ${r.event}` : ''}
             {r.condition ? ` · ${r.condition}` : ''}
           </p>
-          <p className="text-sm text-[var(--text-secondary)] mt-1">
-            <strong className="text-[var(--accent)]">AUD {r.price.toFixed(2)}</strong>
-            {' at '}{r.seller}
-            <span className="text-[var(--text-tertiary)]">
-              {' · typically AUD '}{r.typical.toFixed(2)}{' across '}{r.shopCount}{' shops'}
-            </span>
+          {/*
+            The comparison, not the price. The price lives on the right where a
+            reader looks for it; repeating it here is what made the row read as
+            two competing figures.
+          */}
+          <p className="text-sm text-[var(--text-tertiary)] mt-1 truncate">
+            usually AUD {r.typical.toFixed(2)} across {r.shopCount} shops
           </p>
         </div>
 
         {/*
-          "below typical", never "save AUD X". Postage is not in the data, so a
-          saving cannot be promised — the wording rule the car page already uses.
+          THE PRICE IS THE BIG NUMBER, not the saving.
+
+          It was the other way round, and at a glance "−AUD 320" read as the
+          cost of the model — the largest, boldest figure on the row, in the
+          same accent as the real price it sat beside. The number a buyer acts
+          on is what they would pay, so that is the one that gets the weight.
+
+          The saving keeps its own line underneath, worded rather than signed:
+          "AUD 320 below typical" cannot be misread as a price the way "−AUD
+          320" can. Still never "save AUD 320" — postage is not in the data.
         */}
         <div className="text-right shrink-0">
-          <p className="font-display font-black text-xl text-[var(--accent)] whitespace-nowrap">
-            −AUD {Math.round(r.saving)}
+          <p className="font-display font-black text-xl text-[var(--text-primary)] whitespace-nowrap">
+            AUD {r.price.toFixed(2)}
           </p>
-          <p className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">
-            {(r.pct * 100).toFixed(0)}% below typical
+          <p className="text-xs text-[var(--text-tertiary)] truncate max-w-[9rem] ml-auto">
+            at {r.seller}
+          </p>
+          <p className="mt-1.5 inline-block rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)] whitespace-nowrap">
+            AUD {Math.round(r.saving)} below typical
           </p>
         </div>
       </Link>
