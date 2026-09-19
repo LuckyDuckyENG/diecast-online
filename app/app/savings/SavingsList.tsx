@@ -26,7 +26,21 @@ import { slugify } from '@/lib/carSlug';
 function Row({ r }: { r: SavingRow }) {
   return (
     <li className="border border-[var(--border-light)] rounded-xl p-4 hover:border-[var(--accent)] transition-colors">
-      <Link href={r.carSlug ? `/cars/${r.carSlug}` : '#'} className="flex gap-4 items-center">
+      {/*
+        TWO destinations, because the row answers two questions.
+        The body goes to the car page, which is where the comparison lives and
+        the reason the site exists. The shop name goes straight to the listing
+        being quoted — without it the row names an exact model at an exact shop
+        and then makes you open the car page, work out which scale and maker it
+        meant, and find that shop in a list.
+        A nested <a> inside a <Link> is invalid, so the body link wraps only
+        the part that leads inward.
+      */}
+      <div className="flex gap-4 items-center">
+        <Link
+          href={r.carSlug ? `/cars/${r.carSlug}` : '#'}
+          className="flex gap-4 items-center min-w-0 flex-1"
+        >
         {r.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={r.imageUrl} alt="" loading="lazy"
@@ -53,6 +67,7 @@ function Row({ r }: { r: SavingRow }) {
             usually AUD {r.typical.toFixed(2)} across {r.shopCount} shops
           </p>
         </div>
+        </Link>
 
         {/*
           THE PRICE IS THE BIG NUMBER, not the saving.
@@ -70,14 +85,23 @@ function Row({ r }: { r: SavingRow }) {
           <p className="font-display font-black text-xl text-[var(--text-primary)] whitespace-nowrap">
             AUD {r.price.toFixed(2)}
           </p>
-          <p className="text-xs text-[var(--text-tertiary)] truncate max-w-[9rem] ml-auto">
-            at {r.seller}
-          </p>
+          {/*
+            rel matches what the car page sends: "sponsored" on eBay because
+            those links are affiliate-tagged, plain noopener for a shop.
+          */}
+          <a
+            href={r.url}
+            target="_blank"
+            rel={r.kind === 'ebay' ? 'sponsored noopener noreferrer' : 'noopener noreferrer'}
+            className="text-xs text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:underline truncate max-w-[10rem] ml-auto block"
+          >
+            at {r.seller} ↗
+          </a>
           <p className="mt-1.5 inline-block rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)] whitespace-nowrap">
             AUD {Math.round(r.saving)} below typical
           </p>
         </div>
-      </Link>
+      </div>
     </li>
   );
 }

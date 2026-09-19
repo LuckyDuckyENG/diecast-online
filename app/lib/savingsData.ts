@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { selectAll } from './selectAll';
 import { shouldHidePrice } from './freshness';
+import { ebayAffiliateUrl } from './ebayAffiliate';
 
 /**
  * Where a model is cheaper than what it usually costs.
@@ -46,6 +47,21 @@ export interface SavingRow {
   /** Cheapest live price, and who has it. */
   price: number;
   seller: string;
+  /**
+   * Straight to the listing being quoted.
+   *
+   * Without it the row promises "this exact model is AUD 320 under at
+   * Downies" and then makes you open the car page, work out which scale and
+   * maker it meant, and find the shop in a list. Three steps to reach the
+   * thing the row already identified.
+   *
+   * eBay URLs are affiliate-wrapped here rather than at render time, so every
+   * surface linking to a listing gets the same treatment — the rule
+   * carPageData already follows. Returns the URL untouched when
+   * EBAY_CAMPAIGN_ID is unset, which is how preview deployments avoid
+   * generating tracked clicks from an unapproved property.
+   */
+  url: string;
   /** Median of the SHOP prices for this model — what it normally costs. */
   typical: number;
   /** typical - price, always at least MIN_SAVING_AUD. */
@@ -76,19 +92,19 @@ const median = (xs: number[]): number => {
 export async function getSavings(): Promise<{ shop: SavingRow[]; ebay: SavingRow[] }> {
   const [priceRows, ebayRows, models, cars, seasons, drivers, retailers] = await Promise.all([
     selectAll<any>(supabase, 'price_history',
-      'model_id, price_aud, in_stock, is_preorder, retailer_id, last_checked_at, recorded_at'),
+      'model_id, price_aud, in_stock, is_preorder, retailer_id, last_checked_at, recorded_at, product_url'),
     selectAll<any>(supabase, 'ebay_links',
-      'model_id, price_aud, availability, last_checked_at, created_at, seller, item_condition'),
-    selectAll<any>(supabase, 'models', 'id, car_id, scale, image_url, manufacturers(name)'),
+      'model_id, price_aud, availability, last_checked_at, created_at, seller, item_condition, ebay_url, marketplace'),
+    selectAll<any>(supabase, 'models', 'id, car_id, scale, image_url, manufacturer_sku, manufacturers(name)'),
     selectAll<any>(supabase, 'cars', 'id, slug, season_id, driver_id, event_name'),
     selectAll<any>(supabase, 'seasons', 'id, year'),
     selectAll<any>(supabase, 'drivers', 'id, name'),
-    selectAll<any>(supabase, 'retailers', 'id, name'),
+    selectAll<any>(supabase, 'retailers', 'id, name, url'),
   ]);
 
   const Y = new Map(seasons.map(s => [s.id, s.year]));
   const D = new Map(drivers.map(d => [d.id, d.name]));
-  const R = new Map(retailers.map(r => [r.id, r.name]));
+  const R = new Map(retailers.map(r => [r.id, r]));
   const C = new Map(cars.map(c => [c.id, c]));
   const M = new Map(models.map(m => [m.id, m]));
 
@@ -97,25 +113,37 @@ export async function getSavings(): Promise<{ shop: SavingRow[]; ebay: SavingRow
    * pre-order, and checked recently enough that we still believe it. Anything
    * we would hide on a car page has no business setting a headline here.
    */
-  const shopPrices = new Map<string, { price: number; who: string }[]>();
+  const shopPrices = new Map<string, { price: number; who: string; url: string }[]>();
   for (const r of priceRows) {
     const p = Number(r.price_aud);
     if (!(p > 0) || r.in_stock === false || r.is_preorder === true) continue;
     if (shouldHidePrice(r.last_checked_at || r.recorded_at)) continue;
+    const shop = R.get(r.retailer_id);
     if (!shopPrices.has(r.model_id)) shopPrices.set(r.model_id, []);
-    shopPrices.get(r.model_id)!.push({ price: p, who: R.get(r.retailer_id) || 'a shop' });
+    shopPrices.get(r.model_id)!.push({
+      price: p,
+      who: shop?.name || 'a shop',
+      // The product page where the price was read. Falling back to the shop's
+      // home page is poor but honest; an empty href would look like a bug.
+      url: r.product_url || shop?.url || '#',
+    });
   }
 
-  const ebayPrices = new Map<string, { price: number; who: string; condition: string | null }[]>();
+  const ebayPrices = new Map<string, { price: number; who: string; condition: string | null; url: string }[]>();
   for (const r of ebayRows) {
     const p = Number(r.price_aud);
     if (!(p > 0) || /OUT_OF_STOCK/i.test(r.availability || '')) continue;
     if (shouldHidePrice(r.last_checked_at || r.created_at)) continue;
+    const m = M.get(r.model_id);
     if (!ebayPrices.has(r.model_id)) ebayPrices.set(r.model_id, []);
     ebayPrices.get(r.model_id)!.push({
       price: p,
       who: r.seller || 'an eBay seller',
       condition: r.item_condition || null,
+      url: ebayAffiliateUrl(r.ebay_url || '', {
+        marketplace: r.marketplace,
+        customId: m?.manufacturer_sku,
+      }) || '#',
     });
   }
 
@@ -148,7 +176,7 @@ export async function getSavings(): Promise<{ shop: SavingRow[]; ebay: SavingRow
     if (shopSaving >= MIN_SAVING_AUD) {
       shop.push({
         modelId, ...describe(modelId),
-        price: cheapest.price, seller: cheapest.who,
+        price: cheapest.price, seller: cheapest.who, url: cheapest.url,
         typical, saving: shopSaving, pct: shopSaving / typical,
         shopCount: prices.length, kind: 'shop',
       });
@@ -167,7 +195,7 @@ export async function getSavings(): Promise<{ shop: SavingRow[]; ebay: SavingRow
       if (ebaySaving >= MIN_SAVING_AUD) {
         ebay.push({
           modelId, ...describe(modelId),
-          price: best.price, seller: best.who,
+          price: best.price, seller: best.who, url: best.url,
           typical, saving: ebaySaving, pct: ebaySaving / typical,
           shopCount: prices.length, kind: 'ebay', condition: best.condition,
         });
