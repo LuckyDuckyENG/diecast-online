@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-16
+# Status Summary — last updated 2026-09-19
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -1479,6 +1479,85 @@ Model Shop states a scale on ZERO of its 460 F1 listings) let 354 listings
 through. **291 were SKUs already held.** 35 are importable. The parser has
 perhaps 75 models of runway left, not a thousand — the rest are duplicates,
 MotoGP, 1:12/1:64, or multi-car sets.
+
+## /savings — the site's claim on one page — 2026-09-18/19
+
+```
+113 rows   76 cheaper at a shop · 37 cheaper on eBay
+min 3 shops · min AUD 20 · sorted by saving
+driver filter · direct links out · in the nav and sitemap
+```
+
+Every car page already showed that a model costs different money in different
+places. Finding the big gaps meant opening 777 of them.
+
+### The design decisions, and what forced each
+
+**Ranked against the TYPICAL price, not the dearest.** Ranking by full spread
+ranks by whichever shop is most expensive, and shops differ in price level
+honestly — Car Model Store is a UK retailer at UK prices, 1.73x the market. A
+dearest-based page would have said "don't buy from the expensive one", which is
+true and useless.
+
+**Minimum three shops.** A median of two IS the dearer one, so at n=2 "typical"
+would have been the old framing relabelled. 428 rows at two, 113 at three, 26
+at four.
+
+**Minimum AUD 20**, because postage is not in the data.
+
+**Shop and eBay rows never merged**, the same rule as the car page's two ranges.
+eBay is measured against the SHOP median — the question is whether the used
+market beats buying new, not whether one seller undercuts another.
+
+**Wording is "below typical", never "save AUD X".**
+
+### Three fixes that came from LOOKING at it, not from the data
+
+All three were reported by the operator using the page. None would have been
+caught by a query.
+
+1. **The saving was the big number and read as the price.** Largest, boldest,
+   reddest figure on the row was "−AUD 320", with the real price mid-row in the
+   same accent. The price is now the hero in primary text, the saving a tinted
+   pill worded rather than signed.
+2. **The row was a dead end.** It named an exact model at an exact shop, then
+   made you open the car page, work out which scale and maker, and find the shop
+   in a list. The shop name now links straight to the listing. Body still goes
+   to the car page — two destinations for two questions.
+3. **A driver filter, because sorting cannot express this.** /browse can sort a
+   driver's cars price low to high, which returns his cheapest MODELS. "Best
+   value Leclerc" can put a AUD 400 Looksmart top precisely because it usually
+   costs AUD 500. Without the filter the page collapses into a worse /browse.
+
+### What the data cannot see, said on the page
+
+eBay reports New or Used and nothing else — not a missing box, dust, display
+wear or damage, any of which can be why a listing is cheaper. Stated plainly
+rather than left for a visitor to assume like-for-like.
+
+### 2026 models are 29% dispersed — three times any other season
+
+```
+2022 9%   2023 12%   2024 13%   2025 11%   2026 29%
+```
+
+Not pre-order prices leaking through — those are filtered, and all 12 such rows
+on savings models are excluded. It is that shops have not AGREED on a price for
+a new release: one sits at RRP, another discounts. Prices converge once a model
+has been out a year. The row is honest, but "29% below typical" on an unsettled
+model means less than the same number on a 2022 car. **A "prices still settling"
+label would cover it** — not an exclusion.
+
+### Not built yet, ready when wanted
+
+- **"N sold" on a row.** `sold_quantity` is populated on 3,203 listings, 853
+  units, already powering the Popular sort. Evidence a price is one people
+  actually pay — stronger than any spread.
+- **Price history on a row** ("dropped from AUD 180 last month"). Waits on the
+  October refresh; most series still have two readings.
+- **/savings/[driver] as real pages.** Rankable, unlike `?driver=` which
+  canonicalises to /savings. But 10 of 21 drivers have exactly one row, so it
+  wants more data first.
 
 ## Search Console: which drivers are actually winnable — 2026-09-16
 
