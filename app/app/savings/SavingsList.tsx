@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useMemo, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { SavingRow } from '@/lib/savingsData';
 import { slugify } from '@/lib/carSlug';
@@ -106,13 +106,37 @@ function Row({ r }: { r: SavingRow }) {
   );
 }
 
-function Inner({ shop, ebay }: { shop: SavingRow[]; ebay: SavingRow[] }) {
+export default function SavingsList({ shop, ebay }: { shop: SavingRow[]; ebay: SavingRow[] }) {
   const router = useRouter();
-  const params = useSearchParams();
   const [driver, setDriver] = useState('');
 
-  // The URL is the source of truth, so a filtered view can be shared or linked.
-  useEffect(() => { setDriver(params.get('driver') || ''); }, [params]);
+  /**
+   * The URL is read here, not with useSearchParams, and that is the whole
+   * point.
+   *
+   * useSearchParams makes Next bail out of prerendering the component. Wrapped
+   * in the Suspense boundary it then requires, the STATIC HTML CONTAINS
+   * NOTHING — the live page shipped with zero rows, no sections, not even the
+   * empty-state line, and only filled in after hydration. Invisible to a
+   * crawler, on the one page whose content is the reason it would rank.
+   *
+   * /browse has the same defect and has had it all along; its own comment
+   * claims "the grid and its links are in the HTML before any JavaScript
+   * runs", and in production that is false. There the sitemap covers for it by
+   * listing every car URL directly. Nothing covers for this page.
+   *
+   * Reading window.location in an effect keeps the URL working — shareable
+   * links, back button — while letting the whole list prerender. The effect
+   * runs after paint, so an unfiltered page is what a crawler sees, which is
+   * also the honest thing to serve.
+   */
+  useEffect(() => {
+    const read = () =>
+      setDriver(new URLSearchParams(window.location.search).get('driver') || '');
+    read();
+    window.addEventListener('popstate', read);
+    return () => window.removeEventListener('popstate', read);
+  }, []);
 
   const drivers = useMemo(() => {
     const tally = new Map<string, { name: string; n: number }>();
@@ -205,14 +229,5 @@ function Inner({ shop, ebay }: { shop: SavingRow[]; ebay: SavingRow[] }) {
         </section>
       )}
     </>
-  );
-}
-
-export default function SavingsList(props: { shop: SavingRow[]; ebay: SavingRow[] }) {
-  // useSearchParams needs a boundary, the same as /browse.
-  return (
-    <Suspense fallback={null}>
-      <Inner {...props} />
-    </Suspense>
   );
 }
