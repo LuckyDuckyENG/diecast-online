@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-19
+# Status Summary — last updated 2026-09-21
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -1479,6 +1479,69 @@ Model Shop states a scale on ZERO of its 460 F1 listings) let 354 listings
 through. **291 were SKUs already held.** 35 are importable. The parser has
 perhaps 75 models of runway left, not a thousand — the rest are duplicates,
 MotoGP, 1:12/1:64, or multi-car sets.
+
+## THE HISTORIC CATALOGUE PROBLEM IS SOLVED — 2026-09-21
+
+`miniatures-minichamps.com` publishes **23,895 part numbers in its sitemap
+URLs**, and the slug carries chassis, year, event, driver and maker with them.
+No product pages need fetching.
+
+```
+540851812-lotus-renault-97t-1985-ayrton-senna-minichamps-540851812
+TSM124331-mclaren-honda-mp4-5-f1-monaco-1989-ayrton-senna-truescale
+```
+
+**This is the thing three researched CSVs failed at.** 1988, 2019 and 2018 all
+knew which cars existed and had to DERIVE part numbers; every derivation was
+wrong because the Minichamps scheme cannot predict a prefix. This source states
+them. Read, not derived.
+
+```
+driver        products in the sitemap   we hold   NEW
+senna                264                    0     264
+schumacher           245                   21     224
+hill                 172                    0     172
+villeneuve           117                    0     117
+lauda                114                    0     114
+prost                 91                    0      91
+clark                 76                    0      76
+fangio                52                    0      52
+                                    2,427 new SKUs across 27 drivers
+```
+
+For context, the 1988 bootstrap learned TWO chassis from every feed combined
+and produced 3 rows. Senna alone is 264 here.
+
+### What the shop is and is not
+
+**A catalogue source, not a price source.** 23,750 of its 36,000 URLs are under
+`/gb/sold-out/`. A sold-out listing gives a SKU and a title and no buyable
+price — useless for /savings, ideal for knowing a model exists. Once the SKU is
+held, eBay search and the other shops' feeds can find a price. That is already
+how the pipeline works.
+
+### Before writing any code
+
+1. **Two duplicate retailer rows.** `Miniatures Minichamps` (USD, 1 link) and
+   `Miniatures-minichamps` (EUR, 8 links) are the same shop. The site quotes €,
+   so the USD row is wrong and is already skewing price data. Merge first.
+2. **The slugs are part FRENCH** — `espagne`, `japon`, `allemagne`, `camion`.
+   Same class as Yuui's Dutch titles, and the single thing between this file
+   and a working import. Event synonyms are the unlock.
+3. **Not all of it is F1**, or even cars: Le Mans Porsches, rally, a Fiat
+   truck. Needs filtering.
+4. **Junk SKUs exist** — `0000000000000` on one Senna entry. The VALID_SKU
+   fence already in the generator still matters.
+5. **Sitemap URLs are CDATA-wrapped**, `<loc><![CDATA[...]]></loc>`. A plain
+   `<loc>([^<]*)` regex reads zero and looks like an empty file.
+
+### The shape of the work
+
+Parse `1_gb_0_sitemap.xml` and `1_gb_1_sitemap.xml` (30MB total, already
+proven), extract SKU + slug, filter to F1, add French event synonyms, and feed
+the result to the same sync-csv path every season import uses. It is a
+discovery source that needs no crawl — 1,500 historic F1 pages plus whatever
+`sold-out` holds, from two files.
 
 ## /savings — the site's claim on one page — 2026-09-18/19
 
