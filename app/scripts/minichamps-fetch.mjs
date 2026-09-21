@@ -45,7 +45,52 @@ if (!term) {
 }
 
 const MAKERS = ['minichamps','spark','looksmart','bbr','ixo','brumm','tecnomodel','gp-replicas','amalgam','solido','bburago','onyx','quartzo','truescale','tsm','exoto','altaya','edicola','sunstar','norev','schuco','autoart','cmr','matrix','premium-x','vitesse'];
-const NOT_A_CAR = /\bfigurine|figurines|casque|helmet|camion|transporter|pneus|tyres|diorama|vitrine|showcase|garage-set|plaque|poster\b/;
+/**
+ * Accessories, and the difference between BEING one and INCLUDING one.
+ *
+ * The old rule was a flat word list matched anywhere, and it was wrong in both
+ * directions at once.
+ *
+ * Too narrow: it had no term for a steering wheel, so four 1:2 Senna steering
+ * wheels imported as 1:43 CARS -- 254850012, 254880012, 254910001, 254940002.
+ * The last one reached the live site, matched a real eBay listing by its own
+ * part number, and quoted AUD 301 for a "Williams FW16" that is wall art.
+ *
+ * Too broad: `helmet` and `tyres` matched unqualified, rejecting 133 real F1
+ * cars that merely come WITH something --
+ *   ...-with-pitboard-and-schumacher-helmet-minichamps-110201144
+ *   ...-with-used-tyres-and-dirty-effect-minichamps-110201444
+ *   ...-red-bull-rb18-with-rain-tyres-1-f1-monaco-2022-...
+ * which are desirable variants, and the ones collectors hunt.
+ *
+ * THE TEST IS "with". Once a slug says with- or avec-, everything after it is
+ * a list of what the car comes with; an accessory word before that point is
+ * the product itself. Position alone is not enough -- the accessory does not
+ * have to lead ("lotus-jps-square-transporter", "f1-pit-crew-figurines").
+ *
+ * Checked against all 35,767 sitemap slugs and a 12-case probe: rejects every
+ * steering wheel, helmet, figurine, transporter and garage set; keeps all 133
+ * accessory-bearing F1 cars.
+ */
+const ACCESSORY =
+  'steering-wheel|volant|casque|helmet|figurines?|camion|transporter|diorama|vitrine|' +
+  'showcase|garage-set|display-case|plaque|poster|porte-cle|keyring|keychain|malette|' +
+  'pneus|tyres|jantes|wheel-set|pit-crew|nose-cone';
+const ACC_RE = new RegExp(`(?:^|-)(?:${ACCESSORY})(?:-|$)`, 'g');
+/**
+ * 1:2, 1:4 and 1:5 are display pieces -- all 440 in the sitemap are helmets.
+ * The lookahead spares "1-4-heures-de-monza", which is a race distance.
+ */
+const DISPLAY_SCALE = /-1-(2|4|5)-(?!heures|hours|h-)/;
+const NOT_A_CAR = slug => {
+  if (DISPLAY_SCALE.test(slug)) return true;
+  const w = slug.search(/(?:^|-)(?:with|avec)-/);
+  const cut = w === -1 ? slug.length : w;
+  ACC_RE.lastIndex = 0;
+  let m;
+  while ((m = ACC_RE.exec(slug))) if (m.index < cut) return true;
+  return false;
+};
 const WRONG = /formule-[23]|formula-[23]|\bf[23]\b|indycar|nascar|motogp|le-mans|rallye|dtm/;
 const SET = /2-car-set|two-car-set|teamset|team-set|coffret/;
 const okSku = t => /^[0-9a-z]{4,20}$/i.test(t) && /\d/.test(t) && !/^\d{4}$/.test(t) && !/^\d{13}$/.test(t);
@@ -63,7 +108,7 @@ const targets = urls.filter(u => {
   const slug = u.split('/').pop().replace(/\.html$/, '');
   if (!slug.includes(term.toLowerCase())) return false;
   if (!(/\bf1\b|formula-1|formule-1/.test(slug) || /^f1-/.test(cat))) return false;
-  if (NOT_A_CAR.test(slug) || WRONG.test(slug) || SET.test(slug)) return false;
+  if (NOT_A_CAR(slug) || WRONG.test(slug) || SET.test(slug)) return false;
   const t = slug.split('-');
   return okSku(t[t.length - 1]);
 }).slice(0, limit);

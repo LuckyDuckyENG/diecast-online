@@ -157,14 +157,43 @@ const main = async () => {
 
   /**
    * "F1" in the slug is not enough. It also matches things that are not cars —
-   * driver figurines, 1:6 helmets (casque), a Fiat transporter (camion) — and
-   * junior formulae that merely mention F1 in passing.
+   * driver figurines, 1:2 helmets (casque), steering wheels (volant), a Fiat
+   * transporter (camion) — and junior formulae that mention F1 in passing.
+   *
+   * "with" IS THE TEST, not the word on its own. This was a flat word list
+   * matched anywhere and it was wrong both ways: it had no term for a steering
+   * wheel, so four 1:2 Senna steering wheels imported as 1:43 cars and one
+   * reached the live site carrying a real AUD 301 eBay price; and it matched
+   * `helmet` and `tyres` anywhere, rejecting 133 genuine F1 cars that merely
+   * come WITH something ("...with-pitboard-and-schumacher-helmet",
+   * "...with-rain-tyres", "...with-used-tyres-and-dirty-effect").
+   *
+   * Once a slug says with- or avec-, everything after is what the car comes
+   * with. An accessory word BEFORE that point is the product. Position alone
+   * would not do it — the accessory need not lead the slug, as in
+   * "lotus-jps-square-transporter" or "f1-pit-crew-figurines".
    */
-  const NOT_A_CAR = /\bfigurine|figurines|casque|helmet|camion|transporter|pneus|tyres|diorama|vitrine|showcase|garage-set|plaque|poster\b/;
+  const ACCESSORY =
+    'steering-wheel|volant|casque|helmet|figurines?|camion|transporter|diorama|vitrine|' +
+    'showcase|garage-set|display-case|plaque|poster|porte-cle|keyring|keychain|malette|' +
+    'pneus|tyres|jantes|wheel-set|pit-crew|nose-cone';
+  const ACC_RE = new RegExp(`(?:^|-)(?:${ACCESSORY})(?:-|$)`, 'g');
+  // 1:2, 1:4 and 1:5 are display pieces — all 440 in the sitemap are helmets.
+  // The lookahead spares "1-4-heures-de-monza", which is a race distance.
+  const DISPLAY_SCALE = /-1-(2|4|5)-(?!heures|hours|h-)/;
+  const NOT_A_CAR = slug => {
+    if (DISPLAY_SCALE.test(slug)) return true;
+    const w = slug.search(/(?:^|-)(?:with|avec)-/);
+    const cut = w === -1 ? slug.length : w;
+    ACC_RE.lastIndex = 0;
+    let m;
+    while ((m = ACC_RE.exec(slug))) if (m.index < cut) return true;
+    return false;
+  };
   const WRONG_SERIES = /formule-[23]|formula-[23]|\bf[23]\b|indycar|nascar|motogp|le-mans|rallye|dtm/;
   const isF1 = p =>
     (/\bf1\b|formula-1|formule-1/.test(p.slug) || /^f1-/.test(p.category)) &&
-    !NOT_A_CAR.test(p.slug) && !WRONG_SERIES.test(p.slug);
+    !NOT_A_CAR(p.slug) && !WRONG_SERIES.test(p.slug);
   const f1 = withSku.filter(isF1);
   console.log(`\nF1 cars (figurines, helmets, transporters and junior formulae excluded): ${f1.length}`);
 
