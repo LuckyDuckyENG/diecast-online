@@ -286,7 +286,7 @@ export function matchGroup(
      */
     const perSeller = new Map<string, (typeof hits)[number]>();
     for (const h of hits) {
-      const key = (h.c.seller || ` item:${h.c.itemId}`).toLowerCase();
+      const key = (h.c.seller || `\0item:${h.c.itemId}`).toLowerCase();
       if (!perSeller.has(key)) perSeller.set(key, h);
     }
 

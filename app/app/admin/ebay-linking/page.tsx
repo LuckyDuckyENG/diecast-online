@@ -411,15 +411,25 @@ export default function EbayLinkingAdmin() {
    * that existed in the database and could not be selected here — and it would
    * have silently gone stale again every January regardless.
    *
-   * Derived from three things so it cannot fall behind: whatever seasons the
-   * loaded data actually contains, next calendar year (models for a season go
-   * on sale months before it starts — 2026 stock was listed in 2025), and a
-   * floor of 1995 so empty older seasons stay pickable for adding to.
+   * Derived from the data at BOTH ends so it cannot fall behind at either.
+   *
+   * Newest: next calendar year, because models for a season go on sale months
+   * before it starts — 2026 stock was listed in 2025.
+   *
+   * Oldest: 1995 was a hard floor, written when nothing in the catalogue ran
+   * earlier than that. The Senna import put 52 cars across 1983-1994 in the
+   * database, and every one of those seasons was missing from this dropdown —
+   * imported, visible everywhere else, and impossible to select HERE, which is
+   * the one page that turns a car into a priced one. Same failure the 2026
+   * hardcode caused at the other end, so the floor now bends the same way the
+   * ceiling does: 1995 still applies when the data stops short of it, so empty
+   * older seasons stay pickable for adding to.
    */
   const years = (() => {
     const fromData = f1Cars.map(c => c.year).filter(y => Number.isFinite(y));
     const newest = Math.max(new Date().getFullYear() + 1, ...fromData, 1995);
-    return Array.from({ length: newest - 1995 + 1 }, (_, i) => newest - i);
+    const oldest = Math.min(1995, ...fromData);
+    return Array.from({ length: newest - oldest + 1 }, (_, i) => newest - i);
   })();
 
   // Load F1 cars from Supabase
