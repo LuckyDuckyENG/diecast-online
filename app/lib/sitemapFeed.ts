@@ -78,8 +78,27 @@ const FETCH_BUDGET_MS = 240_000;
 export interface SitemapShop {
   /** Where the sitemap index lives, relative to the host. */
   sitemapPath: string;
-  /** Only URLs containing this are products. */
-  productMarker: string;
+  /**
+   * Which child sitemaps to read. Defaults to any whose URL mentions
+   * "product", which is the Shopify convention and was hardcoded until a shop
+   * turned up naming them by language instead (`1_gb_0_sitemap.xml`).
+   */
+  subSitemap?: RegExp;
+  /**
+   * Only URLs matching this are products. A string is a substring test — the
+   * Shopify `/products/` case. A regex is for shops that file products under
+   * many category paths and mark them some other way.
+   */
+  product: string | RegExp;
+  /**
+   * The URL's last token is the manufacturer's part number.
+   *
+   * Worth a flag because it makes the prefilter exact. The default path has to
+   * guess from slug tokens and needs the SCALE among them; a shop that omits
+   * scale from its URLs matches nothing at all that way. When the part number
+   * is right there, the candidate list is just the SKUs we already hold.
+   */
+  skuInUrl?: boolean;
 }
 
 /**
@@ -87,7 +106,40 @@ export interface SitemapShop {
  * pipeline is generic once the sitemap path is known.
  */
 export const SITEMAP_SHOPS: Record<string, SitemapShop> = {
-  'livecarmodel.com': { sitemapPath: '/xmlsitemap.php', productMarker: '/products/' },
+  'livecarmodel.com': { sitemapPath: '/xmlsitemap.php', product: '/products/' },
+  /**
+   * PrestaShop, and unlike the Shopify shops it differs in every respect the
+   * pipeline used to assume: the sitemap path comes from robots.txt rather
+   * than convention, the child sitemaps are named by language (and publish the
+   * same catalogue twice, so French is skipped), every `<loc>` is CDATA-
+   * wrapped, products live under a dozen category paths instead of one marker,
+   * and the slugs carry no scale.
+   *
+   * Worth the work: 8,024 F1 products, 3,597 of them pre-1995 — the era no
+   * shop we track stocks at all.
+   */
+  'miniatures-minichamps.com': {
+    sitemapPath: '/1_index_sitemap.xml',
+    subSitemap: /_gb_\d+_sitemap\.xml$/,
+    product: /\/gb\/[^/]+\/[^/]+\.html$/,
+    skuInUrl: true,
+  },
+};
+
+/** Substring for the Shopify case, regex for everything else. */
+const isProduct = (u: string, shop: SitemapShop): boolean =>
+  typeof shop.product === 'string' ? u.includes(shop.product) : shop.product.test(u);
+
+/** The slug, for display and for the token prefilter to read. */
+const handleOf = (u: string, shop: SitemapShop): string =>
+  typeof shop.product === 'string'
+    ? u.split(shop.product)[1] || ''
+    : (u.split('/').pop() || '').replace(/\.html.*$/, '');
+
+/** The trailing part number, when the shop puts one there. */
+const skuOf = (u: string): string => {
+  const t = (u.split('/').pop() || '').replace(/\.html.*$/, '').split('-');
+  return (t[t.length - 1] || '').toUpperCase();
 };
 
 export function sitemapShopFor(host: string): SitemapShop | null {
@@ -97,6 +149,18 @@ export function sitemapShopFor(host: string): SitemapShop | null {
 
 const decodeEntities = (s: string) =>
   s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+
+/**
+ * Every <loc> in a sitemap, CDATA or not.
+ *
+ * `<loc>([^<]+)</loc>` cannot read `<loc><![CDATA[https://…]]></loc>`, because
+ * the character class stops dead at the `<` that opens the CDATA. It does not
+ * error — it returns zero URLs, so a shop that wraps its locs looks exactly
+ * like a shop with an empty sitemap.
+ */
+const locsIn = (xml: string): string[] =>
+  [...xml.matchAll(/<loc>\s*(?:<!\[CDATA\[)?([^\]<]+?)(?:\]\]>)?\s*<\/loc>/g)]
+    .map(m => decodeEntities(m[1].trim()));
 
 async function getText(url: string): Promise<string | null> {
   try {
@@ -125,20 +189,18 @@ export async function fetchSitemapUrls(
   // The index's own <loc> values arrive HTML-escaped, so `&amp;` has to be
   // decoded before fetching or the query string breaks and every sub-sitemap
   // silently returns nothing.
-  const subs = [...index.matchAll(/<loc>([^<]+)<\/loc>/g)]
-    .map(m => decodeEntities(m[1]))
-    .filter(u => /product/i.test(u));
+  const subs = locsIn(index).filter(u => (shop.subSitemap || /product/i).test(u));
 
   const urls: string[] = [];
   for (const sub of subs) {
     const body = await getText(sub);
     requests++;
     if (!body) continue;
-    urls.push(...[...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => decodeEntities(m[1])));
+    urls.push(...locsIn(body));
     await new Promise(r => setTimeout(r, DELAY_MS));
   }
 
-  return { urls: urls.filter(u => u.includes(shop.productMarker)), requests };
+  return { urls: urls.filter(u => isProduct(u, shop)), requests };
 }
 
 /**
@@ -179,11 +241,58 @@ export interface CandidateModel {
 }
 
 /** Slugs that could plausibly be one of these models. Free — no network. */
-export function prefilter(urls: string[], models: CandidateModel[], marker: string): string[] {
-  const docs = urls.map(u => ({
-    u,
-    w: normaliseForSlug(u.split(marker)[1]?.replace(/\.html.*$/, '') || ''),
-  }));
+export function prefilter(
+  urls: string[],
+  models: CandidateModel[],
+  shop: SitemapShop
+): string[] {
+  /**
+   * When the shop puts the part number in the URL, the candidate list is an
+   * intersection rather than a guess: the SKUs we hold, against the SKUs it
+   * publishes. Exact, and it fetches nothing we cannot already identify.
+   *
+   * This is not an optimisation, it is the only thing that works for such a
+   * shop. The token path below REQUIRES the scale among the slug's words, and
+   * these slugs carry no scale at all — "…-monaco-1989-ayrton-senna-tsm124331"
+   * — so it would keep zero URLs and the sweep would report a clean run over
+   * an empty catalogue.
+   */
+  if (shop.skuInUrl) {
+    const want = models
+      .map(m => (m.sku || '').trim().toUpperCase())
+      .filter(s => s.length >= 4);
+    if (!want.length) return [];
+    const exact = new Set(want);
+    /**
+     * A tolerant tail match as well as an exact one, because the URL carries a
+     * SHORTENED part number for some makers: the page states
+     * `F1BRACOL001-51589` and publishes it at `…-51589`, `GP12-29AWD` at
+     * `…-29awd`. Our catalogue holds the short form, so an exact-only test
+     * silently drops every Edicola and GP Replicas model on the site.
+     *
+     * Only tails at a separator boundary count, so `51589` cannot match
+     * `4451589`.
+     *
+     * FIVE CHARACTERS MINIMUM, measured rather than guessed. Across the
+     * 35,767 product URLs, four-character trailing tokens are ambiguous on 12%
+     * of URLs; five-character ones on 1%. A wrong match here misprices a model
+     * rather than wasting a fetch, so the short ones are left out.
+     *
+     * The cost is known: Tecnomodel and GP Replicas publish four-character
+     * tails (`TM18-385E` at `…-385e`, `GP43-046A` at `…-046a`), 11 of the 191
+     * Senna pages. Those models are reachable only if the catalogue holds the
+     * full form. Worth revisiting by normalising those SKUs at import, not by
+     * lowering this number.
+     */
+    const tails = want.filter(s => s.length >= 5);
+    return urls.filter(u => {
+      const t = skuOf(u);
+      if (exact.has(t)) return true;
+      return t.length >= 5 && tails.some(s => s.endsWith(t) && /[^A-Z0-9]/.test(s[s.length - t.length - 1] || ''));
+    });
+  }
+
+  const docs = urls.map(u => ({ u, w: normaliseForSlug(handleOf(u, shop)) }));
 
   const keep = new Set<string>();
   for (const m of models) {
@@ -261,7 +370,7 @@ export async function fetchSitemapFeed(
   if (!shop) return { host, products: 0, variants: 0, requests: 0, truncated: false, bySku };
 
   const { urls, requests: sitemapRequests } = await fetchSitemapUrls(host, shop);
-  const candidates = prefilter(urls, models, shop.productMarker);
+  const candidates = prefilter(urls, models, shop);
 
   // Sorted so `offset` means the same thing across runs. prefilter builds a Set
   // and Set order depends on which model matched first, which changes whenever
@@ -304,10 +413,39 @@ export async function fetchSitemapFeed(
       const key = p.sku.trim().toUpperCase();
       if (bySku.has(key)) continue;
 
+      /**
+       * Also filed under the part number the URL used, when that is a tail of
+       * the page's own SKU.
+       *
+       * The caller matches these keys against catalogue SKUs by exact string,
+       * and for 32 of 191 cached Senna pages the two forms differ — we hold
+       * `51589`, the page says `F1BRACOL001-51589`. Without the alias the
+       * fetch succeeds, the variant is stored, and the model it belongs to
+       * never finds it: a silent miss that looks like the shop not stocking
+       * the model.
+       *
+       * Never overwrites. An alias that is already a real SKU belongs to
+       * whichever product claimed it first, exactly as duplicates are handled
+       * above.
+       */
+      const alias = skuOf(url);
+      if (alias.length >= 5 && alias !== key && key.endsWith(alias) && !bySku.has(alias)) {
+        bySku.set(alias, {
+          sku: p.sku.trim(),
+          title: p.name || handleOf(url, shop),
+          handle: handleOf(url, shop),
+          productUrl: url,
+          price: p.price,
+          available: p.available,
+          imageUrl: p.image,
+          compareAtPrice: null,
+        });
+      }
+
       bySku.set(key, {
         sku: p.sku.trim(),
-        title: p.name || url.split(shop.productMarker)[1] || '',
-        handle: url.split(shop.productMarker)[1] || '',
+        title: p.name || handleOf(url, shop),
+        handle: handleOf(url, shop),
         productUrl: url,
         price: p.price,
         available: p.available,
