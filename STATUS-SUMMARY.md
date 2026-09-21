@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-21
+# Status Summary — last updated 2026-09-22
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -33,26 +33,33 @@
 ## Where things stand
 
 ```
-cars 736  |  models 1645  |  retailer links 3062  |  eBay links 1430  |  retailers 48  |  drivers 48
-price observations 1572 (1142 retailer + 430 eBay)
-seasons: 2020 (79) + 2021 (69) + 2022 (83) + 2023 (98) + 2024 (66) + 2025 (90) + 2026 (83)
-slugs 568/568   |   models buyable 760/865   |   images 722/865
-retailer links by state: 881 in stock · 78 pre-order · 803 out of stock
-models with 2+ retailers 535  |  3+ 292
-eBay: 382 models carry several listings · 82 still on one
+cars 894  |  models 2066  |  retailer links 5067  |  eBay links 3405  |  retailers 47  |  drivers 58
+price observations 21469
+seasons: 1983 (3) 1984 (6) 1985 (3) 1986 (2) 1987 (5) 1988 (6) 1989 (3) 1990 (6)
+         1991 (6) 1992 (1) 1993 (4) 1994 (5) 2017 (10) 2018 (11) 2019 (15)
+         2020 (101) 2021 (103) 2022 (128) 2023 (147) 2024 (127) 2025 (120) 2026 (82)
+slugs 894/894   |   models buyable 1918/2066   |   images 1953/2066
+retailer links by state: 2448 in stock · 145 pre-order · 2474 out of stock
+models with 2+ retailers 1403  |  3+ 953
 ```
 
-**Read visibility as a share of cars that CAN be visible.** 86 cars have no models
-at all — CSV rows with no SKU — so they are invisible by construction.
+**Read visibility as a share of cars that CAN be visible.** Only one car now has
+no models at all — the old CSV-row-with-no-SKU problem is essentially gone.
 
 ```
-cars visible 445/568  =  92% of the 482 that have models
-   2020 47/78   2021 49/50   2022 67/71   2023 85/86
-   2024 59/59   2025 56/56   2026 82/82
+cars visible 843/894  =  94% of the 893 that have models
+   1983 3/3    1984 5/6    1985 3/3    1986 2/2    1987 3/5    1988 6/6
+   1989 3/3    1990 6/6    1991 6/6    1992 1/1    1993 4/4    1994 5/5
+   2017 6/10   2018 10/11  2019 14/15  2020 74/100 2021 95/103 2022 126/128
+   2023 144/147 2024 127/127 2025 118/120 2026 82/82
 ```
 
-2020 is the outlier at 47/78 and correctly so: shops barely stock that era, so
-31 of its cars are carried by eBay or nothing at all.
+**The 1983–1994 block is new as of 2026-09-22** and is close to fully visible —
+47 of 50 — which is better than 2020 manages. Two sources carry it: eBay, where
+80% of sellers quote the part number, and miniatures-minichamps.com, which
+accounts for 24 of those cars on its own. See the section on that shop.
+
+2020 is still the outlier at 74/100 and correctly so: shops barely stock that era.
 
 **Images: 722/865, with only 42 buyable models still lacking one.** Sweeps fill a
 missing image from the shop's own photo and never overwrite one already set —
@@ -71,6 +78,97 @@ Live on Vercel at diecasts.app. Migrations 007–017 applied. `next build` clean
 **Submitted to Google Search Console 2026-08-13** — domain verified by DNS,
 sitemap accepted, 297 pages discovered, **358 URLs in the sitemap today**.
 **eBay Partner Network live** — campaign 5339190001, tracking on all eBay links.
+
+## miniatures-minichamps.com — the historic source
+
+Wired up 2026-09-22. Went from 9 price rows to **1,319 in one day**, making it
+the largest single price source on the site — ahead of LIVECARMODEL.
+
+```
+1319 rows   609 in stock · 710 out
+            1201 from 2015+   ·   118 pre-1995
+AUD 15 – 1129, median 137, all quoted in EUR
+```
+
+**Why it was worth the work.** No other shop we track stocks anything before
+1995. Of the 50 pre-1995 cars, 24 are visible *only* because of this shop.
+
+**It broke the sweep pipeline in four places, all silently.** A sweep would have
+reported a clean run over an empty result:
+
+| | |
+|---|---|
+| sub-sitemap filter | children are named by language (`1_gb_0_sitemap.xml`), not "product" — the hardcoded `/product/i` kept 0 of 4 |
+| `<loc>` parsing | every loc is CDATA-wrapped, and `[^<]+` stops at the `<` opening the CDATA — 0 URLs read where there are 10,972 |
+| product test | products sit under a dozen category paths, not one `/products/` marker — 0 of 35,767 matched |
+| prefilter | needs the SCALE among the slug's tokens, and these slugs carry none — would have kept zero even with the other three fixed |
+
+That last one is why `skuInUrl` exists. The shop ends every URL with the part
+number, so the candidate list is an exact intersection with SKUs we already hold
+rather than a token guess.
+
+**Some makers publish a shortened part number in the URL** — the page states
+`F1BRACOL001-51589` and publishes it at `…-51589`. Variants are filed under both
+forms, or the model would never find its own listing. Five characters minimum,
+measured: 4-char trailing tokens are ambiguous on 12% of URLs, 5-char on 1%. The
+cost is stated in the code — Tecnomodel and GP Replicas use 4-char tails and are
+reachable only if the catalogue holds the full form.
+
+**Do not read stock from the page text.** Every product page carries "no longer
+in stock" as a hidden template element, so grepping says the entire shop is sold
+out. The JSON-LD is the truth and the library reads it.
+
+**Each pass re-downloads 30MB of sitemap.** Four passes to cover ~1,700
+candidates means 120MB of XML for the product pages. `fetchSitemapUrls` has no
+cache. Worth fixing if this becomes a routine sweep.
+
+`scripts/test-sitemap-mm.ts` proves the whole chain offline against the cached
+sitemap and cached product pages — no network, so it tests our parsing rather
+than the shop's uptime.
+
+## Historic drivers — Senna proved the pipeline
+
+Senna's whole career imported 2026-09-21: **52 cars, 153 models, 1983–1994**,
+plus 12 seasons, 3 teams (Lotus, Toleman, Brabham) and 5 manufacturers as
+reference rows. Those rows are the reusable part — the next historic driver
+costs almost nothing.
+
+**80% of eBay sellers quote the part number** we derived from the sitemap. Those
+5xx codes were cracked by inference and had never been tested against a real
+listing. That number is what makes the remaining ~2,400 historic SKUs a pipeline
+rather than a hope — though it may be a Senna effect, since he is the most
+carefully-listed driver in the sport. The next driver tests that.
+
+**The bottleneck is our catalogue, not the sources.** miniatures-minichamps has
+3,597 pre-1995 F1 products; we hold 153. Every historic driver imported now
+lands in a catalogue with two working price sources already waiting.
+
+Sitemap gives 23,895 part numbers; `scripts/minichamps-catalogue.mjs` extracts
+them, `scripts/minichamps-fetch.mjs` reads scale off the product page (the URL
+never states it). Candidate next drivers, by pre-1995 products available:
+Villeneuve 125, Lauda 102, Hill 92, Prost 78, Mansell 78, Piquet 69.
+
+## Not a car — the filter that let five through
+
+Four 1:2 Senna **steering wheels** imported as 1:43 cars (`254850012`,
+`254880012`, `254910001`, `254940002`). One reached the live site, matched a
+real eBay listing by its own part number, and quoted AUD 301 for a "Williams
+FW16" that is wall art. A Mercedes team **transporter** (`S8599`) was sitting as
+the only model on a 2023 Hamilton W14 page.
+
+All five deleted 2026-09-22, with every deleted row backed up to
+`deleted-noncar-rows-2026-09-22.json` in the repo root.
+
+The filter was wrong in **both** directions: no term for a steering wheel, and
+`helmet`/`tyres` matched anywhere, which was rejecting 133 genuine F1 cars that
+merely come WITH something ("with pitboard and Schumacher helmet", "with rain
+tyres") — exactly the variants collectors hunt.
+
+**The test is "with".** Once a slug says `with-` or `avec-`, everything after is
+what the car comes with; an accessory word before that point is the product.
+Position alone is not enough — `lotus-jps-square-transporter` and
+`f1-pit-crew-figurines` do not lead with the accessory, and the first attempt at
+this let both through.
 
 ## Pre-order is a third state
 
