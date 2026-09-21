@@ -1480,6 +1480,96 @@ through. **291 were SKUs already held.** 35 are importable. The parser has
 perhaps 75 models of runway left, not a thousand — the rest are duplicates,
 MotoGP, 1:12/1:64, or multi-car sets.
 
+## Senna answered, and the Minichamps scale code cracked — 2026-09-21
+
+The bounded experiment the doc has been carrying since 1988 — where the
+bootstrap learned two chassis and produced three rows — is answered.
+
+```
+191 Senna F1 products fetched from miniatures-minichamps.com
+  scale read from the page : 191 of 191
+  1:43 91 · 1:18 71 · 1:12 18 · 1:64 11
+  usable (1:18 or 1:43)    : 162
+  in stock                 : 0     — every one sold out, as expected
+```
+
+**162 usable Senna models with page-confirmed part numbers and scales.**
+
+### THE 5xx SCALE RULE, validated against ground truth
+
+`scripts/minichamps-catalogue.mjs` could infer scale for modern part numbers
+and failed on historic ones — 16 of 194 for Senna — because Minichamps filed
+those under the 5xx series. This doc has said for weeks that "the 5xx series
+runs across scales". True of the PREFIX, and the whole code says more:
+
+```
+540 86 18 12  -> 1:18
+540 86 43 12  -> 1:43     same car, same series
+```
+
+Checked against 92 page-stated scales:
+
+```
+rule agrees    55
+DISAGREES       0
+cannot say     37   — all 547xxxxxx, and every one is 1:43
+```
+
+Zero disagreements. So two rules, both derived from observed pages rather than
+guessed: `5xx` carries `18`/`43`/`12`/`64` in the middle, and `547` is
+uniformly 1:43. Minichamps is 98 of the 191 records, so this applies to every
+historic driver in that shop, not just Senna.
+
+**This is the inverse of the usual trap.** Inference worked where the catalogue
+already had coverage and failed exactly where it did not. Reading 179 pages
+fixed it permanently — the answer for a product never changes.
+
+### What the scripts do
+
+- `minichamps-catalogue.mjs` — parses the two GB sitemaps, extracts SKU, year,
+  maker, event, scale. Reports only, writes nothing.
+- `minichamps-fetch.mjs` — reads product pages for the one field the URL never
+  carries. One request at a time, 900ms apart, cached so a re-run is free.
+
+Current extraction, after one round of filling event synonyms from the data:
+
+```
+6,768 F1 cars (figurines, helmets, transporters, F2/F3 excluded)
+  year 98% · maker 98% · event 79% · scale 56%
+  ALL FOUR: 3,342     1,302 of them pre-1990
+```
+
+### Still the wall: reference rows
+
+A full import needs ~600 rows — **558 missing drivers and 65 missing seasons**
+— and 147 of those "drivers" are parse noise like `winner`. Too much to do
+blind, and it would salt the catalogue.
+
+**Senna alone is about 20 rows for 162 models**: the driver, Toleman, Lotus,
+McLaren, Williams, and seasons 1983–1994. Far better than 2017's 7-for-14.
+
+### Traps found on the way
+
+- **EAN barcodes as part numbers.** 730 tokens are 13-digit EAN-13, not SKUs.
+  Stored, they would join to nothing forever. Now rejected.
+- **`bruno senna`** appears in 2012. A surname substring collects the wrong man.
+- **Two-car sets** again, now excluded by name.
+- **The shop's F1 categories predate F1** — a 1927 Delage and a 1949 Ford are
+  in there.
+- **Truncated slugs**: `spar-18s159` is a cut-off "spark", so maker matching
+  has to tolerate it.
+- **GP Replicas (181 rows) and Brumm-style letter codes are deliberately NOT
+  scale-guessed.** GP Replicas makes both 1:18 and 1:12 and nothing in
+  `GP1204A` says which. A model at the wrong scale is worse than one missing —
+  the browse filter and every price comparison run on that field.
+
+### If it is imported
+
+They arrive INVISIBLE. No prices, so they sit behind the store filter until an
+eBay search finds listings. For Senna that is likely — eBay is where these
+actually trade — but it is the step that decides whether this is a catalogue or
+inventory.
+
 ## THE HISTORIC CATALOGUE PROBLEM IS SOLVED — 2026-09-21
 
 `miniatures-minichamps.com` publishes **23,895 part numbers in its sitemap
