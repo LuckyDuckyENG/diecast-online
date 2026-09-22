@@ -20,7 +20,10 @@ import { getSavings } from '@/lib/savingsData';
  * The rows are fetched here so the list is in the server-rendered HTML; only
  * the driver filter needs to be interactive, and it works over props.
  */
-export const revalidate = 3600;
+// One day, not one hour — see the note in app/sitemap.ts.
+// Hourly revalidation of pages that each read the whole dataset is what
+// exceeded the Supabase egress quota on 2026-09-22.
+export const revalidate = 86400;
 
 export const metadata: Metadata = {
   title: 'Best F1 diecast prices right now — below the going rate',

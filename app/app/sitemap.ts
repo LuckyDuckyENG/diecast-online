@@ -12,7 +12,23 @@ import { selectAll } from '@/lib/selectAll';
  *
  * Regenerated on the same hourly cycle as the car pages.
  */
-export const revalidate = 3600;
+/**
+ * ONE DAY, not one hour.
+ *
+ * Every hub page reads the WHOLE dataset -- cars, models, price_history and
+ * ebay_links, in full -- and there are 107 of them (58 drivers, 27 teams, 22
+ * seasons) on top of browse, savings, the home page and the sitemap. At 3600 a
+ * crawler walking the 925-URL sitemap triggers a full-database read per page.
+ *
+ * That is what exceeded the Supabase egress quota on 2026-09-22 and took the
+ * project to 402, which serves cached pages but 404s anything not already in
+ * the ISR cache -- about 1 in 6 car pages.
+ *
+ * The data does not move hourly. Prices change when a sweep runs, which is the
+ * 30-day STALE_DAYS cycle. Revalidating 720 times between changes bought
+ * nothing and cost the quota.
+ */
+export const revalidate = 86400;
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://diecasts.app';
 

@@ -24,7 +24,10 @@ import { slugify } from '@/lib/carSlug';
  * arrived hunting a car is most likely to be served by the driver they were
  * looking for.
  */
-export const revalidate = 3600;
+// One day, not one hour — see the note in app/sitemap.ts.
+// Hourly revalidation of pages that each read the whole dataset is what
+// exceeded the Supabase egress quota on 2026-09-22.
+export const revalidate = 86400;
 
 export const metadata = {
   title: 'Not found | Diecasts',

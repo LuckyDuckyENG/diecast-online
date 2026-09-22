@@ -3,7 +3,10 @@ import { notFound } from 'next/navigation';
 import HubPage from '../../components/HubPage';
 import { getTeamHub, getHubSlugsForBuild } from '@/lib/hubData';
 
-export const revalidate = 3600;
+// One day, not one hour — see the note in app/sitemap.ts.
+// Hourly revalidation of pages that each read the whole dataset is what
+// exceeded the Supabase egress quota on 2026-09-22.
+export const revalidate = 86400;
 
 type Props = { params: Promise<{ slug: string }> };
 

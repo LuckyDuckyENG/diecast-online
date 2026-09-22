@@ -9,7 +9,10 @@ import { getBrowseCars } from '@/lib/browseData';
  * client-side meant the HTML had no car names and no links at all, so crawlers
  * had no route into the catalogue and no signal about which pages matter.
  */
-export const revalidate = 3600;
+// One day, not one hour — see the note in app/sitemap.ts.
+// Hourly revalidation of pages that each read the whole dataset is what
+// exceeded the Supabase egress quota on 2026-09-22.
+export const revalidate = 86400;
 
 export async function generateMetadata(): Promise<Metadata> {
   const cars = await getBrowseCars();

@@ -13,7 +13,10 @@ import { getHomeData } from '@/lib/homeData';
  * Interactivity (search box, scroll reveals) stays in HomeClient; only the data
  * moved. Same split as browse/page.tsx -> BrowseClient.
  */
-export const revalidate = 3600;
+// One day, not one hour — see the note in app/sitemap.ts.
+// Hourly revalidation of pages that each read the whole dataset is what
+// exceeded the Supabase egress quota on 2026-09-22.
+export const revalidate = 86400;
 
 export const metadata: Metadata = {
   title: 'Diecasts - The F1 Diecast Price Index',

@@ -64,10 +64,22 @@ export async function GET(request: NextRequest) {
         season:seasons(year),
         driver:drivers(name)
       `, q => q.order('id', { ascending: false })),
-      selectAll<any>(supabase, 'models', `
-        *,
-        manufacturer:manufacturers(name)
-      `),
+      /**
+       * Named columns, not `*`.
+       *
+       * This endpoint is the most-loaded read in the project -- every visit to
+       * the eBay linking page, every reload, every sweep -- and `*` on models,
+       * price_history and ebay_links pulled every column of all three whether
+       * the admin rendered it or not. ebay_title and ebay_image alone are long
+       * strings on 3,405 rows.
+       *
+       * Egress is the scarce resource here, not query time: the project hit
+       * its Supabase quota on 2026-09-22 and went to 402. Listing the columns
+       * the response actually builds keeps that from being self-inflicted.
+       */
+      selectAll<any>(supabase, 'models',
+        'id, car_id, scale, manufacturer_sku, image_url, discovered_from, price, ' +
+        'manufacturer:manufacturers(name)'),
     ]);
 
     console.log(`📊 Fetched ${cars.length} cars and ${models.length} models from database`);
@@ -75,14 +87,17 @@ export async function GET(request: NextRequest) {
     // Both paged. These drive what the admin believes is already linked, and a
     // plain .select() stops at 1000 rows without erroring -- which would show
     // linked models as unlinked and invite duplicate work.
-    const ebayLinks = await selectAll<any>(supabase, 'ebay_links', '*');
+    const ebayLinks = await selectAll<any>(supabase, 'ebay_links',
+      'model_id, ebay_item_id, ebay_url, ebay_price, price_aud, currency, ebay_title, ' +
+      'ebay_image, item_condition, seller, auto_linked, last_updated');
 
     let priceHistory: any[] = [];
     try {
       priceHistory = await selectAll<any>(
         supabase,
         'price_history',
-        '*, retailer:retailers(name)'
+        'id, model_id, retailer_id, product_url, price, currency, price_aud, in_stock, ' +
+        'recorded_at, retailer:retailers(name)'
       );
     } catch (err: any) {
       console.warn('⚠️ Warning fetching price history:', err.message);
