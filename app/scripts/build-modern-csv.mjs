@@ -55,6 +55,36 @@ const EXCLUDE = [
    * waves it through.
    */
   [/megane|clio|(?:^|-)road-car(?:-|$)|safety-car|medical-car/, 'road car'],
+  /**
+   * Formula 3. "dallara-mercedes-f317-macau-gp-2018" is Mick Schumacher's F3
+   * car; the shared filter looks for "f3" as a token and this says "f317".
+   * Dallara builds no F1 car, and Macau is not an F1 round, so either alone
+   * settles it.
+   */
+  [/(?:^|-)dallara(?:-|$)|macau/, 'Formula 3'],
+  /**
+   * A car from another era at a modern event. "renault-rs01-...-f1-monaco-
+   * 2018" is the 1977 RS01, the first turbo F1 car, demonstrated at Monaco in
+   * 2018 -- one of them by Alain Prost. Real products, but importing them
+   * under the slug's year would file a 1977 car as a 2018 one. Same class as
+   * the Mick Schumacher Benetton demo runs.
+   */
+  [/(?:^|-)rs01(?:-|$)/, 'historic car at a modern event'],
+  /** Not race cars: a launch presentation and a concept study. */
+  [/(?:^|-)presentation(?:-|$)|concept-study|(?:^|-)concept(?:-|$)/, 'presentation or concept'],
+  /**
+   * Road cars again, this time as team merchandise: a Ferrari 488 Pista in
+   * "piloti" colours, a McLaren 600LT "f1-team-tribute". Both carry F1 wording
+   * and neither is a race car.
+   */
+  [/488-pista|600lt|570s|720s|(?:^|-)piloti(?:-|$)|f1-team-tribute/, 'road car'],
+  /**
+   * Promotional ride swaps. Valentino Rossi drove a Mercedes W10 at Valencia
+   * in 2019 and Hamilton rode his bike. A real product of a real event, but
+   * the driver is a MotoGP rider and importing it would add him to the F1
+   * driver list for a car he never raced.
+   */
+  [/ride-swap/, 'promotional ride swap'],
 ];
 
 const dropped = [];
@@ -123,6 +153,22 @@ const TEAMS = [
   [/mclaren/, 'McLaren'], [/williams/, 'Williams'], [/renault/, 'Renault'],
   [/haas/, 'Haas'], [/sauber|alfa-romeo/, 'Sauber'],
 ];
+/**
+ * What the team was CALLED in a given season.
+ *
+ * The Sauber entry exists because sync-csv maps the bare word "Sauber" to
+ * Kick Sauber -- right for a 2024 CSV, wrong for every earlier one -- so 2017
+ * and 2018 cars landed under a team that did not exist until 2024, and 2018
+ * ended up split across two teams with neither page showing the full season.
+ *
+ * Force India became Racing Point in 2019, and the RP19 is a Racing Point.
+ */
+const ERA_NAME = (team, year) => {
+  if (team === 'Sauber') return year >= 2018 ? 'Alfa Romeo' : 'Sauber';
+  if (team === 'Force India' && year >= 2019) return 'Racing Point';
+  return team;
+};
+
 const teamIn = slug => {
   let best = null, at = Infinity;
   for (const [re, name] of TEAMS) {
@@ -174,6 +220,10 @@ const DRIVERS = {
   latifi: 'Nicholas Latifi', fittipaldi: 'Pietro Fittipaldi', aitken: 'Jack Aitken',
   mazepin: 'Nikita Mazepin', tsunoda: 'Yuki Tsunoda', sirotkin: 'Sergey Sirotkin',
   hartley: 'Brendon Hartley', button: 'Jenson Button', schumacher: 'Mick Schumacher',
+  // The shop spells it "george-russel" with one l on its 2019 FW42. Left as a
+  // tolerated misspelling rather than corrected upstream, because the slug is
+  // the shop's and we only read it.
+  russel: 'George Russell',
 };
 /** Longest surname first, so "sainz" cannot win inside another token. */
 const SURNAMES = Object.keys(DRIVERS).sort((a, b) => b.length - a.length);
@@ -200,8 +250,23 @@ if (!chassisFor) {
 const rows = [], review = [];
 for (const o of kept) {
   const s = o.slug;
-  const chassis = (chassisFor.find(([re]) => re.test(s)) || [])[1] || null;
-  const team = teamIn(s);
+  /**
+   * SHOWCARS ARE THEIR OWN THING.
+   *
+   * "mercedes-amg-petronas-f1-team-f1-showcar-2018-lewis-hamilton" is the
+   * display car teams wheel out at launches. It carries no chassis code
+   * because it is not the race car, and 18 of them appeared in 2018 alone.
+   *
+   * Labelling them with the season's chassis would say a W09 was sold when it
+   * was not -- the same error class as a 1:2 steering wheel catalogued as a
+   * 1:43 car. They get their own livery name instead, so a buyer sees exactly
+   * what the product is.
+   */
+  const isShowcar = /(?:^|-)showcar(?:-|$)|(?:^|-)show-car(?:-|$)/.test(s);
+  const chassis = isShowcar
+    ? 'Showcar'
+    : (chassisFor.find(([re]) => re.test(s)) || [])[1] || null;
+  const team = ERA_NAME(teamIn(s), year);
   const event = (EVENTS.find(([re]) => re.test(s)) || [])[1] || 'Season';
   const driver = driverIn(s);
   const maker = Object.entries(MAKERS).find(([k]) => s.includes(k))?.[1] || null;
@@ -215,7 +280,7 @@ for (const o of kept) {
 
   // A 2017 chassis belongs to exactly one constructor. A disagreement means
   // the slug was read wrong, not that history is surprising.
-  const expect = CHASSIS_TEAM[chassis];
+  const expect = isShowcar ? null : ERA_NAME(CHASSIS_TEAM[chassis], year);
   if (expect && expect !== team) {
     review.push({ o, missing: [`chassis ${chassis} is ${expect}, read team as ${team}`] });
     continue;
@@ -234,7 +299,7 @@ if (REVIEW) {
   for (const [w, n] of Object.entries(why).sort((a, b) => b[1] - a[1])) console.log(`   ${String(n).padStart(3)}  ${w}`);
   console.log(`\nparsed into CSV rows : ${rows.length}`);
   console.log(`needing a human      : ${review.length}`);
-  for (const r of review.slice(0, 20))
+  for (const r of review)
     console.log(`   missing ${r.missing.join('+').padEnd(22)} ${r.o.slug.replace(/^\d+-/, '').slice(0, 70)}`);
   const f = (k) => { const t = {}; for (const r of rows) t[r[k]] = (t[r[k]] || 0) + 1; return Object.entries(t).sort((a, b) => b[1] - a[1]).map(([a, b]) => `${a} ${b}`).join(' · '); };
   console.log(`\nteams  : ${f('team')}`);
