@@ -323,6 +323,37 @@ export function prefilter(
   return [...keep];
 }
 
+/**
+ * Repair a PrestaShop image URL the shop publishes without its image id.
+ *
+ * miniatures-minichamps's JSON-LD states
+ *   https://…/-large_default/mclaren-…-tsm124331.jpg
+ * and that 404s. The id is missing. The correct URL is on the same page, in
+ * the markup rather than the structured data:
+ *   https://…/1276-large_default/mclaren-…-tsm124331.jpg   → 200, 16 KB
+ *
+ * So the shop's own structured data is wrong, and we stored it faithfully --
+ * 245 models ended up with an image that renders as the grey "?" placeholder.
+ * Given the filename is identical, the id can be recovered by looking for the
+ * same file WITH one, which is what this does.
+ *
+ * Returns the original URL untouched when it already has an id, or when the
+ * page offers no better candidate: a broken image is still better than none,
+ * because `image_url` being set is what stops a later sweep overwriting it
+ * with something worse.
+ */
+function repairImageUrl(url: string | null, html: string): string | null {
+  if (!url || !/\/-[a-z_]+_default\//.test(url)) return url;
+  const file = url.split('/').pop();
+  if (!file) return url;
+  const size = url.match(/\/-([a-z_]+_default)\//)?.[1] || 'large_default';
+  const rx = new RegExp(
+    `https?://[^"'\\s]+?/(\\d+)-${size}/${file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`
+  );
+  const found = html.match(rx);
+  return found ? found[0] : url;
+}
+
 /** Product JSON-LD: the shop's own statement of what this page is. */
 function readProductJsonLd(html: string): {
   sku: string | null;
@@ -347,7 +378,10 @@ function readProductJsonLd(html: string): {
           price: Number.isFinite(price) ? price : null,
           currency: offer?.priceCurrency || null,
           available: !/OutOfStock|SoldOut|Discontinued/i.test(String(offer?.availability || '')),
-          image: Array.isArray(node.image) ? node.image[0] : node.image || null,
+          image: repairImageUrl(
+            (Array.isArray(node.image) ? node.image[0] : node.image) || null,
+            html
+          ),
           name: node.name || null,
         };
       }
