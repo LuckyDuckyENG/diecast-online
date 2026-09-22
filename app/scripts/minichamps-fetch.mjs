@@ -127,12 +127,43 @@ const readScale = html => {
   const m = html.match(/\b1[\/:](12|18|24|43|64)\b/);
   return m ? `1:${m[1]}` : null;
 };
-const readRef = html => (html.match(/Reference:\s*<[^>]*>([^<]+)</i) || html.match(/itemprop="sku"[^>]*>([^<]+)</i) || [])[1]?.trim() || null;
-const readStock = html => !/no longer in stock|plus en stock/i.test(html);
-const readPrice = html => {
-  const m = html.match(/([0-9]+[.,][0-9]{2})\s*&euro;|&euro;\s*([0-9]+[.,][0-9]{2})|([0-9]+[.,][0-9]{2})\s*€/);
-  const v = m && (m[1] || m[2] || m[3]);
-  return v ? Number(v.replace(',', '.')) : null;
+/**
+ * Stock, price and part number from the page's own JSON-LD.
+ *
+ * NOT from the page text, which is a trap this script fell into. PrestaShop
+ * renders "This product is no longer in stock" as a HIDDEN element on EVERY
+ * product page, in stock or not, so a text match reports the entire shop as
+ * sold out -- 191 of 191 on the Senna run, and it is simply false. The JSON-LD
+ * `availability` is the shop's actual statement and said 10 were in stock.
+ *
+ * Price has the same shape of bug: the only bare euro amounts in the markup
+ * are the cart widget's zeros and a loyalty voucher, so a naive currency regex
+ * returns 0.00 or nothing while `our_price_display` and the JSON-LD offer both
+ * carry the real figure.
+ *
+ * lib/sitemapFeed.ts reads the same block for the sweep. Same source, same
+ * answer -- which is the point.
+ */
+const readJsonLd = html => {
+  for (const m of html.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
+    try {
+      const parsed = JSON.parse(m[1].trim());
+      for (const node of Array.isArray(parsed) ? parsed : [parsed]) {
+        if (node?.['@type'] !== 'Product') continue;
+        const offer = Array.isArray(node.offers) ? node.offers[0] : node.offers;
+        const price = offer?.price != null ? parseFloat(String(offer.price)) : null;
+        return {
+          sku: node.sku || node.mpn || null,
+          price: Number.isFinite(price) ? price : null,
+          currency: offer?.priceCurrency || null,
+          inStock: !/OutOfStock|SoldOut|Discontinued/i.test(String(offer?.availability || '')),
+        };
+      }
+    } catch {
+      /* a malformed block is not a reason to abandon the page */
+    }
+  }
+  return null;
 };
 
 const out = [];
@@ -155,13 +186,15 @@ for (const [i, u] of targets.entries()) {
   }
 
   const t = slug.split('-');
+  const ld = readJsonLd(html);
   out.push({
     slug,
     urlSku: t[t.length - 1],
-    pageRef: readRef(html),
+    pageRef: ld?.sku || null,
     scale: readScale(html),
-    inStock: readStock(html),
-    price: readPrice(html),
+    inStock: ld?.inStock ?? null,
+    price: ld?.price ?? null,
+    currency: ld?.currency || null,
     year: t.find(x => /^(19[5-9]\d|20[0-2]\d)$/.test(x)) || null,
     maker: MAKERS.find(m => slug.includes(m)) || null,
   });
@@ -177,10 +210,15 @@ const byScale = {};
 for (const o of withScale) byScale[o.scale] = (byScale[o.scale] || 0) + 1;
 console.log(`  ${Object.entries(byScale).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}:${v}`).join('  ')}`);
 
-const refMatch = out.filter(o => o.pageRef && o.pageRef.toUpperCase() === o.urlSku.toUpperCase()).length;
-console.log(`\npart number in the URL matches the page's Reference: ${refMatch} of ${out.filter(o => o.pageRef).length} that state one`);
-console.log(`in stock: ${out.filter(o => o.inStock).length}   sold out: ${out.filter(o => !o.inStock).length}`);
-console.log(`price read: ${out.filter(o => o.price).length}`);
+const stated = out.filter(o => o.pageRef);
+const refMatch = stated.filter(o => o.pageRef.toUpperCase() === o.urlSku.toUpperCase()).length;
+const refTail = stated.filter(o => o.pageRef.toUpperCase() !== o.urlSku.toUpperCase()
+  && o.pageRef.toUpperCase().endsWith(o.urlSku.toUpperCase())).length;
+console.log(`\npart number in the URL vs the page's own SKU (${stated.length} state one):`);
+console.log(`  identical ${refMatch}   URL is a shortened tail ${refTail}   unrelated ${stated.length - refMatch - refTail}`);
+console.log(`in stock: ${out.filter(o => o.inStock === true).length}   sold out: ${out.filter(o => o.inStock === false).length}   unknown: ${out.filter(o => o.inStock === null).length}`);
+const priced = out.filter(o => o.price != null);
+console.log(`price read: ${priced.length}${priced.length ? `  (${priced[0].currency} ${Math.min(...priced.map(o => o.price))} – ${Math.max(...priced.map(o => o.price))})` : ''}`);
 
 console.log('\nsample:');
 for (const o of out.slice(0, 10))
