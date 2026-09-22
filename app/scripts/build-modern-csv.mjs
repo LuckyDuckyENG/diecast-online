@@ -85,6 +85,12 @@ const EXCLUDE = [
    * driver list for a car he never raced.
    */
   [/ride-swap/, 'promotional ride swap'],
+  /**
+   * Parade and demonstration road cars. "ferrari308-gts-1982-charles-leclerc-
+   * carlos-sainz-f1-parade-mexico-gp-2020" is a 1982 road Ferrari the drivers
+   * rode in before the race.
+   */
+  [/308-gts|(?:^|-)parade(?:-|$)/, 'parade road car'],
 ];
 
 const dropped = [];
@@ -130,7 +136,7 @@ const CHASSIS = {
          [/fw42/, 'FW42'], [/rs19/, 'RS19'], [/str14/, 'STR14'], [/vf-?19/, 'VF-19'],
          [/mcl34/, 'MCL34'], [/(?:^|-)c38(?:-|$)/, 'C38']],
   2020: [[/w11/, 'W11'], [/sf1000/, 'SF1000'], [/rb16(?!b)/, 'RB16'], [/rp20/, 'RP20'],
-         [/fw43(?!b)/, 'FW43'], [/rs20/, 'RS20'], [/at01/, 'AT01'], [/vf-?20/, 'VF-20'],
+         [/fw43(?!b)/, 'FW43'], [/rs20/, 'RS20'], [/(?:^|-)at0?1(?:-|$)/, 'AT01'], [/vf-?20/, 'VF-20'],
          [/mcl35(?!m)/, 'MCL35'], [/(?:^|-)c39(?:-|$)/, 'C39']],
 };
 
@@ -224,6 +230,8 @@ const DRIVERS = {
   // tolerated misspelling rather than corrected upstream, because the slug is
   // the shop's and we only read it.
   russel: 'George Russell',
+  // "daniil-kyvat" on one 2020 AlphaTauri: the shop's transposition.
+  kyvat: 'Daniil Kvyat',
 };
 /** Longest surname first, so "sainz" cannot win inside another token. */
 const SURNAMES = Object.keys(DRIVERS).sort((a, b) => b.length - a.length);

@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-22
+# Status Summary — last updated 2026-09-23
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -33,33 +33,24 @@
 ## Where things stand
 
 ```
-cars 894  |  models 2066  |  retailer links 5067  |  eBay links 3405  |  retailers 47  |  drivers 58
-price observations 21469
-seasons: 1983 (3) 1984 (6) 1985 (3) 1986 (2) 1987 (5) 1988 (6) 1989 (3) 1990 (6)
-         1991 (6) 1992 (1) 1993 (4) 1994 (5) 2017 (10) 2018 (11) 2019 (15)
-         2020 (101) 2021 (103) 2022 (128) 2023 (147) 2024 (127) 2025 (120) 2026 (82)
-slugs 894/894   |   models buyable 1918/2066   |   images 1953/2066
-retailer links by state: 2448 in stock · 145 pre-order · 2474 out of stock
-models with 2+ retailers 1403  |  3+ 953
+cars 1167  |  models 2667  |  retailer links 5382  |  eBay links 3687  |  retailers 47  |  drivers 59
+slugs 1167/1167   |   models buyable 2300/2667   |   images 2291/2667
+seasons: 1977-1994 (87 cars) + 2017-2026 (1080 cars)
 ```
 
-**Read visibility as a share of cars that CAN be visible.** Only one car now has
-no models at all — the old CSV-row-with-no-SKU problem is essentially gone.
-
 ```
-cars visible 843/894  =  94% of the 893 that have models
+cars visible 1048/1167  =  90%
+   1977 0/4    1978 1/2    1979 5/7    1980 2/7    1981 8/10   1982 5/7
    1983 3/3    1984 5/6    1985 3/3    1986 2/2    1987 3/5    1988 6/6
    1989 3/3    1990 6/6    1991 6/6    1992 1/1    1993 4/4    1994 5/5
-   2017 6/10   2018 10/11  2019 14/15  2020 74/100 2021 95/103 2022 126/128
+   2017 69/75  2018 70/74  2019 54/76  2020 95/148 2021 95/103 2022 126/128
    2023 144/147 2024 127/127 2025 118/120 2026 82/82
 ```
 
-**The 1983–1994 block is new as of 2026-09-22** and is close to fully visible —
-47 of 50 — which is better than 2020 manages. Two sources carry it: eBay, where
-80% of sellers quote the part number, and miniatures-minichamps.com, which
-accounts for 24 of those cars on its own. See the section on that shop.
+**2017-2020 were rebuilt from miniatures-minichamps on 2026-09-23.** They had
+been hand-researched and were badly short: 2017 held 10 cars where the shop
+publishes 124. See the section on that below.
 
-2020 is still the outlier at 74/100 and correctly so: shops barely stock that era.
 
 **Images: 722/865, with only 42 buyable models still lacking one.** Sweeps fill a
 missing image from the shop's own photo and never overwrite one already set —
@@ -78,6 +69,67 @@ Live on Vercel at diecasts.app. Migrations 007–017 applied. `next build` clean
 **Submitted to Google Search Console 2026-08-13** — domain verified by DNS,
 sitemap accepted, 297 pages discovered, **358 URLs in the sitemap today**.
 **eBay Partner Network live** — campaign 5339190001, tracking on all eBay links.
+
+## 2017-2020 — rebuilt from the shop, not by hand
+
+Four seasons that hand research had barely touched:
+
+```
+          cars         models
+  2017   10 -> 75    14 -> 134
+  2018   11 -> 74    19 -> 146
+  2019   15 -> 76    25 -> 172
+  2020  101 -> 148  196 -> 327
+```
+
+`scripts/build-modern-csv.mjs <year>` does it, reading the cached product
+pages that `scripts/minichamps-fetch.mjs <year>` writes. The chassis maps for
+2017-2020 are in it; 2021+ would need their codes added and nothing else.
+
+**THE METHOD IS THE POINT: cross-check, and refuse to guess.** Every bug below
+was caught by checking the parse against something known, not by reading rows.
+
+| check | what it caught |
+|---|---|
+| chassis vs team | 11 Williams filed as Mercedes — `williams-mercedes-fw40` is a Williams with a Mercedes engine, and matching by list order gave every car to its ENGINE SUPPLIER. Haas and Sauber vanished from the tally while their chassis sat in plain sight. The constructor is whichever name comes FIRST in the slug. |
+| chassis vs year | five 126C2s dated 1980 on the Villeneuve import — the "2" was his race number, not part of the chassis |
+| year as a delimited token | ten "2017" cars that were 2020 Haas models, because part number 110201750 contains the digits 2017 |
+
+**Things the shop sells that are not race cars**, each excluded explicitly:
+Formula E (28 in 2019 alone), Mick Schumacher's Dallara F317 at Macau, the
+1977 Renault RS01 demo-driven at Monaco 2018 by Alain Prost, Valentino Rossi's
+W10 from the 2019 Valencia ride swap, a Ferrari 488 Pista in "piloti" colours,
+a McLaren 600LT "f1-team-tribute", a Renault Megane, a 1982 Ferrari 308 GTS
+from the Mexico drivers' parade, launch presentations and a concept study.
+
+**Showcars get their own livery name.** The display car a team wheels out at a
+launch carries no chassis code because it is not the race car. Labelling 18 of
+them W09 would say a W09 was sold when none was — the same error class as a
+1:2 steering wheel filed as a 1:43 car.
+
+**The shop's typos are tolerated, not corrected upstream:** "george-russel"
+with one l, "daniil-kyvat" transposed, "1256ck" for 126CK, AlphaTauri's chassis
+written as both `at01` and `at1`.
+
+## Team names change, and the importer did not know
+
+`sync-csv` maps the bare word "Sauber" to Kick Sauber. Right for a 2024 CSV,
+wrong for every earlier one — so 2017-2019 cars landed under a team that did
+not exist until 2024, and 2018 was split across two teams with neither page
+listing the whole season. 20 cars moved.
+
+`build-modern-csv.mjs` now emits the ERA name: Sauber for 2017, Alfa Romeo
+from 2018, Racing Point for Force India from 2019.
+
+**The 2020 Renault was two cars.** "RS20" (today's) and "R.S.20" (earlier),
+9 models and 6. Unified on RS20, because 2017-2019 already spell it RS17/RS18/
+RS19 and `rs20` slugs better than `r-s-20`. Four merged on driver+event with
+the parenthetical stripped — the older rows say "Eifel GP (Nurburgring)" where
+today's say "Eifel GP".
+
+**Still inconsistent, not yet fixed:** older imports carry a parenthetical
+circuit in the event name and newer ones do not. Same race, two spellings,
+depending on when it was imported.
 
 ## miniatures-minichamps.com — the historic source
 
