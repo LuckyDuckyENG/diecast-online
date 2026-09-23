@@ -54,7 +54,7 @@ const EXCLUDE = [
    * is a hot hatch, not a race car, and it carries "f1-team" so the F1 filter
    * waves it through.
    */
-  [/megane|clio|(?:^|-)road-car(?:-|$)|safety-car|medical-car/, 'road car'],
+  [/megane|clio|(?:^|-)road-car(?:-|$)|safety-car|medical-car|medical-support-car|dbx-?707|vantage/, 'road car'],
   /**
    * Formula 3. "dallara-mercedes-f317-macau-gp-2018" is Mick Schumacher's F3
    * car; the shared filter looks for "f3" as a token and this says "f317".
@@ -285,6 +285,9 @@ const DRIVERS = {
   // 2022 arrivals. De Vries is matched on the full surname because "vries"
   // alone is too short to anchor safely.
   zhou: 'Guanyu Zhou', piastri: 'Oscar Piastri', 'de-vries': 'Nyck de Vries',
+  // 2023 arrivals: Sargeant at Williams all season, Lawson standing in for
+  // Ricciardo at AlphaTauri from Zandvoort.
+  sargeant: 'Logan Sargeant', lawson: 'Liam Lawson',
 };
 /** Longest surname first, so "sainz" cannot win inside another token. */
 const SURNAMES = Object.keys(DRIVERS).sort((a, b) => b.length - a.length);
