@@ -72,7 +72,7 @@ async function syncCSV(dryRun = false, csvArg = null) {
   // Helper functions
   const findSeason = (year) => seasons?.find(s => s.year === parseInt(year));
 
-  const findTeam = (name) => {
+  const findTeam = (name, year) => {
     // Special case mappings for team name variations
     const teamMappings = {
       'VCARB': ['RB', 'Visa Cash App RB'],
@@ -80,6 +80,17 @@ async function syncCSV(dryRun = false, csvArg = null) {
       // "Racing Bulls", so the partial-match fallback finds nothing and every
       // row for this team fails with an unhelpful "Missing reference".
       'Racing Bulls': ['RB', 'Visa Cash App RB'],
+      /**
+       * SAUBER IS THREE TEAMS DEPENDING ON THE YEAR, and the row names in the
+       * database follow that: "Sauber" up to 2017, "Alfa Romeo" from 2018 to
+       * 2023, "Kick Sauber" from 2024. Mapping the bare word to Kick Sauber
+       * unconditionally sent 2017 cars to a team that did not exist yet, and
+       * then could not FIND them again on a re-import -- 21 cars reported
+       * missing while sitting under the correct name.
+       *
+       * Handled below rather than here, because it is the one mapping that
+       * needs to know what season the row is for.
+       */
       'Sauber': ['Kick Sauber'],
       'Red Bull': ['Red Bull Racing'],
       'Ferrari': ['Scuderia Ferrari', 'Ferrari'],
@@ -91,6 +102,15 @@ async function syncCSV(dryRun = false, csvArg = null) {
       'Haas': ['Haas F1 Team'],
       'Kick Sauber': ['Kick Sauber']
     };
+
+    // The Sauber lineage, by era. Falls through to the table when no year
+    // is given, so nothing that relied on the old behaviour changes shape.
+    if (/^(sauber|alfa romeo|kick sauber)$/i.test(name) && year) {
+      const y = parseInt(year, 10);
+      const era = y <= 2017 ? 'Sauber' : y <= 2023 ? 'Alfa Romeo' : 'Kick Sauber';
+      const hit = teams?.find(t => t.name.toLowerCase() === era.toLowerCase());
+      if (hit) return hit;
+    }
 
     // Try direct mapping first
     const possibleNames = teamMappings[name] || [name];
@@ -151,7 +171,7 @@ async function syncCSV(dryRun = false, csvArg = null) {
     
     // Find reference IDs
     const season = findSeason(row.year);
-    const team = findTeam(row.team);
+    const team = findTeam(row.team, row.year);
     const driver = findDriver(row.driver_name);
     const manufacturer = findManufacturer(row.manufacturer);
     
@@ -172,16 +192,34 @@ async function syncCSV(dryRun = false, csvArg = null) {
       // the dry run useless as the gate for the one failure this script warns
       // loudest about: inventing a car that never existed. Only the INSERTs
       // are gated now; every SELECT always runs.
-      const {data: existingCar} = await supabase
+      const {data: existingCars} = await supabase
         .from('cars')
-        .select('id')
+        .select('id, event_name')
         .eq('season_id', season.id)
         .eq('team_id', team.id)
         .eq('chassis_name', row.chassis_name)
-        .eq('driver_id', driver.id)
-        .eq('event_name', row.event_name)
-        .maybeSingle();
-      
+        .eq('driver_id', driver.id);
+
+      /**
+       * The circuit in brackets is decoration, not identity.
+       *
+       * Rows imported at different times spell the same race two ways --
+       * "Italian GP (Monza)" and "Italian GP", "Tuscan GP (Mugello)" and
+       * "Tuscan GP", "Pre-season Testing (Fiorano)" and "Pre-season Testing".
+       * An exact match on event_name therefore treated them as different races
+       * and created a SECOND car for one that already existed: 17 such pairs
+       * across 2017, 2019 and 2020, each splitting a car's models and prices
+       * over two pages.
+       *
+       * Neither spelling is wrong and the parenthetical is not reliably on the
+       * older row, so the fix is to compare without it rather than to pick a
+       * winner. The existing row keeps whatever name it already had.
+       */
+      const baseEvent = e => String(e || '').replace(/\s*\(.*\)\s*$/, '').trim().toLowerCase();
+      const existingCar = (existingCars || []).find(
+        c => baseEvent(c.event_name) === baseEvent(row.event_name)
+      );
+
       let carId = existingCar?.id;
       
       if (!carId && dryRun) {
@@ -241,14 +279,34 @@ async function syncCSV(dryRun = false, csvArg = null) {
       for (const {sku, scale} of skus) {
         if (!sku) continue;
         
-        // Check if model exists
-        const {data: existingModel} = await supabase
+        /**
+         * Part numbers are case-insensitive. The shops are not.
+         *
+         * miniatures-minichamps writes its URLs in lower case, so an import
+         * built from them offers "lsf1031" for a model the catalogue already
+         * holds as "LSF1031". `.eq()` is case-sensitive, so the model looked
+         * new and a SECOND row was created for the same physical product --
+         * 53 of them, 22 sitting on the same car as their twin.
+         *
+         * `ilike` with no wildcards is an exact match that ignores case, which
+         * is what a part number actually is. The existing row keeps its own
+         * spelling; nothing is rewritten to match the CSV.
+         */
+        /**
+         * Not maybeSingle(). It ERRORS when the query matches more than one
+         * row, and the data already contains part numbers held twice -- so the
+         * lookup returned nothing, the model looked new, and the importer
+         * created a THIRD copy. Taking the first match instead means a
+         * duplicate that already exists cannot breed further ones.
+         */
+        const {data: existingModels} = await supabase
           .from('models')
           .select('id')
           .eq('manufacturer_id', manufacturer.id)
-          .eq('manufacturer_sku', sku)
+          .ilike('manufacturer_sku', sku)
           .eq('scale', scale)
-          .maybeSingle();
+          .limit(1);
+        const existingModel = existingModels?.[0];
         
         if (!existingModel && dryRun) {
           stats.modelsWouldCreate++;

@@ -63,6 +63,12 @@ const EXCLUDE = [
    */
   [/(?:^|-)dallara(?:-|$)|macau/, 'Formula 3'],
   /**
+   * Japanese Super Formula. The SF19 is a Dallara-built single-seater and the
+   * slugs say "f1" nowhere -- they reach here because the shop files them
+   * under an F1 category. Twelve of them in 2022.
+   */
+  [/super-formula|(?:^|-)sf19(?:-|$)/, 'Super Formula'],
+  /**
    * A car from another era at a modern event. "renault-rs01-...-f1-monaco-
    * 2018" is the 1977 RS01, the first turbo F1 car, demonstrated at Monaco in
    * 2018 -- one of them by Alain Prost. Real products, but importing them
@@ -70,6 +76,13 @@ const EXCLUDE = [
    * the Mick Schumacher Benetton demo runs.
    */
   [/(?:^|-)rs01(?:-|$)/, 'historic car at a modern event'],
+  /**
+   * A team's old car used for a test. Ferrari ran the 2018 SF71H at Fiorano in
+   * January 2021 for Sainz's and Schumacher's first drives -- teams use a
+   * two-year-old car for private testing, so the slug's year and the car's
+   * year genuinely differ.
+   */
+  [/sf71h[a-z0-9-]*-(?:f1-)?testing/, 'old car at a test session'],
   /** Not race cars: a launch presentation and a concept study. */
   [/(?:^|-)presentation(?:-|$)|concept-study|(?:^|-)concept(?:-|$)/, 'presentation or concept'],
   /**
@@ -138,6 +151,31 @@ const CHASSIS = {
   2020: [[/w11/, 'W11'], [/sf1000/, 'SF1000'], [/rb16(?!b)/, 'RB16'], [/rp20/, 'RP20'],
          [/fw43(?!b)/, 'FW43'], [/rs20/, 'RS20'], [/(?:^|-)at0?1(?:-|$)/, 'AT01'], [/vf-?20/, 'VF-20'],
          [/mcl35(?!m)/, 'MCL35'], [/(?:^|-)c39(?:-|$)/, 'C39']],
+  /**
+   * 2021's B and M suffixes are not decoration. RB16B, FW43B and MCL35M are
+   * the 2021 cars; RB16, FW43 and MCL35 are the 2020 ones, and the shop sells
+   * both from one catalogue. The 2020 patterns above already refuse a
+   * following b or m so the two seasons cannot borrow each other's cars.
+   */
+  2021: [[/w12/, 'W12'], [/sf21/, 'SF21'], [/rbr?16b/, 'RB16B'], [/amr21/, 'AMR21'],
+         [/fw43b/, 'FW43B'], [/a521/, 'A521'], [/(?:^|-)at0?2(?:-|$)/, 'AT02'],
+         [/vf-?21/, 'VF-21'], [/mcl35m/, 'MCL35M'], [/(?:^|-)c41(?:-|$)/, 'C41']],
+  /**
+   * 2022 is the ground-effect reset, so every code changes and none of them
+   * collide with an earlier season. Alfa Romeo drops the C-number for C42 and
+   * AlphaTauri's AT03 keeps the at0?N shape the shop uses inconsistently.
+   */
+  2022: [[/w13/, 'W13'], [/f1-?75|(?:^|-)f75(?:-|$)|(?:^|-)sf22(?:-|$)/, 'F1-75'], [/rb18/, 'RB18'],
+         [/amr22/, 'AMR22'], [/fw44/, 'FW44'], [/a522/, 'A522'],
+         [/(?:^|-)at0?3(?:-|$)/, 'AT03'], [/vf-?22/, 'VF-22'], [/mcl36/, 'MCL36'],
+         [/(?:^|-)c42(?:-|$)/, 'C42']],
+  /**
+   * 2023. McLaren jumps to MCL60 for the team's 60th year rather than MCL37,
+   * and Ferrari writes SF-23 with a hyphen the shop sometimes drops.
+   */
+  2023: [[/w14/, 'W14'], [/sf-?23/, 'SF-23'], [/rb19/, 'RB19'], [/amr23/, 'AMR23'],
+         [/fw45/, 'FW45'], [/a523/, 'A523'], [/(?:^|-)at0?4(?:-|$)/, 'AT04'],
+         [/vf-?23/, 'VF-23'], [/mcl60/, 'MCL60'], [/(?:^|-)c43(?:-|$)/, 'C43']],
 };
 
 /**
@@ -154,8 +192,9 @@ const CHASSIS = {
  * class of error, since a 2017 chassis belongs to exactly one constructor.
  */
 const TEAMS = [
-  [/red-bull/, 'Red Bull'], [/toro-rosso/, 'Toro Rosso'], [/force-india|racing-point/, 'Force India'],
-  [/alpha-?tauri/, 'AlphaTauri'], [/mercedes/, 'Mercedes'], [/ferrari/, 'Ferrari'],
+  [/red-?bull/, 'Red Bull'], [/toro-rosso/, 'Toro Rosso'], [/force-india|racing-point/, 'Force India'],
+  [/alpha-?tauri/, 'AlphaTauri'], [/aston-martin/, 'Aston Martin'], [/(?:^|-)alpine(?:-|$)/, 'Alpine'],
+  [/mercedes/, 'Mercedes'], [/ferrari/, 'Ferrari'],
   [/mclaren/, 'McLaren'], [/williams/, 'Williams'], [/renault/, 'Renault'],
   [/haas/, 'Haas'], [/sauber|alfa-romeo/, 'Sauber'],
 ];
@@ -198,6 +237,15 @@ const CHASSIS_TEAM = {
   W11: 'Mercedes', SF1000: 'Ferrari', RB16: 'Red Bull', RP20: 'Force India',
   FW43: 'Williams', RS20: 'Renault', AT01: 'AlphaTauri', 'VF-20': 'Haas',
   MCL35: 'McLaren', C39: 'Sauber',
+  W12: 'Mercedes', SF21: 'Ferrari', RB16B: 'Red Bull', AMR21: 'Aston Martin',
+  FW43B: 'Williams', A521: 'Alpine', AT02: 'AlphaTauri', 'VF-21': 'Haas',
+  MCL35M: 'McLaren', C41: 'Sauber',
+  W13: 'Mercedes', 'F1-75': 'Ferrari', RB18: 'Red Bull', AMR22: 'Aston Martin',
+  FW44: 'Williams', A522: 'Alpine', AT03: 'AlphaTauri', 'VF-22': 'Haas',
+  MCL36: 'McLaren', C42: 'Sauber',
+  W14: 'Mercedes', 'SF-23': 'Ferrari', RB19: 'Red Bull', AMR23: 'Aston Martin',
+  FW45: 'Williams', A523: 'Alpine', AT04: 'AlphaTauri', 'VF-23': 'Haas',
+  MCL60: 'McLaren', C43: 'Sauber',
 };
 
 /**
@@ -232,6 +280,11 @@ const DRIVERS = {
   russel: 'George Russell',
   // "daniil-kyvat" on one 2020 AlphaTauri: the shop's transposition.
   kyvat: 'Daniil Kvyat',
+  // "lewis-hamilon" on a 2021 Bburago W12: the shop dropped the t.
+  hamilon: 'Lewis Hamilton',
+  // 2022 arrivals. De Vries is matched on the full surname because "vries"
+  // alone is too short to anchor safely.
+  zhou: 'Guanyu Zhou', piastri: 'Oscar Piastri', 'de-vries': 'Nyck de Vries',
 };
 /** Longest surname first, so "sainz" cannot win inside another token. */
 const SURNAMES = Object.keys(DRIVERS).sort((a, b) => b.length - a.length);
