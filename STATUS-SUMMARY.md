@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-23
+# Status Summary — last updated 2026-09-24
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -33,23 +33,22 @@
 ## Where things stand
 
 ```
-cars 1167  |  models 2667  |  retailer links 5382  |  eBay links 3687  |  retailers 47  |  drivers 59
-slugs 1167/1167   |   models buyable 2300/2667   |   images 2291/2667
-seasons: 1977-1994 (87 cars) + 2017-2026 (1080 cars)
+cars 1192  |  models 2848  |  retailer links 6016  |  eBay links 3670  |  retailers 47  |  drivers 59
+slugs 1192/1192   |   models buyable 2667/2848   |   images 2739/2848
+seasons 30: 1977-1994 and 2017-2026
 ```
 
 ```
-cars visible 1048/1167  =  90%
-   1977 0/4    1978 1/2    1979 5/7    1980 2/7    1981 8/10   1982 5/7
-   1983 3/3    1984 5/6    1985 3/3    1986 2/2    1987 3/5    1988 6/6
-   1989 3/3    1990 6/6    1991 6/6    1992 1/1    1993 4/4    1994 5/5
-   2017 69/75  2018 70/74  2019 54/76  2020 95/148 2021 95/103 2022 126/128
-   2023 144/147 2024 127/127 2025 118/120 2026 82/82
+cars visible 1104/1192  =  93%
+   1977 3/4    1978 2/2    1979 7/7    1980 6/7    1981 9/10   1982 7/7    1983 3/3
+   1984 5/6    1985 3/3    1986 2/2    1987 5/5    1988 6/6    1989 3/3    1990 6/6
+   1991 6/6    1992 1/1    1993 4/4    1994 5/5    2017 71/74  2018 70/74  2019 72/73
+   2020 104/135 2021 101/112 2022 131/144 2023 145/164 2024 127/127 2025 118/120 2026 82/82
 ```
 
-**2017-2020 were rebuilt from miniatures-minichamps on 2026-09-23.** They had
-been hand-researched and were badly short: 2017 held 10 cars where the shop
-publishes 124. See the section on that below.
+**Every season 2017-2023 is now reconciled against miniatures-minichamps**
+rather than resting on a hand-built CSV. 2017 held 10 cars where the shop
+publishes 124.
 
 
 **Images: 722/865, with only 42 buyable models still lacking one.** Sweeps fill a
@@ -69,6 +68,81 @@ Live on Vercel at diecasts.app. Migrations 007–017 applied. `next build` clean
 **Submitted to Google Search Console 2026-08-13** — domain verified by DNS,
 sitemap accepted, 297 pages discovered, **358 URLs in the sitemap today**.
 **eBay Partner Network live** — campaign 5339190001, tracking on all eBay links.
+
+## The importer was not idempotent, and it did real damage
+
+Fixed 2026-09-23. Re-running any season CSV now creates nothing; before this,
+each re-run duplicated most of what it had imported.
+
+**Event names matched exactly.** "Italian GP (Monza)" and "Italian GP" are the
+same race, so sync-csv created a SECOND car for one that already existed. 17
+pairs across 2017, 2019 and 2020 -- each splitting a car's models and prices
+over two pages, so one showed prices and its twin looked empty. That was the
+"correct cars are not visible" symptom. Compared without the bracket now; the
+parenthetical is not reliably on the older row, so neither spelling wins.
+
+**SKUs matched case-sensitively.** The shop writes URLs in lower case, so
+"lsf1031" looked new beside a stored "LSF1031" -- 53 duplicate models, 22 on
+the same car as their twin. Now `ilike`.
+
+**maybeSingle() ERRORS when a query matches two rows.** Once a duplicate
+existed the lookup returned NOTHING and a third copy was created -- which is
+why 42 models still looked new after the case fix alone.
+
+**Team names are era-specific.** "Sauber" mapped to Kick Sauber unconditionally,
+right for 2024 and wrong for 2017, so the importer could not FIND 21 cars it
+had itself created. Now Sauber to 2017, Alfa Romeo 2018-2023, Kick Sauber from
+2024. A first attempt -- "an exact name wins over the mapping table" -- was
+WORSE: it picked a bare "Ferrari" row over "Scuderia Ferrari", which is exactly
+what that table exists to prevent.
+
+`scripts/merge-duplicate-cars.mjs` cleared what these had made: 17 cars and 25
+models deleted, 13 moved. Nine duplicates where BOTH rows carry prices are
+deliberately left and named -- deleting either loses append-only
+price_observations, and merging means reparenting rows with their own
+per-retailer uniqueness.
+
+## Search was broken in three ways at once
+
+Rewritten 2026-09-23 as a server component over `lib/searchData.ts`.
+
+It downloaded EVERY car and EVERY model to the browser and filtered them in
+JavaScript. That one decision caused all three faults:
+
+  - **It could not see the catalogue.** A plain `.select()` stops at 1000 rows,
+    silently, and there are 2,848 models. Cars still MATCHED, because driver
+    names sit on the car row, but their models never arrived -- so the card
+    fell back to no image, "Unknown" maker and a hardcoded 1:18.
+    **"senna" returned 50 cars of which 48 showed no models.**
+  - **It was invisible to crawlers**, rendering only after hydration.
+  - **It cost a catalogue download per query**, from the client, on a project
+    that had just been billed for egress.
+
+Filtering in the database fixes all three: tens of rows instead of thousands,
+rendered into the HTML, and the cap is never approached.
+
+**Year search** was added the same day. A four-digit year is pulled out of the
+query and becomes a FILTER, so "hamilton 2020" means Hamilton AND 2020. A bare
+year deliberately does NOT match part numbers: 13 models carry "2017" in their
+SKU and every one is from another season.
+
+Verified live: 2020 gives 135 cars all from 2020, 1988 gives 6, "hamilton 2020"
+gives 17, 1975 gives none. "2020 monaco" gives none too, correctly -- that race
+was cancelled.
+
+**Known gap:** events are stored by name, so "silverstone", "monza" and "spa"
+find nothing while "british", "italian" and "belgian" work.
+
+## Open, none urgent
+
+- **21 cars have no models.** sync-csv creates the car before the models, so a
+  row whose every SKU already exists leaves an orphan. It should roll back.
+- **9 duplicate models where both rows are priced**, named by the merge script.
+- **/about is wrong and has no affiliate disclosure.** It claims "four seasons
+  from 2021 to 2024" against 30 seasons and 2,848 models, says "we" for one
+  person, and never states that eBay links earn commission. Its counts should
+  come from the database rather than being typed.
+- **2013-2016 do not exist at all** -- 332 models the shop lists, none held.
 
 ## 2017-2020 — rebuilt from the shop, not by hand
 
