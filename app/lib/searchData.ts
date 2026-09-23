@@ -53,10 +53,64 @@ const escapeLike = (s: string) => s.replace(/[%_\\]/g, ch => `\\${ch}`);
 /** Hard ceiling on a result set, so a one-letter query cannot pull the catalogue. */
 const MAX_CARS = 200;
 
+/**
+ * A four-digit season anywhere in the query, and whatever else was typed.
+ *
+ * "2020" is a season. "hamilton 2020" is a driver IN a season, which is the
+ * pair people actually type. Pulling the year out lets the rest of the query
+ * stay a text match and the year become a filter, so the two combine as AND
+ * rather than returning everything that matches either.
+ *
+ * Bounded to 1950-2030 so a part number fragment cannot be read as a year.
+ */
+const splitYear = (q: string) => {
+  const m = q.match(/(?:^|\s)((?:19|20)\d{2})(?=\s|$)/);
+  const year = m ? Number(m[1]) : null;
+  if (!year || year < 1950 || year > 2030) return { year: null, text: q };
+  return { year, text: (q.slice(0, m!.index) + ' ' + q.slice(m!.index! + m![0].length)).trim() };
+};
+
 export async function searchCars(rawQuery: string): Promise<SearchCar[]> {
-  const q = rawQuery.trim();
-  if (q.length < 2) return [];
+  const raw = rawQuery.trim();
+  if (raw.length < 2) return [];
+
+  const { year, text } = splitYear(raw);
+  const q = text;
   const like = `%${escapeLike(q.toLowerCase())}%`;
+
+  /**
+   * A season restricts the result rather than widening it.
+   *
+   * Resolved first because every car query below is scoped to it, which is
+   * what makes "hamilton 2020" mean Hamilton AND 2020.
+   */
+  let seasonId: string | null = null;
+  if (year) {
+    const { data } = await supabase.from('seasons').select('id').eq('year', year).maybeSingle();
+    // A year we hold no season for matches nothing, rather than silently
+    // falling back to an unfiltered search for the rest of the words.
+    if (!data) return [];
+    seasonId = data.id;
+  }
+  const scoped = (qb: any) => (seasonId ? qb.eq('season_id', seasonId) : qb);
+
+  const CAR_FIELDS_BASE =
+    'id, slug, chassis_name, event_name, season:seasons(year), ' +
+    'team:teams(name, primary_color, text_color), driver:drivers(name, number)';
+
+  /**
+   * A year on its own lists the season.
+   *
+   * It deliberately does NOT also match part numbers. 13 models carry "2017"
+   * inside their SKU and every one of them is from another season --
+   * 410201777 is a 2020 car -- so including them would answer "show me 2017"
+   * with cars from 2020 and 2022.
+   */
+  if (year && !q) {
+    const { data } = await supabase
+      .from('cars').select(CAR_FIELDS_BASE).eq('season_id', seasonId).limit(MAX_CARS);
+    return decorate(data || []);
+  }
 
   /**
    * Four narrow lookups instead of one wide download.
@@ -76,22 +130,26 @@ export async function searchCars(rawQuery: string): Promise<SearchCar[]> {
   const teamIds = (teamRows.data || []).map(t => t.id);
   const skuCarIds = [...new Set((skuRows.data || []).map(m => m.car_id).filter(Boolean))];
 
-  const CAR_FIELDS =
-    'id, slug, chassis_name, event_name, season:seasons(year), ' +
-    'team:teams(name, primary_color, text_color), driver:drivers(name, number)';
+  const CAR_FIELDS = CAR_FIELDS_BASE;
 
   const queries: any[] = [
-    supabase.from('cars').select(CAR_FIELDS).ilike('chassis_name', like).limit(MAX_CARS),
-    supabase.from('cars').select(CAR_FIELDS).ilike('event_name', like).limit(MAX_CARS),
+    scoped(supabase.from('cars').select(CAR_FIELDS).ilike('chassis_name', like)).limit(MAX_CARS),
+    scoped(supabase.from('cars').select(CAR_FIELDS).ilike('event_name', like)).limit(MAX_CARS),
   ];
-  if (driverIds.length) queries.push(supabase.from('cars').select(CAR_FIELDS).in('driver_id', driverIds).limit(MAX_CARS));
-  if (teamIds.length) queries.push(supabase.from('cars').select(CAR_FIELDS).in('team_id', teamIds).limit(MAX_CARS));
-  if (skuCarIds.length) queries.push(supabase.from('cars').select(CAR_FIELDS).in('id', skuCarIds).limit(MAX_CARS));
+  if (driverIds.length) queries.push(scoped(supabase.from('cars').select(CAR_FIELDS).in('driver_id', driverIds)).limit(MAX_CARS));
+  if (teamIds.length) queries.push(scoped(supabase.from('cars').select(CAR_FIELDS).in('team_id', teamIds)).limit(MAX_CARS));
+  if (skuCarIds.length) queries.push(scoped(supabase.from('cars').select(CAR_FIELDS).in('id', skuCarIds)).limit(MAX_CARS));
 
   const results = await Promise.all(queries);
   const byId = new Map<string, any>();
   for (const r of results) for (const car of r.data || []) byId.set(car.id, car);
   const cars = [...byId.values()].slice(0, MAX_CARS);
+  if (!cars.length) return [];
+  return decorate(cars);
+}
+
+/** Attach models, makers, scales and whether anyone sells it. */
+async function decorate(cars: any[]): Promise<SearchCar[]> {
   if (!cars.length) return [];
 
   /**
