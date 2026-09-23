@@ -1,142 +1,39 @@
-'use client';
-
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ModelCard from '../components/ModelCard';
-import { supabase } from '@/lib/supabase';
-import { fetchModelIdsWithStore } from '@/lib/storeCoverage';
-import { Model } from '@/lib/types';
+import { searchCars } from '@/lib/searchData';
 
-function SearchResults() {
-  const searchParams = useSearchParams();
-  const query = searchParams.get('q') || '';
-  const [results, setResults] = useState<Model[]>([]);
-  const [loading, setLoading] = useState(true);
+/**
+ * Server-rendered, and filtered in the database.
+ *
+ * This was a client component that downloaded every car and every model and
+ * filtered them in JavaScript. It could not work: a plain .select() stops at
+ * 1000 rows, so with 2,848 models the page never saw 1,848 of them. Cars still
+ * MATCHED, because driver names live on the car row, but their models did not
+ * come down -- searching "senna" returned 50 cars of which 48 showed no models,
+ * no image, "Unknown" maker and a hardcoded 1:18 scale.
+ *
+ * Reading searchParams opts this page into dynamic rendering, which is right
+ * for a search: the result depends on the request, and there is nothing to
+ * revalidate. The win over the old version is that the HTML now CONTAINS the
+ * results, so a crawler sees them, and the browser downloads twenty cards
+ * instead of two thousand rows.
+ */
+export const dynamic = 'force-dynamic';
 
-  useEffect(() => {
-    async function searchCars() {
-      if (!query.trim()) {
-        setResults([]);
-        setLoading(false);
-        return;
-      }
+export const metadata = {
+  title: 'Search — diecasts.app',
+  description: 'Search F1 diecast models by driver, team, race or part number.',
+};
 
-      setLoading(true);
-
-      try {
-        const searchTerm = query.toLowerCase();
-
-        // Get ALL cars with their details
-        const { data: allCars, error: carsError } = await supabase
-          .from('cars')
-          .select(`
-            id,
-            slug,
-            chassis_name,
-            event_name,
-            team:teams(name, primary_color, text_color),
-            season:seasons(year),
-            driver:drivers(name, number)
-          `);
-
-        if (carsError) {
-          console.error('Error fetching cars:', carsError.message || carsError);
-          setResults([]);
-          return;
-        }
-
-        // Get all models with SKUs
-        const { data: allModels } = await supabase
-          .from('models')
-          .select('id, car_id, manufacturer_sku, image_url, scale, manufacturers(name)');
-
-        // Filter in JavaScript for better control
-        const matchedCars = (allCars || []).filter((car: any) => {
-          const driver = car.driver?.name?.toLowerCase() || '';
-          const team = car.team?.name?.toLowerCase() || '';
-          const event = car.event_name?.toLowerCase() || '';
-          const livery = car.chassis_name?.toLowerCase() || '';
-
-          // Check if query matches driver, team, event, or livery
-          const textMatch =
-            driver.includes(searchTerm) ||
-            team.includes(searchTerm) ||
-            event.includes(searchTerm) ||
-            livery.includes(searchTerm);
-
-          // Check if query matches any SKU for this car
-          const skuMatch = (allModels || []).some((m: any) =>
-            m.car_id === car.id &&
-            m.manufacturer_sku?.toLowerCase().includes(searchTerm)
-          );
-
-          return textMatch || skuMatch;
-        });
-
-        const uniqueCars = matchedCars;
-
-        // Group the models we already fetched by car — no extra round trips
-        const modelsByCar = new Map<string, any[]>();
-        (allModels || []).forEach((m: any) => {
-          if (!modelsByCar.has(m.car_id)) modelsByCar.set(m.car_id, []);
-          modelsByCar.get(m.car_id)!.push(m);
-        });
-
-        // Search deliberately does NOT filter by retailer — someone typing a
-        // driver's name meant it, and empty results would look broken. Mark the
-        // ones nobody sells yet instead.
-        const modelIdsWithStore = await fetchModelIdsWithStore();
-
-        const carsWithData = uniqueCars.map((car: any) => {
-          const variants = modelsByCar.get(car.id) || [];
-          const driver = car.driver;
-          const eventName = car.event_name || 'Grand Prix';
-          const variantWithImage = variants.find((v: any) => v.image_url);
-          const hasStore = variants.some((v: any) => modelIdsWithStore.has(v.id));
-          const scales = [...new Set(variants.map((v: any) => v.scale).filter(Boolean))] as string[];
-          const makers = [...new Set(variants.map((v: any) => v.manufacturers?.name).filter(Boolean))] as string[];
-          const makerLabel =
-            makers.length === 0 ? 'Unknown'
-            : makers.length <= 2 ? makers.join(' · ')
-            : `${makers.slice(0, 2).join(' · ')} +${makers.length - 2}`;
-
-          return {
-            id: car.id,
-            slug: car.slug,
-            name: `${eventName} - ${car.chassis_name} - ${driver?.name} - ${car.season?.year}`,
-            // Same shape as browseData: every maker and scale, not the first
-            // variant's and a count. A search card is the same card.
-            manufacturer: makerLabel,
-            scales,
-            manufacturers: makers,
-            year: car.season?.year || 2024,
-            driver: driver?.name,
-            team: car.team?.name,
-            imageUrl: variantWithImage?.image_url || null,
-            scale: variants[0]?.scale || '1:18',
-            liveryName: car.chassis_name,
-            teamPrimaryColor: car.team?.primary_color,
-            teamTextColor: car.team?.text_color,
-            hasStore,
-          };
-        });
-
-        // Buyable results first, but keep the rest reachable
-        carsWithData.sort((a: any, b: any) => Number(b.hasStore) - Number(a.hasStore));
-
-        setResults(carsWithData);
-      } catch (error) {
-        console.error('Search error:', error);
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    searchCars();
-  }, [query]);
+export default async function SearchPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const raw = (await searchParams).q;
+  const query = (Array.isArray(raw) ? raw[0] : raw) || '';
+  const results = query.trim().length >= 2 ? await searchCars(query) : [];
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg-secondary)]">
@@ -148,8 +45,8 @@ function SearchResults() {
             Search Results
           </h1>
           <p className="text-lg text-[var(--text-secondary)]">
-            {loading ? (
-              'Searching...'
+            {query.trim().length < 2 ? (
+              'Type at least two characters.'
             ) : (
               <>
                 {results.length} result{results.length !== 1 ? 's' : ''} for &quot;
@@ -159,29 +56,39 @@ function SearchResults() {
           </p>
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="text-[var(--text-tertiary)]">Loading...</div>
-          </div>
-        ) : results.length === 0 ? (
+        {results.length === 0 ? (
           <div className="bg-white rounded-xl border border-[var(--border-light)] p-12 text-center">
             <h2 className="font-display font-bold text-2xl text-[var(--text-primary)] mb-3">
-              No results found
+              {query.trim().length < 2 ? 'What are you looking for?' : 'No results found'}
             </h2>
             <p className="text-[var(--text-secondary)] mb-6">
               Try searching for a driver name, team, event, or model SKU
             </p>
             <p className="text-sm text-[var(--text-tertiary)]">
-              Examples: &quot;Hamilton&quot;, &quot;Ferrari&quot;, &quot;Monaco GP&quot;,
+              Examples: &quot;Senna&quot;, &quot;Ferrari&quot;, &quot;Monaco GP&quot;,
               &quot;LSF1070&quot;
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {results.map((model) => (
+            {results.map(car => (
               <ModelCard
-                key={model.id}
-                {...model}
+                key={car.id}
+                id={car.id}
+                slug={car.slug}
+                name={car.name}
+                manufacturer={car.manufacturer}
+                // ModelCard wants a number. A car with no season is rare and
+                // showing 0 would be worse than showing nothing, so it falls
+                // back to the current year only for display -- never stored.
+                year={car.year ?? new Date().getFullYear()}
+                driver={car.driver ?? undefined}
+                team={car.team ?? undefined}
+                liveryName={car.liveryName ?? undefined}
+                imageUrl={car.imageUrl ?? undefined}
+                teamPrimaryColor={car.teamPrimaryColor ?? undefined}
+                teamTextColor={car.teamTextColor ?? undefined}
+                hasStore={car.hasStore}
               />
             ))}
           </div>
@@ -190,23 +97,5 @@ function SearchResults() {
 
       <Footer />
     </div>
-  );
-}
-
-export default function SearchPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex flex-col bg-[var(--bg-secondary)]">
-        <Navbar />
-        <main className="flex-1 max-w-7xl mx-auto px-6 py-8 w-full">
-          <div className="flex items-center justify-center py-20">
-            <div className="text-[var(--text-tertiary)]">Loading...</div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    }>
-      <SearchResults />
-    </Suspense>
   );
 }
