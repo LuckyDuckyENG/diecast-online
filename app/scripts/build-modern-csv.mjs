@@ -46,7 +46,7 @@ const yearsIn = slug => {
 
 const EXCLUDE = [
   [/formula-e|formule-e/, 'Formula E'],
-  [/demonstration-run|demo-run/, 'demonstration run'],
+  [/demonstration-run|demo-run|(?:^|-)demo(?:-|$)/, 'demonstration run'],
   [/formule-[23]|formula-[23]|indycar|nascar|motogp|rallye|dtm|24-heures/, 'not F1'],
   [/2-car-set|two-car-set|teamset|team-set|coffret|(?:^|-)set-/, 'multi-car set'],
   /**
@@ -76,6 +76,15 @@ const EXCLUDE = [
    * the Mick Schumacher Benetton demo runs.
    */
   [/(?:^|-)rs01(?:-|$)/, 'historic car at a modern event'],
+  /**
+   * A McLaren MP4/x from the turbo era at a modern event. Alonso drove Senna's
+   * MP4/4 at Catalunya in 2015 and the MP4/6 at Honda Thanks Day the same
+   * year; the slug's year is 2015 and the car is 27 years old.
+   *
+   * The digit must END the token, so this catches mp4-4 and mp4-6 and cannot
+   * touch MP4-30 or MP4-31, which are the real 2015 and 2016 cars.
+   */
+  [/(?:^|-)mp4-[0-9](?:-|$)|honda-thanks-day/, 'historic car at a modern event'],
   /**
    * A team's old car used for a test. Ferrari ran the 2018 SF71H at Fiorano in
    * January 2021 for Sainz's and Schumacher's first drives -- teams use a
@@ -139,6 +148,27 @@ const EVENTS = [
  * mistake that put a 2020 Haas in 2017 before the year filter was tightened.
  */
 const CHASSIS = {
+  /**
+   * 2015. Manor ran the previous year's Marussia as the MR03B, so both names
+   * appear. Red Bull's RB11 and Toro Rosso's STR10 are the last of the
+   * Renault-badged-as-TAG-Heuer era, which shows up in slugs but not in the
+   * chassis code.
+   */
+  2015: [[/w06/, 'W06'], [/sf15|sf-?15-?t/, 'SF15-T'], [/rb11/, 'RB11'], [/vjm08/, 'VJM08'],
+         [/fw37/, 'FW37'], [/(?:^|-)e23(?:-|$)|e23-hybrid/, 'E23'], [/str10/, 'STR10'],
+         [/mp4-?30/, 'MP4-30'], [/(?:^|-)c34(?:-|$)/, 'C34'], [/mr03/, 'MR03B']],
+  /**
+   * 2016. The first season the catalogue reaches back to on this side of the
+   * historic block, and the last before the 2017 aero rules.
+   *
+   * McLaren's MP4-31 shares the MP4 prefix with Senna's MP4/4 and MP4/8, which
+   * is harmless only because CHASSIS is keyed by year -- a 1988 slug can never
+   * be offered the 2016 patterns. Manor ran as MRT after the Marussia name
+   * went, so both spellings are matched.
+   */
+  2016: [[/w07/, 'W07'], [/sf16/, 'SF16-H'], [/rb12/, 'RB12'], [/vjm09/, 'VJM09'],
+         [/fw38/, 'FW38'], [/rs16/, 'RS16'], [/str11/, 'STR11'], [/vf-?16/, 'VF-16'],
+         [/mp4-?31/, 'MP4-31'], [/(?:^|-)c35(?:-|$)/, 'C35'], [/mrt05|mrt-?05/, 'MRT05']],
   2017: [[/w08/, 'W08'], [/sf70/, 'SF70H'], [/rb13/, 'RB13'], [/vjm10/, 'VJM10'],
          [/fw40/, 'FW40'], [/rs17/, 'RS17'], [/str12/, 'STR12'], [/vf-?17/, 'VF-17'],
          [/mcl32/, 'MCL32'], [/(?:^|-)c36(?:-|$)/, 'C36']],
@@ -196,7 +226,7 @@ const TEAMS = [
   [/alpha-?tauri/, 'AlphaTauri'], [/aston-martin/, 'Aston Martin'], [/(?:^|-)alpine(?:-|$)/, 'Alpine'],
   [/mercedes/, 'Mercedes'], [/ferrari/, 'Ferrari'],
   [/mclaren/, 'McLaren'], [/williams/, 'Williams'], [/renault/, 'Renault'],
-  [/haas/, 'Haas'], [/sauber|alfa-romeo/, 'Sauber'],
+  [/haas/, 'Haas'], [/sauber|alfa-romeo/, 'Sauber'], [/(?:^|-)lotus(?:-|$)/, 'Lotus'], [/(?:^|-)manor(?:-|$)|marussia|(?:^|-)mrt(?:-|$)/, 'Manor'],
 ];
 /**
  * What the team was CALLED in a given season.
@@ -215,6 +245,12 @@ const ERA_NAME = (team, year) => {
 };
 
 const teamIn = slug => {
+  /**
+   * Title sponsors that sit in front of the constructor. Aston Martin badged
+   * Red Bull 2018-2020; its own cars are AMR21 onward and are matched by
+   * chassis, so demoting the name here cannot lose them.
+   */
+  if (/aston-martin-red-bull|red-bull.*aston-martin/.test(slug)) return 'Red Bull';
   let best = null, at = Infinity;
   for (const [re, name] of TEAMS) {
     const m = slug.match(re);
@@ -246,6 +282,12 @@ const CHASSIS_TEAM = {
   W14: 'Mercedes', 'SF-23': 'Ferrari', RB19: 'Red Bull', AMR23: 'Aston Martin',
   FW45: 'Williams', A523: 'Alpine', AT04: 'AlphaTauri', 'VF-23': 'Haas',
   MCL60: 'McLaren', C43: 'Sauber',
+  W07: 'Mercedes', 'SF16-H': 'Ferrari', RB12: 'Red Bull', VJM09: 'Force India',
+  FW38: 'Williams', RS16: 'Renault', STR11: 'Toro Rosso', 'VF-16': 'Haas',
+  'MP4-31': 'McLaren', C35: 'Sauber', MRT05: 'Manor',
+  W06: 'Mercedes', 'SF15-T': 'Ferrari', RB11: 'Red Bull', VJM08: 'Force India',
+  FW37: 'Williams', E23: 'Lotus', STR10: 'Toro Rosso', 'MP4-30': 'McLaren',
+  C34: 'Sauber', MR03B: 'Manor',
 };
 
 /**
@@ -288,6 +330,12 @@ const DRIVERS = {
   // 2023 arrivals: Sargeant at Williams all season, Lawson standing in for
   // Ricciardo at AlphaTauri from Zandvoort.
   sargeant: 'Logan Sargeant', lawson: 'Liam Lawson',
+  // The 2016 grid. Rosberg's championship year, Haas's first season, and
+  // Manor's last.
+  rosberg: 'Nico Rosberg', gutierrez: 'Esteban Gutierrez', nasr: 'Felipe Nasr',
+  // 2015 only: Maldonado at Lotus, Merhi and Stevens at Manor.
+  maldonado: 'Pastor Maldonado', merhi: 'Roberto Merhi', stevens: 'Will Stevens',
+  haryanto: 'Rio Haryanto', 'jenson-button': 'Jenson Button',
 };
 /** Longest surname first, so "sainz" cannot win inside another token. */
 const SURNAMES = Object.keys(DRIVERS).sort((a, b) => b.length - a.length);
@@ -303,6 +351,9 @@ const MAKERS = {
   norev: 'Norev', truescale: 'TrueScale', tsm: 'TrueScale', edicola: 'Edicola',
   altaya: 'Altaya', onyx: 'Onyx', schuco: 'Schuco', opo: 'OPO', mcg: 'MCG',
   'hot-wheels': 'Hot Wheels', hotwheels: 'Hot Wheels',
+  // Makers that first appear in the older seasons.
+  autoart: 'AutoArt', exoto: 'Exoto', quartzo: 'Quartzo', vitesse: 'Vitesse',
+  matrix: 'Matrix', brumm: 'Brumm', amalgam: 'Amalgam',
 };
 
 const chassisFor = CHASSIS[year];
@@ -330,7 +381,25 @@ for (const o of kept) {
   const chassis = isShowcar
     ? 'Showcar'
     : (chassisFor.find(([re]) => re.test(s)) || [])[1] || null;
-  const team = ERA_NAME(teamIn(s), year);
+  /**
+   * THE CHASSIS NAMES THE CONSTRUCTOR BETTER THAN THE SLUG DOES.
+   *
+   * "aston-martin-red-bull-tag-heuer-rb14" is a RED BULL. Aston Martin was the
+   * title sponsor from 2018 to 2020 and had no car of its own until the AMR21,
+   * so reading the first team name in the slug handed 23 of Ricciardo's and
+   * Verstappen's 2018 cars to Aston Martin -- and the same again in 2019 and
+   * 2020. The earlier "williams-mercedes" fix was right that position matters;
+   * it is just that a title sponsor sits in front of the constructor too.
+   *
+   * An RB14 can only be a Red Bull, so when the chassis is known it decides,
+   * and the slug is only consulted for things with no chassis code -- showcars
+   * being the case that matters.
+   *
+   * Caught by the chassis/team cross-check, which is exactly what it is for:
+   * it put all 23 into review rather than filing them under the wrong team.
+   */
+  const fromChassis = isShowcar ? null : CHASSIS_TEAM[chassis];
+  const team = ERA_NAME(fromChassis || teamIn(s), year);
   const event = (EVENTS.find(([re]) => re.test(s)) || [])[1] || 'Season';
   const driver = driverIn(s);
   const maker = Object.entries(MAKERS).find(([k]) => s.includes(k))?.[1] || null;
