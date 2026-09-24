@@ -304,6 +304,19 @@ export default function EbayLinkingAdmin() {
    */
   const resumeOffset = (dryRun: boolean) =>
     sweepCursor.dryRun === dryRun ? sweepCursor.offset : 0;
+  /**
+   * Only look for models this shop has NO price for.
+   *
+   * The API has supported this since the gap sweeps were added; there was
+   * never a control for it, so every sweep run from this page has been a full
+   * one. That is not wrong, just slow — a full sweep re-reads every link the
+   * shop already has before it reaches the ones it does not, so three freshly
+   * imported seasons sat unpriced behind 2,000 pages of re-reading.
+   *
+   * Off by default, because the monthly refresh needs a full pass: gapsOnly
+   * updates no existing price, which is the whole point of that run.
+   */
+  const [sweepGapsOnly, setSweepGapsOnly] = useState(false);
   const [sweepState, setSweepState] = useState<{
     running: boolean;
     result: any | null;
@@ -3046,7 +3059,7 @@ export default function EbayLinkingAdmin() {
       const res = await fetch('/api/admin/sweep-retailer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ retailerId: sweepTarget, dryRun, offset }),
+        body: JSON.stringify({ retailerId: sweepTarget, dryRun, offset, gapsOnly: sweepGapsOnly }),
         cache: 'no-store',
       });
       const data = await res.json();
@@ -4462,6 +4475,24 @@ export default function EbayLinkingAdmin() {
                 </option>
               ))}
             </select>
+
+            <label
+              className="flex items-center gap-1.5 text-sm text-[var(--text-primary)] cursor-pointer select-none"
+              title="Only look for models this shop has no price for. Refreshes nothing — use a full sweep for the monthly staleness run."
+            >
+              <input
+                type="checkbox"
+                checked={sweepGapsOnly}
+                onChange={e => {
+                  setSweepGapsOnly(e.target.checked);
+                  // An offset into the full candidate list means nothing in the
+                  // narrowed one, so switching mode starts over.
+                  setSweepCursor({ offset: 0, dryRun: null });
+                }}
+                className="accent-orange-600"
+              />
+              gaps only
+            </label>
 
             <button
               disabled={!sweepTarget || sweepState?.running}
