@@ -92,6 +92,13 @@ const EXCLUDE = [
    * year genuinely differ.
    */
   [/sf71h[a-z0-9-]*-(?:f1-)?testing/, 'old car at a test session'],
+  /**
+   * Toro Rosso's STR7 is a 2012 car. It appears dated 2014 because Verstappen
+   * had his first F1 test in it at Adria that year -- teams run a two-year-old
+   * chassis for private testing, so the slug's year is the event's, not the
+   * car's.
+   */
+  [/(?:^|-)str7(?:-|$)/, 'old car at a test session'],
   /** Not race cars: a launch presentation and a concept study. */
   [/(?:^|-)presentation(?:-|$)|concept-study|(?:^|-)concept(?:-|$)/, 'presentation or concept'],
   /**
@@ -148,6 +155,19 @@ const EVENTS = [
  * mistake that put a 2020 Haas in 2017 before the year filter was tightened.
  */
 const CHASSIS = {
+  /**
+   * 2014. The first hybrid season, and the last for Caterham and Marussia.
+   *
+   * Red Bull's RB10 and Toro Rosso's STR9 sit next to 2015's RB11 and STR10,
+   * so the patterns must not run on: /rb10/ would match inside "rb10" only,
+   * but /str9/ has to refuse a following digit or it reads STR9 out of a
+   * hypothetical STR90. Lotus is the E22, not to be confused with 2015's E23.
+   */
+  2014: [[/(?:^|-)w05(?:-|$)/, 'W05'], [/f14-?t|(?:^|-)f14(?:-|$)/, 'F14 T'],
+         [/rb10/, 'RB10'], [/vjm07/, 'VJM07'], [/fw36/, 'FW36'],
+         [/(?:^|-)e22(?:-|$)/, 'E22'], [/str9(?![0-9])/, 'STR9'],
+         [/mp4-?29/, 'MP4-29'], [/(?:^|-)c33(?:-|$)/, 'C33'],
+         [/mr03(?!b)/, 'MR03'], [/(?:^|-)ct05(?:-|$)/, 'CT05']],
   /**
    * 2015. Manor ran the previous year's Marussia as the MR03B, so both names
    * appear. Red Bull's RB11 and Toro Rosso's STR10 are the last of the
@@ -288,6 +308,9 @@ const CHASSIS_TEAM = {
   W06: 'Mercedes', 'SF15-T': 'Ferrari', RB11: 'Red Bull', VJM08: 'Force India',
   FW37: 'Williams', E23: 'Lotus', STR10: 'Toro Rosso', 'MP4-30': 'McLaren',
   C34: 'Sauber', MR03B: 'Manor',
+  W05: 'Mercedes', 'F14 T': 'Ferrari', RB10: 'Red Bull', VJM07: 'Force India',
+  FW36: 'Williams', E22: 'Lotus', STR9: 'Toro Rosso', 'MP4-29': 'McLaren',
+  C33: 'Sauber', MR03: 'Marussia', CT05: 'Caterham',
 };
 
 /**
@@ -335,6 +358,10 @@ const DRIVERS = {
   rosberg: 'Nico Rosberg', gutierrez: 'Esteban Gutierrez', nasr: 'Felipe Nasr',
   // 2015 only: Maldonado at Lotus, Merhi and Stevens at Manor.
   maldonado: 'Pastor Maldonado', merhi: 'Roberto Merhi', stevens: 'Will Stevens',
+  // 2014 only: Chilton and Bianchi at Marussia, Kobayashi and Ericsson at
+  // Caterham, Sutil and Gutierrez at Sauber, Vergne at Toro Rosso.
+  chilton: 'Max Chilton', bianchi: 'Jules Bianchi', kobayashi: 'Kamui Kobayashi',
+  sutil: 'Adrian Sutil', vergne: 'Jean-Eric Vergne', lotterer: 'Andre Lotterer',
   haryanto: 'Rio Haryanto', 'jenson-button': 'Jenson Button',
 };
 /** Longest surname first, so "sainz" cannot win inside another token. */
@@ -352,7 +379,7 @@ const MAKERS = {
   altaya: 'Altaya', onyx: 'Onyx', schuco: 'Schuco', opo: 'OPO', mcg: 'MCG',
   'hot-wheels': 'Hot Wheels', hotwheels: 'Hot Wheels',
   // Makers that first appear in the older seasons.
-  autoart: 'AutoArt', exoto: 'Exoto', quartzo: 'Quartzo', vitesse: 'Vitesse',
+  autoart: 'AutoArt', exoto: 'Exoto', '-spar-': 'Spark', quartzo: 'Quartzo', vitesse: 'Vitesse',
   matrix: 'Matrix', brumm: 'Brumm', amalgam: 'Amalgam',
 };
 
