@@ -1,13 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import SearchBox from './SearchBox';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -16,13 +14,6 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
 
   return (
     <nav
@@ -59,32 +50,9 @@ export default function Navbar() {
             Best prices
           </Link>
 
-          {/* Search Bar */}
-          <form onSubmit={handleSearch} className="flex-1 max-w-[448px]">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search drivers, teams, events, or SKUs..."
-                className="w-full px-4 py-2 pl-10 rounded-lg border bg-white/50 text-sm focus:outline-none transition-all"
-                style={{ borderColor: '#e0ddd6', color: '#1a1916', fontFamily: "'Hanken Grotesk', sans-serif" }}
-              />
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-                fill="none"
-                stroke="#8a857c"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-          </form>
+          {/* Search Bar. Suggestions live in SearchBox; see that file
+              for why they cost no database queries. */}
+          <SearchBox className="flex-1 max-w-[448px]" />
 
           <Link href="/about" className="font-semibold text-[15px] hover:text-[var(--accent)] transition-colors flex-none" style={{ color: '#3a3833' }}>
             About
