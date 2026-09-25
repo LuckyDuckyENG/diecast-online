@@ -5,7 +5,7 @@ import Footer from '../components/Footer';
 import { getAboutStats } from '@/lib/aboutStats';
 
 export const metadata: Metadata = {
-  title: 'About — Diecasts',
+  title: 'About | Diecasts',
   description:
     'Who built the F1 diecast price index, where the prices come from, and what the site will not tell you.',
 };
@@ -47,8 +47,8 @@ export default async function AboutPage() {
             finding models that I want for my shelf, but it is always so hard to
             find all the listings and see what the best price is for that model.
             What just started as a cool idea of mine, something I felt deep down as
-            a collector, turned into a real site with thousands of models &mdash;
-            one page that puts all of the listings together.
+            a collector, turned into a real site with thousands of models, and one
+            page that puts all of the listings together.
           </p>
           <p>
             My goal is adding as many models as possible from every year since
@@ -58,9 +58,9 @@ export default async function AboutPage() {
             isn&rsquo;t here,{' '}
             <Link href="/contact" className="text-[var(--accent)] underline hover:no-underline">
               tell me
-            </Link>{' '}
-            &mdash; that is genuinely the most useful thing you can do. I believe
-            with having a community, we can make this work.
+            </Link>
+            . That is genuinely the most useful thing you can do. I believe with
+            having a community, we can make this work.
           </p>
           <p>
             Thank you all for reading, and I hope this site is for you.
@@ -93,7 +93,7 @@ export default async function AboutPage() {
             [n(s.cars), 'cars'],
             [n(s.models), 'models'],
             [String(s.seasons), 'seasons'],
-            [s.firstYear && s.lastYear ? `${s.firstYear}–${s.lastYear}` : '—', 'covered'],
+            [s.firstYear && s.lastYear ? `${s.firstYear} to ${s.lastYear}` : '', 'covered'],
           ].map(([big, small]) => (
             <div key={small} className="rounded-xl border border-[var(--border-light)] p-4">
               <p className="font-display font-black text-2xl text-[var(--text-primary)]">{big}</p>
@@ -103,7 +103,7 @@ export default async function AboutPage() {
         </div>
         <p className="text-[17px] leading-[1.7] text-[var(--text-secondary)]">
           Prices come from <strong>{s.shops} shops</strong>{' '}that have supplied
-          at least one &mdash; {n(s.shopPrices)} retailer prices and{' '}
+          at least one. That is {n(s.shopPrices)} retailer prices and{' '}
           {n(s.ebayListings)} eBay listings. The same model often costs very
           different money in different places: a 1:18 Looksmart Hamilton has been
           AUD 419 at one shop and AUD 1,036 at another on the same day.
@@ -158,8 +158,8 @@ export default async function AboutPage() {
         <p className="text-[17px] leading-[1.7] text-[var(--text-secondary)]">
           Some links to eBay are affiliate links, which means I may earn a small
           commission if you buy through one. It costs you nothing extra. It does
-          not change which price is shown as cheapest either &mdash; the ranking is
-          done on price alone, and shop links carry no commission at all.
+          not change which price is shown as cheapest either. The ranking is done
+          on price alone, and shop links carry no commission at all.
         </p>
 
         <div className="mt-14 rounded-xl border border-[var(--border-light)] p-6">
