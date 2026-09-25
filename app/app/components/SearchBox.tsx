@@ -16,13 +16,14 @@ import { useRouter } from 'next/navigation';
  * six chassis codes is more useful than three model rows would be.
  */
 
-interface Term { t: string; k: 'driver' | 'team' | 'season' | 'chassis'; n: number }
+interface Term { t: string; k: 'driver' | 'team' | 'season' | 'chassis' | 'event'; n: number }
 
 const LABEL: Record<Term['k'], string> = {
   driver: 'driver',
   team: 'team',
   season: 'season',
   chassis: 'car',
+  event: 'race',
 };
 
 export default function SearchBox({ className = '' }: { className?: string }) {

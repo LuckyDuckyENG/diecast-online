@@ -28,8 +28,8 @@ export const revalidate = 86400;
 export interface SearchTerm {
   /** What the user sees and what gets searched. */
   t: string;
-  /** driver | team | season | chassis — drives the label in the dropdown. */
-  k: 'driver' | 'team' | 'season' | 'chassis';
+  /** What kind of thing it is, which drives the label in the dropdown. */
+  k: 'driver' | 'team' | 'season' | 'chassis' | 'event';
   /** How many cars it matches, for ordering. */
   n: number;
 }
@@ -39,7 +39,7 @@ export async function GET() {
     selectAll<any>(supabase, 'drivers', 'id, name'),
     selectAll<any>(supabase, 'teams', 'id, name'),
     selectAll<any>(supabase, 'seasons', 'id, year'),
-    selectAll<any>(supabase, 'cars', 'driver_id, team_id, season_id, chassis_name'),
+    selectAll<any>(supabase, 'cars', 'driver_id, team_id, season_id, chassis_name, event_name'),
   ]);
 
   const tally = <T,>(key: (c: any) => T) => {
@@ -55,6 +55,29 @@ export async function GET() {
   const byTeam = tally(c => c.team_id);
   const bySeason = tally(c => c.season_id);
   const byChassis = tally(c => c.chassis_name);
+
+  /**
+   * Races, with the bracketed circuit stripped and the non-races dropped.
+   *
+   * The raw column is not suggestable. "Season" sits on 270 cars and would be
+   * the most prominent entry in the list while meaning nothing -- it is what a
+   * car is called when it belongs to no particular round. Seven more names
+   * differ only by a bracket, so "Italian GP" and "Italian GP (Monza)" would
+   * appear as two separate races.
+   *
+   * Stripping the bracket is safe because search matches event_name with
+   * ilike: suggesting "Italian GP" finds the Monza rows too, so the merged
+   * count is honest.
+   */
+  const NOT_A_RACE = /^season$|test|pre-season|launch|showcar|presentation/i;
+  const byEvent = new Map<string, number>();
+  for (const c of cars) {
+    const raw = String(c.event_name || '').trim();
+    if (!raw || NOT_A_RACE.test(raw)) continue;
+    const base = raw.replace(/\s*\(.*\)\s*$/, '').trim();
+    if (!base) continue;
+    byEvent.set(base, (byEvent.get(base) || 0) + 1);
+  }
 
   const terms: SearchTerm[] = [
     /**
@@ -74,6 +97,7 @@ export async function GET() {
     ...[...byChassis.entries()]
       .filter(([c]) => c)
       .map(([c, n]) => ({ t: String(c), k: 'chassis' as const, n })),
+    ...[...byEvent.entries()].map(([e, n]) => ({ t: e, k: 'event' as const, n })),
   ];
 
   // Most cars first, so "Ferrari" outranks a chassis only one car uses.
