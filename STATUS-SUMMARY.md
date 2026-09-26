@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-24
+# Status Summary — last updated 2026-09-27
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -133,6 +133,66 @@ was cancelled.
 **Known gap:** events are stored by name, so "silverstone", "monza" and "spa"
 find nothing while "british", "italian" and "belgian" work.
 
+## Measuring what people want, instead of waiting for SEO
+
+Added 2026-09-27. The question was "how do I know which direction is right",
+and the instinct was to wait for search rankings. SEO is the slowest
+instrument available -- months of lag, and it answers what Google thinks
+rather than what collectors want.
+
+Two pieces, split on one test: **would mine be better than what already
+exists?**
+
+**Page views: BOUGHT.** @vercel/analytics in the root layout, enabled in the
+dashboard. Page views, referrers, country, and bot filtering. Free on Hobby,
+50,000 events a month, 30 days of history.
+
+Not built, because the hard part of page analytics is not logging, it is
+filtering bots -- a list maintained forever, not a regex written once. The
+sitemap carries 1,341 URLs, so one crawler walking it looks like 1,341 visits,
+and a roadmap planned on an unfiltered number is a roadmap planned around
+whatever a scraper liked. It also keeps the highest-frequency event on the
+site away from Supabase, which is the resource that failed on 2026-09-22.
+
+**Searches: BUILT.** migration 021, `search_queries`: query, result count,
+country, bot flag, timestamp. One row per SEARCH, not per page view.
+
+This started as a Vercel custom event, on the same buy-not-build reasoning.
+That was right to check and wrong in fact -- **custom events are excluded from
+the Hobby plan** and cost USD 20/month on Pro. So the test came out the other
+way for this half: a table costs nothing and gives SQL, which ranks thousands
+of distinct search strings better than a dashboard panel would have anyway.
+
+Decisions worth keeping:
+
+  - **Country only, never city.** Country informs a real decision (is it worth
+    localising currency). City informs none, and city plus a timestamp plus a
+    distinctive query starts narrowing toward identifying a person.
+  - **Bots flagged, not dropped**, so the rule can be tightened later without
+    having lost the rows it excluded. Query with `where is_bot = false`.
+  - **Ninety-day retention**, in the migration. The default retention of any
+    log is "for ever", which is how a small table becomes something you have
+    to think about.
+  - **The endpoint always returns 204**, even when the insert fails. It exists
+    to observe the site and must never surface an error to someone searching.
+    The consequence: a 204 proves nothing. Only reading the table does.
+
+The query that answers "what next":
+
+```sql
+select query, count(*) as searches
+from search_queries
+where results = 0 and is_bot = false
+  and created_at > now() - interval '30 days'
+group by query order by searches desc limit 30;
+```
+
+**The gap this does NOT close: outbound clicks.** There is no visibility into
+whether anyone follows a link to a shop or to eBay. "Found what they wanted
+and left to buy it" and "looked, was not convinced, left" are identical in
+page views. That is the most commercially meaningful thing on the site and it
+is currently unmeasured. A click handler on outbound links would close it.
+
 ## Open, none urgent
 
 - **21 cars have no models.** sync-csv creates the car before the models, so a
@@ -142,7 +202,16 @@ find nothing while "british", "italian" and "belgian" work.
   from 2021 to 2024" against 30 seasons and 2,848 models, says "we" for one
   person, and never states that eBay links earn commission. Its counts should
   come from the database rather than being typed.
-- **2013-2016 do not exist at all** -- 332 models the shop lists, none held.
+- **2013 does not exist** -- 42 models the shop lists, none held. 2014, 2015
+  and 2016 were imported on 2026-09-24 and 2026-09-25.
+- **Outbound clicks are unmeasured.** See the section above.
+- **`/drivers/norris-piastri` is a fake driver page**, a two-car set imported
+  as a person, live and in the sitemap. Nine other pair names already 404
+  under the three-car threshold; this one clears it.
+- **Driver-page cards say "3 manufacturers"** where browse and search say
+  "Minichamps · Spark". One line, hubData.ts:91.
+- **Circuit names find nothing.** "silverstone", "monza", "spa" -- races are
+  stored by country. Needs an alias table on both search and suggestions.
 
 ## 2017-2020 — rebuilt from the shop, not by hand
 
