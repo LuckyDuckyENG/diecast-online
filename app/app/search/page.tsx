@@ -2,6 +2,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ModelCard from '../components/ModelCard';
 import { searchCars } from '@/lib/searchData';
+import SearchTracker from '../components/SearchTracker';
 
 /**
  * Server-rendered, and filtered in the database.
@@ -37,6 +38,11 @@ export default async function SearchPage({
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg-secondary)]">
+      {/*
+        Records the query and how many results it found. Renders nothing; see
+        the component for why this is a custom event rather than a table.
+      */}
+      <SearchTracker query={query} results={results.length} />
       <Navbar />
 
       <main className="flex-1 max-w-7xl mx-auto px-6 py-8 w-full">
