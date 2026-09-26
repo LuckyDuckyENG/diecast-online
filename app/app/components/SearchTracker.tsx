@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { track } from '@vercel/analytics';
 
 /**
  * Records what people searched for, and whether it found anything.
@@ -11,23 +10,22 @@ import { track } from '@vercel/analytics';
  * catalogue did not have -- which beats guessing at the next season to import,
  * and beats SEO, whose feedback loop is months long.
  *
- * WHY CUSTOM EVENTS RATHER THAN A TABLE
+ * WHY THIS POSTS TO OUR OWN ENDPOINT
  *
- * The obvious build is a search_queries table. But analytics is already
- * running, already filters bots by user agent, and already costs the database
- * nothing. Writing a table before checking whether the dashboard answers the
- * question would be building something that might already exist.
+ * It first sent a Vercel custom event, on the reasoning that analytics was
+ * already running and already filtered bots, so a table might be building
+ * something that existed. That was right to check and wrong in fact: custom
+ * events are EXCLUDED from the Hobby plan and cost USD 20/month on Pro.
  *
- * The open question is whether it can rank a HIGH-CARDINALITY property.
- * Analytics tools are built for properties with tens of values -- country,
- * browser -- and thousands of distinct search strings is their worst case. The
- * docs mention exporting "up to 250 entries", which hints at the ceiling.
+ * Page views stay with Vercel, because bot filtering there is a list
+ * maintained forever and the volume would otherwise land on the database. But
+ * searches are one row each rather than one per page view, so a table costs
+ * almost nothing -- and gives proper SQL for ranking empty queries, which is
+ * better than a dashboard panel would have managed across thousands of
+ * distinct strings anyway.
  *
- * So empty searches get their OWN EVENT NAME as well as a property. The docs
- * confirm the dashboard can filter by event name; whether it can rank by
- * property value is exactly what they do not say. If in a week the property
- * breakdown turns out to be unusable, the fallback is a table -- built then,
- * knowing the real search volume rather than guessing it.
+ * The country and the bot check happen server-side in the route, because both
+ * live in request headers a browser cannot be trusted to report.
  *
  * Fires once per query, not per render.
  */
@@ -51,12 +49,18 @@ export default function SearchTracker({
     if (sent.current === key) return;
     sent.current = key;
 
-    // Capped so one pasted paragraph cannot become an unbounded property
-    // value. Nothing anyone genuinely searches for is this long.
-    const term = q.slice(0, 80);
-
-    track('Search', { q: term, results });
-    if (results === 0) track('Search: no results', { q: term });
+    /**
+     * keepalive so the request survives the visitor clicking a result
+     * immediately, which is the normal case for a search that WORKED. Without
+     * it the successful searches would be under-counted relative to the empty
+     * ones, and the ratio between them is the number worth watching.
+     */
+    fetch('/api/log-search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ q: q.slice(0, 80), results }),
+      keepalive: true,
+    }).catch(() => { /* logging must never disturb the page */ });
   }, [query, results]);
 
   return null;
