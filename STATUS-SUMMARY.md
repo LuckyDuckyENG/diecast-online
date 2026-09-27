@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-27
+# Status Summary — last updated 2026-09-28
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -8,21 +8,24 @@
 > The site refuses to quote a price older than **30 days** (`STALE_DAYS`), so
 > prices revert to "Check price on site" unless something re-checks them.
 >
-> As at **2026-09-10**, measured from `last_checked_at`:
+> Re-measured **2026-09-28** from `last_checked_at`:
 >
 > ```
-> retailer  3,374 of 3,385 checked 08 Sept  ->  go stale 2026-10-08
->              11 stragglers, 8 ALREADY STALE (see below)
-> eBay      3,203 of 3,203 checked 10 Sept  ->  go stale 2026-10-10
+> retailer  6,447 rows, newest 27 Sept  ->  bulk goes stale late October
+>              oldest 29 July, 8 ALREADY STALE (see below)
+> eBay      3,670 rows, newest 22 Sept, oldest 10 Sept  ->  stale from 2026-10-10
 > ```
 >
-> **Next run: early October.** Both were done this week, so nothing is urgent.
+> **eBay is the one with a date: from 10 October** its oldest rows start
+> reverting to "Check price on site", and the whole set is gone by the 22nd.
+> Retailers were swept through 27 September during the season imports, so they
+> run about three weeks behind eBay now. Both grew a lot this month: retailer
+> links 3,385 -> 6,447 and eBay 3,203 -> 3,670, so budget more than the old
+> three hours.
 >
-> **11 retailer links were missed by the 8 Sept sweep** — 5 last read 29 July,
-> 1 on 30 July, 2 on 4 Aug, 3 on 30 Aug. The first eight are past 30 days and
-> are showing "Check price on site" on the site right now. Not worth a special
-> run; the October sweep collects them. Worth knowing the sweep does not always
-> reach every link.
+> **8 retailer links are already past 30 days**, last read 29 July. They are
+> showing "Check price on site" right now. Not worth a special run; the October
+> sweep collects them. Worth knowing the sweep does not always reach every link.
 >
 > About THREE hours for retailers from localhost — the old estimate of an hour
 > was written at 1,744 links and there are 3,385. Run `scripts/fetch-fx.mjs`
@@ -33,22 +36,33 @@
 ## Where things stand
 
 ```
-cars 1192  |  models 2848  |  retailer links 6016  |  eBay links 3670  |  retailers 47  |  drivers 59
-slugs 1192/1192   |   models buyable 2667/2848   |   images 2739/2848
-seasons 30: 1977-1994 and 2017-2026
+cars 1357  |  models 3142  |  retailer links 6447  |  eBay links 3670  |  retailers 47  |  drivers 72
+slugs 1357/1357   |   models buyable 2952/3142   |   images 3030/3142
+seasons 34: 1977-1994 and 2013-2026
 ```
 
 ```
-cars visible 1104/1192  =  93%
-   1977 3/4    1978 2/2    1979 7/7    1980 6/7    1981 9/10   1982 7/7    1983 3/3
-   1984 5/6    1985 3/3    1986 2/2    1987 5/5    1988 6/6    1989 3/3    1990 6/6
-   1991 6/6    1992 1/1    1993 4/4    1994 5/5    2017 71/74  2018 70/74  2019 72/73
-   2020 104/135 2021 101/112 2022 131/144 2023 145/164 2024 127/127 2025 118/120 2026 82/82
+cars visible 1265/1357  =  93%
+   1977 3/4     1978 2/2     1979 7/7     1980 6/7     1981 9/10    1982 7/7     1983 3/3
+   1984 5/6     1985 3/3     1986 2/2     1987 5/5     1988 6/6     1989 3/3     1990 6/6
+   1991 6/6     1992 1/1     1993 4/4     1994 5/5     2013 28/28   2014 28/30   2015 40/41
+   2016 65/66   2017 71/74   2018 70/74   2019 72/73   2020 104/135 2021 101/112 2022 131/144
+   2023 145/164 2024 127/127 2025 118/120 2026 82/82
 ```
 
-**Every season 2017-2023 is now reconciled against miniatures-minichamps**
-rather than resting on a hand-built CSV. 2017 held 10 cars where the shop
-publishes 124.
+**THE SOURCE IS EXHAUSTED.** Every season miniatures-minichamps publishes,
+2013 to 2023, is now reconciled against its catalogue rather than resting on a
+hand-built CSV. 2017 held 10 cars where the shop publishes 124. Finished
+2026-09-28 with 2013. Over roughly a week the catalogue went from **894 cars
+to 1,357**; against yesterday's snapshot alone that is +165 cars and +294
+models, and visible cars moved 1,104 -> 1,265.
+
+There is no next season to import from this shop. Further catalogue growth
+needs either a different source or the historic drivers (see Senna, below).
+
+**Note 2011 and 2012 exist as season rows with zero cars** — created as
+reference rows and never used. Harmless, but they will produce empty hubs if
+anything ever iterates seasons blindly.
 
 
 **Images: 722/865, with only 42 buyable models still lacking one.** Sweeps fill a
@@ -187,24 +201,36 @@ where results = 0 and is_bot = false
 group by query order by searches desc limit 30;
 ```
 
-**The gap this does NOT close: outbound clicks.** There is no visibility into
-whether anyone follows a link to a shop or to eBay. "Found what they wanted
-and left to buy it" and "looked, was not convinced, left" are identical in
-page views. That is the most commercially meaningful thing on the site and it
-is currently unmeasured. A click handler on outbound links would close it.
+**Outbound clicks — CLOSED 2026-09-27.** Migration 022, `outbound_clicks`:
+model, car slug, retailer, kind (shop or ebay), the price on screen at the
+moment of the click, `was_cheapest`, country, bot flag. Same privacy rules as
+searches: country only, bots flagged not dropped, 90 days, always 204.
+
+This was the gap page views could not close. "Found what they wanted and left
+to buy it" and "looked, was not convinced, left" are identical in a page view
+and opposite in meaning.
+
+`was_cheapest` is the column to watch. If people click the cheapest option the
+ranking is doing its job; if they do not, the reason is worth knowing, and
+postage, brand preference and a layout that buries the best price are all
+plausible and all actionable.
+
+`lib/logClick.ts` sends it with `keepalive: true`, because without it the
+browser cancels the request as the page unloads and the clicks lost would be
+exactly the decisive ones.
+
+**Nothing has been read out of either table yet.** Both were built ahead of
+the traffic, deliberately, since instrumentation cannot be backfilled. The
+first real question to ask them is the zero-result search query in the section
+above.
 
 ## Open, none urgent
 
-- **21 cars have no models.** sync-csv creates the car before the models, so a
-  row whose every SKU already exists leaves an orphan. It should roll back.
+- **37 cars have no models**, up from 21 as the season imports ran. sync-csv
+  creates the car before the models, so a row whose every SKU already exists
+  leaves an orphan. It should roll back. This grows with every import, so it
+  is now the largest piece of catalogue junk.
 - **9 duplicate models where both rows are priced**, named by the merge script.
-- **/about is wrong and has no affiliate disclosure.** It claims "four seasons
-  from 2021 to 2024" against 30 seasons and 2,848 models, says "we" for one
-  person, and never states that eBay links earn commission. Its counts should
-  come from the database rather than being typed.
-- **2013 does not exist** -- 42 models the shop lists, none held. 2014, 2015
-  and 2016 were imported on 2026-09-24 and 2026-09-25.
-- **Outbound clicks are unmeasured.** See the section above.
 - **`/drivers/norris-piastri` is a fake driver page**, a two-car set imported
   as a person, live and in the sitemap. Nine other pair names already 404
   under the three-car threshold; this one clears it.
@@ -838,9 +864,17 @@ a retailer are submitted (96 of 164). `/admin`, `/api/`, `/search` disallowed.
 
 ## SEO — not done
 
-- **Structured data** (Product/Offer JSON-LD) — the last meaningful code item. Must be
-  gated on the freshness rules so a stale or out-of-stock price is never marked up.
+- ~~**Structured data** (Product/Offer JSON-LD)~~ — **DONE.** Live with real
+  prices and gated on the freshness rules. See "Structured data is live" below.
 - **Home page** still client-rendered. Low value; it's a brand page, not a search target.
+
+**The code side of SEO is essentially finished**, which is the important thing
+to know before spending another session on it. Verified 2026-09-27: canonicals,
+structured data, internal car-to-car linking, the 404 page and the `?driver=`
+URL cleanup are all already correct. Search Console says car pages convert at
+**29% CTR** against driver hubs at **1.4%**, at an average position of 11.8.
+The constraint is now indexation and external links, not markup — and neither
+is fixed by writing code.
 
 ## Known soft spots
 
@@ -882,6 +916,21 @@ a retailer are submitted (96 of 164). `/admin`, `/api/`, `/search` disallowed.
   not. A blanket `rimraf .next` was the obvious fix and the wrong one — it throws
   away the incremental compile cache on every start, a daily cost to prevent an
   occasional mistake.
+  **It happened again on 2026-09-28**, with exactly the documented symptom:
+  every `/api/admin/*` returned the site's HTML 404 page while `/admin/ebay-linking`
+  itself rendered and `/api/search-terms` answered normally, so the admin page
+  reported `SyntaxError: Unexpected token '<', "<!DOCTYPE "`. The files, the
+  compiled chunks and `app-paths-manifest.json` were all correct, which is the
+  tell that it is the running process and not the code.
+  **Restarting the dev server fixed it; no `rm -rf .next` was needed.**
+  The `predev` guard cannot help here, because it only runs when dev STARTS —
+  a build kicked off while dev is already running corrupts the server in place.
+  The cause was not confirmed after the fact (no `BUILD_ID` remained to inspect),
+  but the symptom is a fingerprint. **Diagnose it in one step:**
+  `curl -o /dev/null -w "%{http_code}" localhost:3000/api/admin/get-f1-data`.
+  404 there plus a working page route means restart, not debug.
+  The dev server writes a readable log at `.next/dev/logs/next-development.log`,
+  including browser console errors, which is faster than reproducing in the UI.
 - **Module-scope API clients turn optional env vars into hard build dependencies.**
   `new Exa(process.env.EXA_API_KEY)` at module scope failed the entire deploy because
   the key wasn't set on Vercel. Construct per request.
@@ -2888,36 +2937,55 @@ then every sparkline is a straight segment between two readings.
 
 ## Next up
 
-Items 1 and 2 were the whole of this list two days ago and are now done: sweeps
-fill images (722/865), and every season has been re-run under the
-multiple-listings matcher (382 models carry several, 82 remain on one).
+Re-cut 2026-09-28, after the catalogue source ran out. The old items 1 and 2
+(the eBay pass, and 2021) are still here because they are still true, but the
+numbers have moved a long way and the list had drifted into duplicate numbering.
 
-1. **THE eBAY PASS.** The single biggest gap left: **464 of 1,645 models have an
-   eBay listing**, so ~1,200 have never been searched, including nearly every
-   model imported this week. eBay is where the multi-listing price comparison
-   comes from, so this is the difference between a catalogue and a price index.
-   Safe to run now that batch-ebay-search is paged — it was not, this morning.
+**The catalogue is no longer the bottleneck.** 2013 was the last season
+miniatures-minichamps publishes, so the import loop that has driven the last
+week is finished. What is left divides cleanly into three: the one job with a
+DEADLINE, the one gap that is now clearly biggest, and everything else.
+
+1. **THE eBAY PASS — now the single biggest gap by a wide margin.**
+   **1,286 of 3,142 models have an eBay listing**, so ~1,850 have never been
+   searched. eBay is where multi-listing price comparison comes from, so this
+   is the difference between a catalogue and a price index.
+
+   **Every season imported this week has ZERO eBay links:**
 
    ```
-   year   models   retail   eBay
-   2022      307      280    108
-   2023      383      352    109
-   2024      283      269     68
-   2025      270      242     60
-   2026      187      185      0     <- suspicious, 187 models and not one link
-   ALL     1,645    1,440    464
+   year   models   retail   eBay   no price at all
+   2013      41       40      0      1
+   2014      54       50      0      4
+   2015      81       79      0      2
+   2016     118      113      0      5
+   2017     133      129     36      4
+   2018     146      134     29     12
+   2019     172      168     60      4
+   2020     303      239    134     59   <- worst "no price" season
+   2021     306      291    148     12
+   2022     379      345    235     30
+   2023     444      425    264     19
+   ALL    3,142    2,931  1,286    190
    ```
 
-   2026's zero is most likely the truncated work list above, but confirm it
-   rather than assume.
+   294 models across 2013-2016 have never had a single eBay search run against
+   them. That is the obvious first scope, and it is also the cleanest test of
+   whether the historic SKU-quote rate holds outside Senna.
 
-2. **2021** — the last season with a known gap, 145 unheld SKUs. Same three
-   commands as the others; every trap above is now fenced.
+   Pre-1995 is mostly zero too, with the striking exception of 1993 (11 of 18)
+   and 1984 (7 of 14) — iconic sells, which is the same pattern as the stock
+   curve below.
 
-3. **Finish the shop sweeps.** Horizondiecast, Yuui and Notjustcollectibles have
+2. **2020 has 59 models with no price from any source**, three times any other
+   season and a third of the 190 total. Worth understanding as a season rather
+   than picking off one by one.
+
+3. **2021** — 101 of 112 cars visible. Same three commands as the others.
+
+4. **Finish the shop sweeps.** Horizondiecast, Yuui and Notjustcollectibles have
    not been swept at all and carry the back-catalogue and Bburago stock nothing
-   else has. LIVECARMODEL now needs about FOUR presses of Apply — its candidate
-   list grew from 884 to 1,443 as the catalogue grew.
+   else has.
 
    **Press Apply repeatedly; do not alternate with Dry run.** The cursors are
    deliberately separate per mode, so switching restarts at 0 and you never reach
@@ -2925,43 +2993,63 @@ multiple-listings matcher (382 models carry several, 82 remain on one).
    importing a season re-sorts the candidate list and makes an old offset point
    somewhere else. Restart from 0 after an import.
 
-4. **The mid-September refresh** — see the deadline box at the top. Only 6
-   retailer links are past 30 days so far, because the sweeps have been
-   refreshing them as a side effect.
-2. **The retailer SWEEP records no price observations.** `refresh-prices` and
+   **Use the `gaps only` checkbox.** The API supported it for days before the UI
+   sent it, which is why several "the sweep found nothing new" runs were actually
+   full re-sweeps of already-linked models.
+
+5. **The October refresh** — see the deadline box at the top. eBay is the one
+   with a date: its oldest rows go stale 2026-10-10.
+
+6. **The retailer SWEEP records no price observations.** `refresh-prices` and
    `refresh-ebay` both append to `price_observations`; the sweep writes through
    `attachRetailerLink` and does not. So links created by a sweep sit outside the
    price history until a Refresh All Retailers picks them up. Third write path,
    two of them recording history — the kind of inconsistency that gets forgotten.
-3. **A `predev` guard for the `.next` collision.** A production build left in
-   `.next/` breaks route registration and every `/api/*` returns 404 with an HTML
-   body while pages still render. **This has now bitten FOUR times**, most
-   recently from a build dated eight days earlier that lay dormant until a fresh
-   dev start. `"predev": "rimraf .next"` or similar ends it permanently.
-4. **Own the images, or keep hotlinking.** Every product photo is served from a
+7. **Own the images, or keep hotlinking.** Every product photo is served from a
    retailer's CDN — 24 hosts, their bandwidth, their copyright, and any of them
    can break every image by renaming a file. None block a `diecasts.app` referer
    today, but that is a snapshot. Copying to Supabase Storage at fill time solves
-   breakage, bandwidth and ownership together; ~700 images is cheap now and a
-   migration later. **A real decision, not a nice-to-have.**
-5. **42 buyable models still have no image**, 43 of the image-less have an eBay
-   photo available. Applied by hand on purpose — see the images note at the top.
-6. **86 cars have no models at all**, so they are invisible by construction.
-   15 of them are 2020 rows held in `f1_2020_HOLD_no_sku.csv` awaiting a SKU.
-7. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
-   problem in the currency audit.
-8. **8 retailer links whose URL states a different scale than the model** — see
-   Data findings. Splits into wrong links and wrong catalogue scale; do not
-   blind-fix.
-9. **More seasons, if wanted — but by ERA, not chronology.** Feed discovery dies
-   below 2021; hand-researched CSVs do not (2020 gave 79 cars against the
-   generator's 11). And stock is not a decay curve: 2000 and 1995 have more
-   product than 2005 and 2010, because iconic sells and mid-2000s midfield does
-   not.
-10. **2026 eBay**, once the cars actually ship. Zero secondary market today.
-11. Review queue for the eBay `event-driver` tier, and a "recently auto-added" view.
-12. Structured data (Product/Offer JSON-LD), gated on the freshness rules.
-13. Rotate the eBay and Exa credentials still sitting in the repo history.
+   breakage, bandwidth and ownership together, and 3,030 images is cheap now and
+   a migration later. **A real decision, not a nice-to-have.**
+8. **112 models still have no image**, down from a much worse ratio: images now
+   cover 3,030 of 3,142. Where only an eBay photo exists it is applied by hand on
+   purpose — see the images note at the top.
+9. **37 cars have no models at all**, so they are invisible by construction. This
+   went UP from 21 as the season imports ran, because sync-csv creates the car
+   before the models and leaves an orphan when every SKU already exists.
+   15 are 2020 rows held in `f1_2020_HOLD_no_sku.csv` awaiting a SKU.
+10. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
+    problem in the currency audit.
+11. **8 retailer links whose URL states a different scale than the model** — see
+    Data findings. Splits into wrong links and wrong catalogue scale; do not
+    blind-fix.
+12. **More seasons — but the shop is exhausted, so this means a NEW SOURCE.**
+    2013 was the oldest season miniatures-minichamps carries. Going further needs
+    either another catalogue or the historic drivers, and the driver route is
+    already proven: Senna gave 52 cars and 153 models, and Villeneuve (125
+    pre-1995 products), Lauda (102), Hill (92), Prost (78) and Mansell (78) are
+    waiting behind the same pipeline. Stock is not a decay curve — 2000 and 1995
+    have more product than 2005 and 2010, because iconic sells.
+13. **2026 eBay**, once the cars actually ship. 5 links today against 187 models.
+14. Review queue for the eBay `event-driver` tier, and a "recently auto-added" view.
+15. Rotate the eBay and Exa credentials still sitting in the repo history.
+16. **Circuit aliases.** "silverstone", "monza" and "spa" still find nothing in
+    search or suggestions, because races are stored by country.
+17. **Driver-page cards say "3 manufacturers"** where browse and search name them.
+    One line, `hubData.ts:91`.
+
+### What this list no longer contains
+
+- **A `predev` guard for the `.next` collision** — built. It removes `.next/`
+  only when a `BUILD_ID` shows a production build wrote there. Note it cannot
+  catch a build started while dev is ALREADY running; that recurred 2026-09-28
+  and the fix is simply restarting dev. See Traps.
+- **Structured data (Product/Offer JSON-LD)** — live, with real prices, gated on
+  the freshness rules. See "Structured data is live".
+- **/about** — rewritten 2026-09-27 in Elias's own words, with live counts from
+  `lib/aboutStats.ts` and the affiliate disclosure. The closing line is still a
+  placeholder he intends to write himself.
+- **Outbound click tracking** — built, migration 022.
 
 ## Data findings worth acting on
 

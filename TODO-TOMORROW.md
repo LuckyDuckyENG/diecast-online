@@ -56,6 +56,9 @@ Once these two things are fixed (filtering wrong products + consistent product m
 - Better to have 10 perfect matches than 30 mixed matches
 - Test scraper improvements on 1-2 models before running on all 10
 
+## to commit a change
+git push origin main
+
 
 cd app
 npm run dev
