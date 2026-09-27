@@ -451,6 +451,16 @@ export default function EbayLinkingAdmin() {
       try {
         setLoading(true);
         const response = await fetch('/api/admin/get-f1-data', { cache: 'no-store' });
+        /**
+         * Checked before parsing. A dev server with a stale routing table
+         * answers /api/admin/* with the site's HTML 404 page, and calling
+         * .json() on that reports "Unexpected token '<'" -- which says
+         * nothing about which endpoint failed or why. Restarting the dev
+         * server is the fix; this makes that diagnosable in one read.
+         */
+        if (!response.ok) {
+          throw new Error(`/api/admin/get-f1-data returned ${response.status}`);
+        }
         const data = await response.json();
 
         if (data.success) {
@@ -474,9 +484,17 @@ export default function EbayLinkingAdmin() {
   // shop that switches platform shows up as sweepable without a code change.
   useEffect(() => {
     fetch('/api/admin/sweep-retailer', { cache: 'no-store' })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`/api/admin/sweep-retailer returned ${r.status}`);
+        return r.json();
+      })
       .then(d => { if (d.success) setSweepRetailers(d.retailers.filter((r: any) => r.sweepable)); })
-      .catch(() => {});
+      /**
+       * Logged rather than swallowed. A silent failure here shows up as an
+       * empty shop dropdown, which looks like "no shop is sweepable" instead
+       * of "the request failed".
+       */
+      .catch(e => console.error('Error loading sweepable retailers:', e.message));
   }, []);
 
   // Load inventory count
@@ -484,6 +502,9 @@ export default function EbayLinkingAdmin() {
     const loadInventoryCount = async () => {
       try {
         const response = await fetch('/api/admin/get-inventory-count', { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error(`/api/admin/get-inventory-count returned ${response.status}`);
+        }
         const data = await response.json();
         if (data.success) {
           setInventoryCount(data.count);
