@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { SavingRow } from '@/lib/savingsData';
 import { slugify } from '@/lib/carSlug';
+import { logClick } from '@/lib/logClick';
 
 /**
  * The driver filter, and why this page needs one when /browse already sorts.
@@ -91,6 +92,22 @@ function Row({ r }: { r: SavingRow }) {
           */}
           <a
             href={r.url}
+            /*
+              Same measurement as the car page. A click from here is the
+              strongest signal the site has: this row exists BECAUSE the price
+              is below what the model normally costs, so following it is
+              someone acting on the comparison itself.
+            */
+            onClick={() => logClick({
+              modelId: r.modelId,
+              carSlug: r.carSlug,
+              retailer: r.seller,
+              kind: r.kind === 'ebay' ? 'ebay' : 'shop',
+              priceAud: r.price,
+              // Every row on this page IS the cheapest found for its model --
+              // that is the page's whole premise.
+              wasCheapest: true,
+            })}
             target="_blank"
             rel={r.kind === 'ebay' ? 'sponsored noopener noreferrer' : 'noopener noreferrer'}
             className="text-xs text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:underline truncate max-w-[10rem] ml-auto block"

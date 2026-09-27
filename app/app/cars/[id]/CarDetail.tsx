@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { logClick } from '@/lib/logClick';
 import PriceSparkline from '@/app/components/PriceSparkline';
 import { pickSeries, pickEbaySeries, type ModelHistory } from '@/lib/priceHistory';
 import TeamColorFallback from '../../components/TeamColorFallback';
@@ -293,6 +294,33 @@ export default function CarDetail({
                             <a
                               key={idx}
                               href={retailer.url}
+                              /*
+                                Records that someone left for a shop. This is the
+                                only measurement that separates "found a good
+                                price and went to buy" from "looked and left" --
+                                identical in page views, opposite outcomes.
+
+                                Does not block or delay the navigation; see
+                                lib/logClick for why keepalive matters here.
+                              */
+                              onClick={() => logClick({
+                                modelId: variant.id,
+                                carSlug: car.slug ?? null,
+                                retailer: retailer.name,
+                                kind: retailer.isSecondary ? 'ebay' : 'shop',
+                                priceAud: retailer.priceAUD ?? retailer.price ?? null,
+                                // Cheapest of what is actually quotable: a
+                                // hidden or sold-out price is not an option the
+                                // visitor could have chosen instead.
+                                wasCheapest: (() => {
+                                  const usable = (variant.retailers as any[])
+                                    .filter(r => !r.priceHidden && (r.priceAUD ?? r.price) > 0)
+                                    .map(r => r.priceAUD ?? r.price);
+                                  if (!usable.length) return null;
+                                  const mine = retailer.priceAUD ?? retailer.price;
+                                  return mine > 0 && mine === Math.min(...usable);
+                                })(),
+                              })}
                               target="_blank"
                               /* eBay links carry affiliate tracking, so they must be
                                  declared. Retailer links are not paid and stay plain. */
