@@ -156,6 +156,19 @@ const EVENTS = [
  */
 const CHASSIS = {
   /**
+   * 2013. The last of the V8 era, and the last season this shop covers before
+   * the historic block picks up.
+   *
+   * Red Bull's RB9 must refuse a following digit or it reads out of RB9x
+   * codes that do not exist yet but might; Lotus is the E21, a year before the
+   * E22. Marussia ran the MR02 and Caterham the CT03, both teams' last but
+   * one season.
+   */
+  2013: [[/(?:^|-)w04(?:-|$)/, 'W04'], [/f138|(?:^|-)f2013(?:-|$)/, 'F138'], [/rb9(?![0-9])/, 'RB9'],
+         [/vjm06/, 'VJM06'], [/fw35/, 'FW35'], [/(?:^|-)e21(?:-|$)/, 'E21'],
+         [/str8(?![0-9])/, 'STR8'], [/mp4-?28/, 'MP4-28'],
+         [/(?:^|-)c32(?:-|$)/, 'C32'], [/mr02/, 'MR02'], [/(?:^|-)ct03(?:-|$)/, 'CT03']],
+  /**
    * 2014. The first hybrid season, and the last for Caterham and Marussia.
    *
    * Red Bull's RB10 and Toro Rosso's STR9 sit next to 2015's RB11 and STR10,
@@ -311,6 +324,9 @@ const CHASSIS_TEAM = {
   W05: 'Mercedes', 'F14 T': 'Ferrari', RB10: 'Red Bull', VJM07: 'Force India',
   FW36: 'Williams', E22: 'Lotus', STR9: 'Toro Rosso', 'MP4-29': 'McLaren',
   C33: 'Sauber', MR03: 'Marussia', CT05: 'Caterham',
+  W04: 'Mercedes', F138: 'Ferrari', RB9: 'Red Bull', VJM06: 'Force India',
+  FW35: 'Williams', E21: 'Lotus', STR8: 'Toro Rosso', 'MP4-28': 'McLaren',
+  C32: 'Sauber', MR02: 'Marussia', CT03: 'Caterham',
 };
 
 /**
@@ -361,6 +377,10 @@ const DRIVERS = {
   // 2014 only: Chilton and Bianchi at Marussia, Kobayashi and Ericsson at
   // Caterham, Sutil and Gutierrez at Sauber, Vergne at Toro Rosso.
   chilton: 'Max Chilton', bianchi: 'Jules Bianchi', kobayashi: 'Kamui Kobayashi',
+  // 2013 only: Webber's last season, Di Resta at Force India, Van der Garde
+  // and Pic at Caterham, Bottas's debut at Williams.
+  webber: 'Mark Webber', 'di-resta': 'Paul di Resta', 'van-der-garde': 'Giedo van der Garde',
+  'charles-pic': 'Charles Pic', kovalainen: 'Heikki Kovalainen',
   sutil: 'Adrian Sutil', vergne: 'Jean-Eric Vergne', lotterer: 'Andre Lotterer',
   haryanto: 'Rio Haryanto', 'jenson-button': 'Jenson Button',
 };
