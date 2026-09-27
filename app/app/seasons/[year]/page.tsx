@@ -18,12 +18,24 @@ export async function generateStaticParams() {
 function summarise(hub: NonNullable<Awaited<ReturnType<typeof getSeasonHub>>>) {
   const teams = Array.from(new Set(hub.cars.map(c => c.team).filter(Boolean))).length;
   const drivers = Array.from(new Set(hub.cars.map(c => c.driver).filter(Boolean))).length;
-  const price = hub.lowestPrice !== null ? ` From AUD $${hub.lowestPrice.toFixed(2)}.` : '';
-  return (
-    `Scale models from the ${hub.subject} Formula 1 season — ${hub.cars.length} cars across ` +
-    `${teams} teams and ${drivers} drivers, made by ${hub.manufacturers.join(', ')} ` +
-    `in ${hub.scales.join(' and ')}. Compare prices across every retailer that stocks them.${price}`
-  );
+  /**
+   * Short enough to survive Google's ~155 character cut, with the price early.
+   *
+   * The previous version ran past 230 characters and ended on the price, so
+   * the one fact that makes a price-comparison result worth clicking was the
+   * part that got truncated away. Same reason the driver and team hubs were
+   * drawing page-one impressions and almost no clicks.
+   */
+  const bits = [`${hub.cars.length} F1 scale models from the ${hub.subject} season.`];
+  if (hub.lowestPrice !== null) bits.push(`From AUD $${hub.lowestPrice.toFixed(2)}.`);
+  bits.push(`${teams} teams, ${drivers} drivers, in ${hub.scales.join(' and ')}.`);
+  bits.push('Compare every retailer in one place.');
+  let out = bits.join(' ');
+  while (out.length > 155 && bits.length > 1) {
+    bits.splice(bits.length - 2, 1);
+    out = bits.join(' ');
+  }
+  return out;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

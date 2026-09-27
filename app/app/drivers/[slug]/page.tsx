@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import HubPage from '../../components/HubPage';
 import { getDriverHub, getHubSlugsForBuild } from '@/lib/hubData';
+import { hubSummary } from '@/lib/hubSummary';
 
 // One day, not one hour — see the note in app/sitemap.ts.
 // Hourly revalidation of pages that each read the whole dataset is what
@@ -15,16 +16,7 @@ export async function generateStaticParams() {
   return drivers.map(slug => ({ slug }));
 }
 
-function summarise(hub: NonNullable<Awaited<ReturnType<typeof getDriverHub>>>) {
-  const years = hub.years.join(' and ');
-  const makers = hub.manufacturers.join(', ');
-  const price = hub.lowestPrice !== null ? ` Prices start at AUD $${hub.lowestPrice.toFixed(2)}.` : '';
-  return (
-    `Every ${hub.subject} scale model we track — ${hub.cars.length} cars from ${years}, ` +
-    `made by ${makers} in ${hub.scales.join(' and ')}. ` +
-    `Compare what every retailer charges for each one.${price}`
-  );
-}
+const summarise = hubSummary;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
