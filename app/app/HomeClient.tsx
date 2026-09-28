@@ -101,7 +101,10 @@ export default function HomeClient({
                 placeholder="Search any car, driver, season or model..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '15px', fontFamily: "'Hanken Grotesk', sans-serif" }}
+                /* 16px, not 15px: below 16 iOS Safari zooms the viewport on
+                   focus and never zooms back out. This is the first thing a
+                   phone visitor taps. */
+                style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '16px', fontFamily: "'Hanken Grotesk', sans-serif" }}
               />
               <button type="submit" style={{ background: '#cf2f2a', color: '#fff', fontWeight: 700, fontSize: '14px', height: '44px', padding: '0 22px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontFamily: "'Hanken Grotesk', sans-serif" }}>
                 Search

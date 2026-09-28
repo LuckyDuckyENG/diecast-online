@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useId } from 'react';
 import { useRouter } from 'next/navigation';
 
 /**
@@ -33,6 +33,14 @@ export default function SearchBox({ className = '' }: { className?: string }) {
   const [active, setActive] = useState(-1);
   const boxRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  /**
+   * The navbar renders this component TWICE — once in the desktop row and
+   * once in the mobile row below it — and CSS decides which one is visible.
+   * A hardcoded id would therefore appear twice in every page, which is
+   * invalid HTML and points every `aria-controls` at whichever listbox the
+   * browser happened to match first. useId gives each instance its own.
+   */
+  const listboxId = useId();
 
   /**
    * Loaded once, lazily, on first focus rather than on mount. Most visits
@@ -114,8 +122,17 @@ export default function SearchBox({ className = '' }: { className?: string }) {
             aria-label="Search models"
             aria-autocomplete="list"
             aria-expanded={open && matches.length > 0}
-            aria-controls="search-suggestions"
-            className="w-full px-4 py-2 pl-10 rounded-lg border bg-white/50 text-sm focus:outline-none transition-all"
+            aria-controls={listboxId}
+            /**
+             * text-base (16px) below md, text-sm above.
+             *
+             * Not a style choice. Safari on iOS zooms the whole viewport when
+             * an input smaller than 16px takes focus, and does NOT zoom back
+             * out when the field is blurred — so the visitor is left on a
+             * magnified page they have to pinch out of. At 16px it does
+             * nothing. Desktop keeps 14px, where the rule does not apply.
+             */
+            className="w-full px-4 py-2.5 md:py-2 pl-10 rounded-lg border bg-white/50 text-base md:text-sm focus:outline-none transition-all"
             style={{ borderColor: '#e0ddd6', color: '#1a1916', fontFamily: "'Hanken Grotesk', sans-serif" }}
           />
           <svg
@@ -136,7 +153,7 @@ export default function SearchBox({ className = '' }: { className?: string }) {
 
       {open && matches.length > 0 && (
         <ul
-          id="search-suggestions"
+          id={listboxId}
           role="listbox"
           className="absolute left-0 right-0 top-full mt-1 z-50 bg-white rounded-xl border border-[var(--border-light)] shadow-lg overflow-hidden"
         >

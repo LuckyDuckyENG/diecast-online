@@ -40,12 +40,6 @@ export default function Navbar() {
           <Link href="/browse" className="font-semibold text-[15px] hover:text-[var(--accent)] transition-colors flex-none" style={{ color: '#3a3833' }}>
             Browse
           </Link>
-          {/*
-            Desktop only, beside Browse. The mobile bar stays as it is — it
-            already carries a logo, Browse and a search field in a row that has
-            no space left, and a fourth item there would cost more than the
-            page is worth on a phone.
-          */}
           <Link href="/savings" className="font-semibold text-[15px] hover:text-[var(--accent)] transition-colors flex-none" style={{ color: '#3a3833' }}>
             Best prices
           </Link>
@@ -71,14 +65,36 @@ export default function Navbar() {
           >
             Browse
           </Link>
-          <Link
-            href="/about"
-            className="md:hidden font-semibold text-[15px] transition-colors"
-            style={{ color: '#3a3833' }}
-          >
-            About
-          </Link>
+          {/*
+            About is deliberately NOT here any more. The footer already links
+            it, and the slot is worth more as the space that lets the search
+            row below breathe. See that row for why search earned it.
+          */}
         </div>
+      </div>
+
+      {/*
+        SEARCH ON MOBILE — a second row, because it had none at all.
+
+        The desktop search lives in the `hidden md:flex` block above, so below
+        768px the site rendered a search field into the HTML and then hid it
+        with CSS. Every page except the home page had no way to search, and the
+        home page's own field is a separate plain input with no suggestions. The
+        typeahead was, in effect, desktop-only.
+
+        That matters more than it sounds. Search Console shows visitors arrive
+        from Google onto a DEEP page — a car page converting at 29% — not onto
+        the home page. So the one screen a mobile visitor actually lands on was
+        the one with no route onward except Browse.
+
+        It is a row rather than an icon on purpose. Search is the primary
+        navigation of a catalogue, not a utility hiding behind a magnifying
+        glass, and nobody taps an icon for a feature they do not know exists.
+        The cost is honest: ~48px of a ~650px screen, permanently, on top of
+        the 64px bar.
+      */}
+      <div className="md:hidden border-t px-4 py-2" style={{ borderColor: '#f2f1ed' }}>
+        <SearchBox className="w-full" />
       </div>
     </nav>
   );
