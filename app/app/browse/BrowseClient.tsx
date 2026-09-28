@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import FilterSidebar from '../components/FilterSidebar';
@@ -66,29 +66,55 @@ function orderDrivers(opts: { value: string; count: number }[]) {
  * links are in the HTML before any JavaScript runs. Only the filter and sort
  * controls need to be interactive, and they work over props.
  */
-function BrowseContent({ initialModels }: { initialModels: Model[] }) {
+export default function BrowseClient({ initialModels }: { initialModels: Model[] }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [filters, setFilters] = useState<FilterOptions>(INITIAL_FILTERS);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
 
   // Server-provided; no client fetch and no loading state
   const models = initialModels;
 
+  /**
+   * The URL is read from window.location, NOT with useSearchParams, and that
+   * is the whole point of this effect.
+   *
+   * useSearchParams forces Next to bail this component out of prerendering.
+   * Wrapped in the Suspense boundary it then demands, the fallback is what
+   * lands in the static HTML — and with `fallback={null}` that meant the live
+   * page shipped an EMPTY BODY: no nav, no heading, and not one of the 1,267
+   * car links. React built the entire page after hydration.
+   *
+   * That defect arrived in the very commit meant to prevent it ("Server-render
+   * the car and browse pages") and survived because the symptom is invisible
+   * in dev, where nothing is prerendered. This is the one page that links to
+   * every car, so it is the worst page on the site to hide from a crawler.
+   * /savings hit the same wall and this is its fix, applied here.
+   *
+   * Reading window.location in an effect keeps shareable links and the back
+   * button working — popstate is what the useSearchParams dependency used to
+   * cover — while letting the whole grid prerender. The effect runs after
+   * paint, so an UNFILTERED page is what a crawler sees, which is also the
+   * honest thing to serve.
+   */
   useEffect(() => {
-    const urlFilters: FilterOptions = {
-      years: searchParams.getAll('year'),
-      teams: searchParams.getAll('team'),
-      drivers: searchParams.getAll('driver'),
-      scales: searchParams.getAll('scale'),
-      manufacturers: searchParams.getAll('manufacturer'),
+    const read = () => {
+      const p = new URLSearchParams(window.location.search);
+      setFilters({
+        years: p.getAll('year'),
+        teams: p.getAll('team'),
+        drivers: p.getAll('driver'),
+        scales: p.getAll('scale'),
+        manufacturers: p.getAll('manufacturer'),
+      });
+      // Absent means 'newest', the default the URL omits. Restoring it
+      // explicitly is what makes the back button return to an unsorted view
+      // rather than keeping whatever was last chosen.
+      setSortBy((p.get('sort') as SortOption) || 'newest');
     };
-
-    const urlSort = searchParams.get('sort') as SortOption;
-    if (urlSort) setSortBy(urlSort);
-
-    setFilters(urlFilters);
-  }, [searchParams]);
+    read();
+    window.addEventListener('popstate', read);
+    return () => window.removeEventListener('popstate', read);
+  }, []);
 
   // Update URL when filters or sort changes
   const updateURL = (newFilters: FilterOptions, newSort: SortOption) => {
@@ -334,10 +360,3 @@ function BrowseContent({ initialModels }: { initialModels: Model[] }) {
   );
 }
 
-export default function BrowseClient({ initialModels }: { initialModels: Model[] }) {
-  return (
-    <Suspense fallback={null}>
-      <BrowseContent initialModels={initialModels} />
-    </Suspense>
-  );
-}
