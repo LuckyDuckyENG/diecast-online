@@ -36,8 +36,9 @@
 ## Where things stand
 
 ```
-cars 1357  |  models 3142  |  retailer links 6447  |  eBay links 3670  |  retailers 47  |  drivers 72
+cars 1357  |  models 3142  |  retailer links 6447  |  eBay links 5432  |  retailers 47  |  drivers 72
 slugs 1357/1357   |   models buyable 2952/3142   |   images 3030/3142
+models with an eBay listing 1560/3142   |   on several listings 1078
 seasons 34: 1977-1994 and 2013-2026
 ```
 
@@ -2935,55 +2936,146 @@ price_observations       11,547
 They get their third point at the next RETAIL refresh, due early October. Until
 then every sparkline is a straight segment between two readings.
 
+## The eBay pass ran — every season, 1977 to 2026
+
+Done 2026-09-28, the day after the catalogue source was exhausted.
+
+```
+eBay links              3,670 -> 5,432   (+1,762)
+models with a listing   1,286 -> 1,560   (+274)
+models on several         382 -> 1,078
+```
+
+**The integrity check that matters: 5,025 of 5,025 auto-linked rows have the
+model's part number printed in the listing title. 100%, across the whole
+table.** The tier that could guess has never been allowed to write, and it
+shows. That is worth re-running after any change to the matcher, because it is
+a single number that would move the moment the SKU rule slipped.
+
+**The 39% claim held on three times the sample.** Across the 1,078 models now
+carrying several listings, the cheapest is on average **38% below the dearest**,
+median 41%. The earlier figure was 39% on 382 models. Every one of those models
+would otherwise display one arbitrary seller's price, and the earlier audit
+found roughly 1 in 8 single-listing models overstated by 20% or more.
+
+### What each era actually yielded, which was not what was predicted
+
+```
+2013-2016   0 -> 118 models covered      the whole coverage win
+2017-2019   already searched, +1 model   re-running a searched season buys nothing
+pre-1995    31 -> 68 models              more than doubled, never searched before
+2020-2025   ~0 new models, +1,400 rows   depth, not coverage
+2026        4 auto, 10 review, 173 none  there is no secondary market yet
+```
+
+**A dry run's `autoLinked` count is not new coverage.** It counts models it
+WOULD write, including ones already holding that listing. 2017-2019 reported 10
+auto-links and delivered one new model. Cross-check `modelId` against existing
+`ebay_links` before promising a number, and read the route's own `totals`
+object rather than recomputing from `groups` — `matches` is per assignment and
+one assignment can produce several listing rows.
+
+**The low-yield seasons are a supply fact, not a matcher fault.** "2016 Williams
+FW38 Minichamps" returns **7 listings on the whole of eBay AU** and we hold 7
+models. 2016 Toro Rosso STR11 returns 2. Roughly 60% of the misses are also
+models whose `event_name` is "Season", which disables the event-driver tier and
+leaves a quoted SKU as the only way in.
+
+**A run can fail transiently.** 2025 died with `TypeError: fetch failed` after
+15s and succeeded on a straight retry (114 models, 189 listings). Nothing is
+written on failure, so a retry is safe, but a silent skip in a fourteen-season
+loop is easy to miss. Check every season reported totals.
+
+### The review queue — ~625 candidates, none of them stored
+
+This is the one real problem the pass created, and it is now item 1.
+
+The route writes auto-links to `ebay_links` and one row per model to
+`ebay_search_log` — model, `pool_size`, `matched`, `query`. **It does not store
+the review candidates anywhere.** They exist in the API response and nowhere
+else, so closing the panel discards them and getting them back costs another
+full pass over eBay.
+
+```
+2020-2026  533     2017-2019  44     pre-1995  48     ~625 total
+```
+
+These are the event-driver matches: the title names the race and the driver but
+prints no part number. They look like
+
+```
+"Lotus E21 2013 K.Raikkonen Winner Australian GP 1:18 Signed MINICHAMPS"
+"Minichamps 1/43 Mark Webber FINAL GP Brazil 2013 Infiniti Red Bull RB9 Ltd Ed"
+```
+
+Almost certainly right, and "almost certainly" is exactly what a person is for.
+Inside a search group every model shares chassis, scale, year and manufacturer
+and differs only by race, so a wrong link made this way is indistinguishable
+from a right one. That is why they must never auto-write, and it is also why
+they are worth keeping rather than discarding.
+
+**Design sketch, if this gets built:**
+
+- **Migration 023, `ebay_review_candidates`**: model_id, ebay_item_id, title,
+  price, currency, price_aud, url, image, seller, condition, marketplace, tier,
+  reason, found_at, status, decided_at. UNIQUE (model_id, ebay_item_id) so a
+  re-run updates a candidate instead of duplicating it.
+- **Write them in `batch-ebay-search` beside `autoWrites`**, on the same
+  `!dryRun` condition. That is a handful of lines; the data is already built.
+- **Rejection MUST persist.** Without a remembered "no", every re-run re-offers
+  the same 625 and the queue never shrinks. This is the single decision that
+  makes the difference between a queue and a treadmill.
+- **Accepting writes an `ebay_links` row with `auto_linked = false`**, which is
+  what the existing manual accept path already does, so accepted rows stay
+  distinguishable from SKU-verified ones for ever. The 100% SKU check above
+  depends on that distinction holding.
+- **Accepting must not bypass the price guard.** A review candidate is still
+  subject to the 3x-median rule; being judged by a human is not evidence about
+  the price.
+- **Candidates go stale.** A listing can sell or vanish between finding and
+  judging, so `found_at` matters and the UI should confirm the listing is still
+  alive before writing. Fixed-price eBay listings are mostly Good-'Til-Cancelled
+  so this is rare, but a queue worked through over weeks will hit it.
+- **UI: one row per candidate** — model on the left, listing thumbnail, title
+  and price on the right, accept and reject. The per-listing picker already
+  renders this shape; it needs a source that is a table rather than a response.
+
 ## Next up
 
-Re-cut 2026-09-28, after the catalogue source ran out. The old items 1 and 2
-(the eBay pass, and 2021) are still here because they are still true, but the
-numbers have moved a long way and the list had drifted into duplicate numbering.
+Re-cut 2026-09-28, after the catalogue source ran out, and revised the same day
+once the eBay pass had run. The old item 1 (the eBay pass) is done and has been
+replaced by what it left behind.
 
 **The catalogue is no longer the bottleneck.** 2013 was the last season
 miniatures-minichamps publishes, so the import loop that has driven the last
 week is finished. What is left divides cleanly into three: the one job with a
 DEADLINE, the one gap that is now clearly biggest, and everything else.
 
-1. **THE eBAY PASS — now the single biggest gap by a wide margin.**
-   **1,286 of 3,142 models have an eBay listing**, so ~1,850 have never been
-   searched. eBay is where multi-listing price comparison comes from, so this
-   is the difference between a catalogue and a price index.
-
-   **Every season imported this week has ZERO eBay links:**
+1. **THE REVIEW QUEUE — the eBay pass was run, and this is what it left.**
+   Every season 1977-2026 has now been through `batch-ebay-search`. The
+   auto-linker took what it could and the rest is waiting on a person:
 
    ```
-   year   models   retail   eBay   no price at all
-   2013      41       40      0      1
-   2014      54       50      0      4
-   2015      81       79      0      2
-   2016     118      113      0      5
-   2017     133      129     36      4
-   2018     146      134     29     12
-   2019     172      168     60      4
-   2020     303      239    134     59   <- worst "no price" season
-   2021     306      291    148     12
-   2022     379      345    235     30
-   2023     444      425    264     19
-   ALL    3,142    2,931  1,286    190
+   ~625 review candidates, and NONE of them are stored anywhere
+      2020-2026  533     2017-2019  44     pre-1995  48
    ```
 
-   294 models across 2013-2016 have never had a single eBay search run against
-   them. That is the obvious first scope, and it is also the cleanest test of
-   whether the historic SKU-quote rate holds outside Senna.
+   **Review candidates live only in the API response.** The route persists
+   auto-links to `ebay_links` and one row per model to `ebay_search_log`
+   (model, pool size, matched, query — no candidate detail). Close the panel
+   and the candidates are gone until the search is re-run, which costs another
+   full pass over eBay.
 
-   Pre-1995 is mostly zero too, with the striking exception of 1993 (11 of 18)
-   and 1984 (7 of 14) — iconic sells, which is the same pattern as the stock
-   curve below.
+   That is what makes this the top item. ~600 probably-good links exist, were
+   found, were displayed, and were then discarded, and there is no UI that
+   would let anyone work through them at their own pace. **See "The eBay pass
+   ran" below for the design sketch.**
 
 2. **2020 has 59 models with no price from any source**, three times any other
    season and a third of the 190 total. Worth understanding as a season rather
    than picking off one by one.
 
-3. **2021** — 101 of 112 cars visible. Same three commands as the others.
-
-4. **Finish the shop sweeps.** Horizondiecast, Yuui and Notjustcollectibles have
+3. **Finish the shop sweeps.** Horizondiecast, Yuui and Notjustcollectibles have
    not been swept at all and carry the back-catalogue and Bburago stock nothing
    else has.
 
@@ -2997,45 +3089,49 @@ DEADLINE, the one gap that is now clearly biggest, and everything else.
    sent it, which is why several "the sweep found nothing new" runs were actually
    full re-sweeps of already-linked models.
 
-5. **The October refresh** — see the deadline box at the top. eBay is the one
+4. **The October refresh** — see the deadline box at the top. eBay is the one
    with a date: its oldest rows go stale 2026-10-10.
 
-6. **The retailer SWEEP records no price observations.** `refresh-prices` and
+5. **The retailer SWEEP records no price observations.** `refresh-prices` and
    `refresh-ebay` both append to `price_observations`; the sweep writes through
    `attachRetailerLink` and does not. So links created by a sweep sit outside the
    price history until a Refresh All Retailers picks them up. Third write path,
    two of them recording history — the kind of inconsistency that gets forgotten.
-7. **Own the images, or keep hotlinking.** Every product photo is served from a
+6. **Own the images, or keep hotlinking.** Every product photo is served from a
    retailer's CDN — 24 hosts, their bandwidth, their copyright, and any of them
    can break every image by renaming a file. None block a `diecasts.app` referer
    today, but that is a snapshot. Copying to Supabase Storage at fill time solves
    breakage, bandwidth and ownership together, and 3,030 images is cheap now and
    a migration later. **A real decision, not a nice-to-have.**
-8. **112 models still have no image**, down from a much worse ratio: images now
+7. **112 models still have no image**, down from a much worse ratio: images now
    cover 3,030 of 3,142. Where only an eBay photo exists it is applied by hand on
    purpose — see the images note at the top.
-9. **37 cars have no models at all**, so they are invisible by construction. This
+8. **37 cars have no models at all**, so they are invisible by construction. This
    went UP from 21 as the season imports ran, because sync-csv creates the car
    before the models and leaves an orphan when every SKU already exists.
    15 are 2020 rows held in `f1_2020_HOLD_no_sku.csv` awaiting a SKU.
-10. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
+9. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
     problem in the currency audit.
-11. **8 retailer links whose URL states a different scale than the model** — see
+10. **8 retailer links whose URL states a different scale than the model** — see
     Data findings. Splits into wrong links and wrong catalogue scale; do not
     blind-fix.
-12. **More seasons — but the shop is exhausted, so this means a NEW SOURCE.**
+11. **More seasons — but the shop is exhausted, so this means a NEW SOURCE.**
     2013 was the oldest season miniatures-minichamps carries. Going further needs
     either another catalogue or the historic drivers, and the driver route is
     already proven: Senna gave 52 cars and 153 models, and Villeneuve (125
     pre-1995 products), Lauda (102), Hill (92), Prost (78) and Mansell (78) are
     waiting behind the same pipeline. Stock is not a decay curve — 2000 and 1995
     have more product than 2005 and 2010, because iconic sells.
-13. **2026 eBay**, once the cars actually ship. 5 links today against 187 models.
-14. Review queue for the eBay `event-driver` tier, and a "recently auto-added" view.
-15. Rotate the eBay and Exa credentials still sitting in the repo history.
-16. **Circuit aliases.** "silverstone", "monza" and "spa" still find nothing in
+12. **2026 eBay is still nearly empty, and now we know it is not a bug.** Run
+    2026-09-28 with the season two-thirds done and the cars long since shipped:
+    187 models, **4 auto-links and 10 review candidates, 173 no match**. The old
+    note said to revisit "once the cars ship". They have. There is simply no
+    secondary market for a current-season model that every shop still stocks
+    new. Revisit in 2027, not before.
+13. Rotate the eBay and Exa credentials still sitting in the repo history.
+14. **Circuit aliases.** "silverstone", "monza" and "spa" still find nothing in
     search or suggestions, because races are stored by country.
-17. **Driver-page cards say "3 manufacturers"** where browse and search name them.
+15. **Driver-page cards say "3 manufacturers"** where browse and search name them.
     One line, `hubData.ts:91`.
 
 ### What this list no longer contains
