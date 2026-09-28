@@ -25,8 +25,19 @@ const BOT =
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * Local testing must not enter the record. Same reasoning as log-search: the
+ * dev server writes to the real table, and testing on a real phone over the
+ * LAN is the only way to check mobile without adding page views to Vercel and
+ * impressions to Search Console. Tapping through shop links while testing
+ * would otherwise write clicks that never happened.
+ */
+const RECORDING = process.env.NODE_ENV === 'production';
+
 export async function POST(request: NextRequest) {
   try {
+    if (!RECORDING) return new NextResponse(null, { status: 204 });
+
     const b = await request.json().catch(() => null);
     if (!b) return new NextResponse(null, { status: 204 });
 

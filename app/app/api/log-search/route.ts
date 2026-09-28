@@ -32,8 +32,25 @@ const supabase = createClient(
 const BOT =
   /bot|crawl|spider|slurp|bing|yandex|baidu|duckduck|facebookexternalhit|embedly|quora|pinterest|slackbot|vkshare|whatsapp|flipboard|tumblr|curl|wget|python-requests|headless|lighthouse|gptbot|claude|ccbot|ahrefs|semrush|mj12|dotbot/i;
 
+/**
+ * Local testing must not enter the record.
+ *
+ * The dev server holds the real service-role key and writes to the real table,
+ * so browsing the site from a phone on the LAN -- the only way to test a real
+ * device without adding page views to Vercel and impressions to Search
+ * Console -- would silently fill `search_queries` with the owner's own
+ * searches. With traffic this low a dozen of those visibly distort the ranking
+ * the table exists to produce.
+ *
+ * Vercel Analytics already does exactly this in development: it logs that it
+ * is in debug mode and sends nothing.
+ */
+const RECORDING = process.env.NODE_ENV === 'production';
+
 export async function POST(request: NextRequest) {
   try {
+    if (!RECORDING) return new NextResponse(null, { status: 204 });
+
     const body = await request.json().catch(() => null);
     const raw = typeof body?.q === 'string' ? body.q : '';
     const results = Number.isFinite(body?.results) ? Math.max(0, Math.trunc(body.results)) : null;
