@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Hanken_Grotesk, Archivo, JetBrains_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
+import SiteAnalytics from "./components/SiteAnalytics";
 import "./globals.css";
 
 const hankenGrotesk = Hanken_Grotesk({
@@ -72,8 +72,11 @@ export default function RootLayout({
           next. Low volume too: one row per search, not per page view.
 
           Renders nothing and loads no script outside production.
+
+          Wrapped in SiteAnalytics so the owner's own visits can be dropped
+          with ?notme=1 — see lib/ownerVisit.
         */}
-        <Analytics />
+        <SiteAnalytics />
       </body>
     </html>
   );

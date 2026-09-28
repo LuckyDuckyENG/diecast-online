@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { isOwnerVisit } from '@/lib/ownerVisit';
 
 /**
  * Records what people searched for, and whether it found anything.
@@ -43,6 +44,10 @@ export default function SearchTracker({
     // Matches the floor in searchCars: shorter than this never ran a search,
     // so recording it would count keystrokes rather than intent.
     if (q.length < 2) return;
+    // Nor does the owner testing his own search box count as intent. The
+    // zero-result query is the signal this table exists to produce, and it is
+    // exactly the thing he generates most while checking. See lib/ownerVisit.
+    if (isOwnerVisit()) return;
     // Guard against re-renders and against React running effects twice in
     // development, either of which would double every count.
     const key = `${q}|${results}`;

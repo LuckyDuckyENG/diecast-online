@@ -10,6 +10,8 @@
  * the clicks that got cancelled would be exactly the ones that mattered most,
  * the fast decisive ones.
  */
+import { isOwnerVisit } from './ownerVisit';
+
 export interface OutboundClick {
   modelId?: string | null;
   carSlug?: string | null;
@@ -24,6 +26,9 @@ export interface OutboundClick {
 export function logClick(c: OutboundClick): void {
   // Server-rendered passes of this module must do nothing.
   if (typeof window === 'undefined') return;
+  // The owner checking his own links is not a visitor leaving to buy, and
+  // was_cheapest is the column this table exists for. See lib/ownerVisit.
+  if (isOwnerVisit()) return;
   try {
     fetch('/api/log-click', {
       method: 'POST',
