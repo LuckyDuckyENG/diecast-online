@@ -21,6 +21,26 @@ import { isUuid } from './carSlug';
 
 export interface CarRetailer {
   name: string;
+  /**
+   * Where the parcel comes from. Two-letter code, null when unknown.
+   *
+   * THE PAGE WAS MAKING A CLAIM IT COULD NOT SUPPORT. Measured 2026-09-29
+   * across the 749 cars with an in-stock shop offer, the CHEAPEST one is in:
+   *
+   *     BE 47%  ·  CN 28%  ·  CA 10%  ·  AU 7%  ·  UK 4%  ·  US 4%
+   *
+   * So on 93% of cars the cheapest price ships internationally, and the page
+   * said "cheapest" without saying from where. Postage is not in the data and
+   * cannot be promised -- but a Belgian shop at AUD 129 plus international
+   * postage is not obviously cheaper than a local one at AUD 150, and the
+   * reader is the only one who can weigh that. They need the country to do it.
+   *
+   * 73% of visitors are not Australian, so this is not a minority case.
+   *
+   * For eBay this is the SELLER's country from the listing, which is the same
+   * question and a different field.
+   */
+  region?: string | null;
   price: number;
   currency: string;
   priceAUD: number;
@@ -168,7 +188,7 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
     supabase
       .from('price_history')
       // `*` so this survives whether or not a migration has added columns
-      .select('*, retailer:retailers(name, url)')
+      .select('*, retailer:retailers(name, url, region)')
       .in('model_id', variantIds)
       .order('in_stock', { ascending: false })
       .order('price_aud', { ascending: true }),
@@ -213,6 +233,7 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
         const checkedAt = item.last_checked_at || item.recorded_at || null;
         return {
           name: item.retailer?.name || 'Unknown',
+          region: item.retailer?.region || null,
           price: parseFloat(item.price) || 0,
           currency: item.currency || 'AUD',
           priceAUD: parseFloat(item.price_aud) || parseFloat(item.price) || 0,
@@ -236,6 +257,13 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
 
       retailers.push({
         name: ebayLink.marketplace === 'EBAY_AU' ? 'eBay Australia' : 'eBay',
+        /**
+         * The SELLER's country, not the marketplace's. "eBay Australia" is
+         * where the listing is posted; item_country is where it ships from,
+         * and on this catalogue those differ constantly -- the AU marketplace
+         * carries 854 listings from GB, 784 from JP and 495 from IT.
+         */
+        region: ebayLink.item_country || null,
         price: ebayPrice,
         currency: ebayCurrency,
         priceAUD: parseFloat(ebayLink.price_aud) || toAud(ebayPrice, ebayCurrency),

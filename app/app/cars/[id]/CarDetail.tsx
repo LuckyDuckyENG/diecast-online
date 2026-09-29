@@ -345,6 +345,37 @@ export default function CarDetail({
                                   <span className="font-bold text-[var(--text-primary)]">
                                     {retailer.name}
                                   </span>
+                                  {/*
+                                    WHERE IT SHIPS FROM.
+
+                                    Measured across the 749 cars with an
+                                    in-stock shop offer, the cheapest one is
+                                    Belgian on 47% and Chinese on 28%. Only 7%
+                                    are cheapest from an Australian shop. The
+                                    page called all of them "cheapest" and
+                                    never said where, to an audience that is
+                                    73% not Australian.
+
+                                    Postage is not in the data, so no saving
+                                    can be promised and none is claimed here.
+                                    The country is simply stated, which is the
+                                    fact the reader needs to judge it
+                                    themselves. Deliberately quiet styling:
+                                    this is context for a price, not a warning
+                                    about it.
+                                  */}
+                                  {retailer.region && (
+                                    <span
+                                      className="text-[11px] font-semibold tracking-wide text-[var(--text-tertiary)] border border-[var(--border-light)] rounded px-1.5 py-0.5"
+                                      title={
+                                        retailer.isSecondary
+                                          ? 'Seller location'
+                                          : 'Ships from'
+                                      }
+                                    >
+                                      {retailer.region.toUpperCase()}
+                                    </span>
+                                  )}
                                   {retailer.isSecondary ? (
                                     /* eBay is a used/auction market, not a shop.
                                        Saying "In Stock" would imply retail

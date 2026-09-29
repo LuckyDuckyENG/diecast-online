@@ -48,6 +48,17 @@ export interface SavingRow {
   price: number;
   seller: string;
   /**
+   * Where it ships from. Two-letter code, null when unknown.
+   *
+   * This page states a saving outright, so it needs the caveat more than any
+   * other. Across the 749 cars with an in-stock shop offer the cheapest is
+   * Belgian on 47% and Chinese on 28%; only 7% are cheapest from an
+   * Australian shop, and 73% of visitors are not Australian anyway. A row
+   * reading "AUD 320 below typical" with no origin invites a comparison that
+   * postage may reverse, and postage is not in the data.
+   */
+  region: string | null;
+  /**
    * Straight to the listing being quoted.
    *
    * Without it the row promises "this exact model is AUD 320 under at
@@ -99,7 +110,7 @@ export async function getSavings(): Promise<{ shop: SavingRow[]; ebay: SavingRow
     selectAll<any>(supabase, 'cars', 'id, slug, season_id, driver_id, event_name'),
     selectAll<any>(supabase, 'seasons', 'id, year'),
     selectAll<any>(supabase, 'drivers', 'id, name'),
-    selectAll<any>(supabase, 'retailers', 'id, name, url'),
+    selectAll<any>(supabase, 'retailers', 'id, name, url, region'),
   ]);
 
   const Y = new Map(seasons.map(s => [s.id, s.year]));
@@ -113,7 +124,7 @@ export async function getSavings(): Promise<{ shop: SavingRow[]; ebay: SavingRow
    * pre-order, and checked recently enough that we still believe it. Anything
    * we would hide on a car page has no business setting a headline here.
    */
-  const shopPrices = new Map<string, { price: number; who: string; url: string }[]>();
+  const shopPrices = new Map<string, { price: number; who: string; url: string; region: string | null }[]>();
   for (const r of priceRows) {
     const p = Number(r.price_aud);
     if (!(p > 0) || r.in_stock === false || r.is_preorder === true) continue;
@@ -123,13 +134,14 @@ export async function getSavings(): Promise<{ shop: SavingRow[]; ebay: SavingRow
     shopPrices.get(r.model_id)!.push({
       price: p,
       who: shop?.name || 'a shop',
+      region: shop?.region || null,
       // The product page where the price was read. Falling back to the shop's
       // home page is poor but honest; an empty href would look like a bug.
       url: r.product_url || shop?.url || '#',
     });
   }
 
-  const ebayPrices = new Map<string, { price: number; who: string; condition: string | null; url: string }[]>();
+  const ebayPrices = new Map<string, { price: number; who: string; condition: string | null; url: string; region: string | null }[]>();
   for (const r of ebayRows) {
     const p = Number(r.price_aud);
     if (!(p > 0) || /OUT_OF_STOCK/i.test(r.availability || '')) continue;
@@ -139,6 +151,9 @@ export async function getSavings(): Promise<{ shop: SavingRow[]; ebay: SavingRow
     ebayPrices.get(r.model_id)!.push({
       price: p,
       who: r.seller || 'an eBay seller',
+      // The seller's country, not the marketplace's: the AU marketplace
+      // carries 854 listings from GB, 784 from JP and 495 from IT.
+      region: r.item_country || null,
       condition: r.item_condition || null,
       url: ebayAffiliateUrl(r.ebay_url || '', {
         marketplace: r.marketplace,
@@ -177,6 +192,7 @@ export async function getSavings(): Promise<{ shop: SavingRow[]; ebay: SavingRow
       shop.push({
         modelId, ...describe(modelId),
         price: cheapest.price, seller: cheapest.who, url: cheapest.url,
+        region: cheapest.region,
         typical, saving: shopSaving, pct: shopSaving / typical,
         shopCount: prices.length, kind: 'shop',
       });
@@ -196,6 +212,7 @@ export async function getSavings(): Promise<{ shop: SavingRow[]; ebay: SavingRow
         ebay.push({
           modelId, ...describe(modelId),
           price: best.price, seller: best.who, url: best.url,
+          region: best.region,
           typical, saving: ebaySaving, pct: ebaySaving / typical,
           shopCount: prices.length, kind: 'ebay', condition: best.condition,
         });

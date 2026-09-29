@@ -117,7 +117,15 @@ function Row({ r }: { r: SavingRow }) {
             rel={r.kind === 'ebay' ? 'sponsored noopener noreferrer' : 'noopener noreferrer'}
             className="text-xs text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:underline truncate max-w-[10rem] ml-auto block"
           >
-            at {r.seller} ↗
+            at {r.seller}
+            {/*
+              Where it ships from, on the page that states a saving outright.
+              47% of cheapest offers are Belgian and 28% Chinese, and postage
+              is not in the data — so the origin is the one fact that stops
+              "AUD 320 below typical" implying a comparison postage may
+              reverse. Stated, never warned about.
+            */}
+            {r.region ? ` (${r.region.toUpperCase()})` : ''} ↗
           </a>
           <p className="mt-1.5 inline-block rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)] whitespace-nowrap">
             {moneyCode} {Math.round(inCurrency(r.saving))} below typical
