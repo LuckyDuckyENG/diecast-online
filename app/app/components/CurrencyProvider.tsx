@@ -49,6 +49,16 @@ type Ctx = {
   code: string;
   /** True once a non-AUD currency with a usable rate is in effect. */
   converting: boolean;
+  /**
+   * Whether /api/fx has answered yet.
+   *
+   * Distinct from "this currency has no rate". Before the fetch resolves every
+   * rate is missing, so a picker that greys out anything without one greys out
+   * everything, and a visitor reading that sees "AUD is your only option"
+   * rather than "still loading". Those are different claims and only one of
+   * them is true.
+   */
+  ratesLoaded: boolean;
   asOf: string | null;
 };
 
@@ -75,6 +85,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   });
   const [rates, setRates] = useState<Record<string, number>>({});
   const [asOf, setAsOf] = useState<string | null>(null);
+  const [ratesLoaded, setRatesLoaded] = useState(false);
   // Whether the visitor has ever chosen for themselves. A stored choice must
   // never be overridden by geography on a later visit.
   const [chosen, setChosen] = useState(false);
@@ -95,12 +106,16 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     fetch('/api/fx')
       .then(r => (r.ok ? r.json() : null))
       .then(d => {
-        if (!alive || !d) return;
-        setRates(d.rates || {});
-        setAsOf(d.asOf || null);
+        if (!alive) return;
+        setRates(d?.rates || {});
+        setAsOf(d?.asOf || null);
+        // Marked loaded even on an empty answer: the question the picker asks
+        // is "have we found out yet", and we have.
+        setRatesLoaded(true);
       })
       .catch(() => {
         /* no rates means no conversion, and every price stays AUD */
+        if (alive) setRatesLoaded(true);
       });
     return () => {
       alive = false;
@@ -146,6 +161,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
       rates,
       asOf,
       converting,
+      ratesLoaded,
       code: converting ? currency : 'AUD',
       amount: (aud: number) => convertFromAud(aud, currency, rates) ?? aud,
       format: (aud: number) => {
@@ -155,7 +171,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
       },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currency, rates, asOf]);
+  }, [currency, rates, asOf, ratesLoaded]);
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
 }
@@ -174,6 +190,7 @@ export function useCurrency(): Ctx {
     rates: {},
     asOf: null,
     converting: false,
+    ratesLoaded: false,
     code: 'AUD',
     amount: (aud: number) => aud,
     format: (aud: number) => formatMoney(aud, 'AUD'),

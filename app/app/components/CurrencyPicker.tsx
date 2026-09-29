@@ -18,7 +18,7 @@ import { useCurrency } from './CurrencyProvider';
  * traffic.
  */
 export default function CurrencyPicker() {
-  const { currency, setCurrency, rates, asOf } = useCurrency();
+  const { currency, setCurrency, rates, asOf, ratesLoaded } = useCurrency();
 
   return (
     <div className="flex items-center gap-2 text-sm">
@@ -35,10 +35,16 @@ export default function CurrencyPicker() {
           <option
             key={c}
             value={c}
-            // AUD always works; the rest need a rate. Disabling rather than
-            // hiding says the option exists and the rate is missing, which is
-            // the truth and is debuggable.
-            disabled={c !== 'AUD' && !(rates?.[c] > 0)}
+            /**
+             * Only disabled once we KNOW there is no rate.
+             *
+             * Before /api/fx answers, every rate is missing, so disabling on
+             * "no rate" alone greys out all seven and tells the visitor that
+             * AUD is their only option — which is not true, it is just not
+             * loaded. In the server-rendered HTML that is the whole list, so
+             * anyone glancing at the footer on first paint saw exactly that.
+             */
+            disabled={ratesLoaded && c !== 'AUD' && !(rates?.[c] > 0)}
             className="text-[#1a1916]"
           >
             {c}
