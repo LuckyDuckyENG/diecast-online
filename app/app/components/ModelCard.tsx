@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import TeamColorFallback from './TeamColorFallback';
+import { useCurrency } from './CurrencyProvider';
 
 interface ModelCardProps {
   id: string;
@@ -50,6 +53,13 @@ export default function ModelCard({
   eventName,
   hasStore,
 }: ModelCardProps) {
+  /**
+   * Cards appear on browse, the hubs, search and the home page, so making this
+   * a client component converts all of them at once. The server-rendered HTML
+   * still says AUD, which is what a crawler should read and what the JSON-LD
+   * on the car page states.
+   */
+  const { amount: inCurrency, code: moneyCode } = useCurrency();
   return (
     <Link
       href={`/cars/${slug || id}`}
@@ -124,10 +134,10 @@ export default function ModelCard({
           {lowestPrice != null ? (
             <div className="min-w-0">
               <div className="text-[var(--text-primary)] font-bold text-base sm:text-lg leading-tight">
-                AUD {lowestPrice.toFixed(2)}
+                {moneyCode} {inCurrency(lowestPrice).toFixed(2)}
                 {priceRange && (
                   <span className="font-semibold text-[var(--text-tertiary)] text-xs sm:text-sm">
-                    {' '}– {priceRange.high.toFixed(2)}
+                    {' '}– {inCurrency(priceRange.high).toFixed(2)}
                   </span>
                 )}
               </div>
