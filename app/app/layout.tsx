@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Hanken_Grotesk, Archivo, JetBrains_Mono } from "next/font/google";
 import SiteAnalytics from "./components/SiteAnalytics";
+import { CurrencyProvider } from "./components/CurrencyProvider";
 import "./globals.css";
 
 const hankenGrotesk = Hanken_Grotesk({
@@ -52,7 +53,19 @@ export default function RootLayout({
       className={`${hankenGrotesk.variable} ${archivo.variable} ${jetbrainsMono.variable}`}
     >
       <body className="min-h-screen font-sans">
-        {children}
+        {/*
+          Resolves the visitor's display currency once for the whole page.
+          73% of visitors are not Australian, and every price is computed in
+          AUD because that is what the comparison ranks on.
+
+          It has to be client-side: car pages, browse and the hubs are
+          statically prerendered with a one-day revalidate, deliberately,
+          after hourly whole-dataset regeneration blew the Supabase egress
+          quota. Per-visitor currency in the HTML would mean making them
+          dynamic again. So AUD ships in the markup, matching the JSON-LD,
+          and the browser rewrites the approximations.
+        */}
+        <CurrencyProvider>{children}</CurrencyProvider>
         {/*
           Page views, referrers and country, measured at the edge.
 

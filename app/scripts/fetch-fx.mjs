@@ -34,6 +34,26 @@ const CURRENCIES = ['USD', 'EUR', 'GBP'];
 const TARGET = 'AUD';
 const SOURCE = 'ecb-frankfurter';
 
+/**
+ * Currencies the SITE can display a price in, which is a different list and a
+ * different direction.
+ *
+ * Ranking needs X -> AUD, because price_aud is what decides which shop is
+ * cheapest. Display needs AUD -> X, because 73% of visitors are not Australian
+ * and a price they have to convert in their head is a price they have to stop
+ * and think about.
+ *
+ * Both directions are stored from ECB rather than one being inverted from the
+ * other. 1/1.4237 is 1.42369..., and a display that disagrees with the ranking
+ * in the fourth decimal place is a bug report waiting to be filed. The schema
+ * is (as_of, base, quote), so holding both costs nothing but rows.
+ *
+ * Chosen from who actually visits, not from a list of world currencies: US,
+ * Netherlands, Singapore and Italy were 73% of last week between them, plus
+ * the obvious neighbours.
+ */
+const DISPLAY = ['USD', 'EUR', 'GBP', 'CAD', 'NZD', 'SGD', 'JPY'];
+
 const rows = [];
 for (const from of CURRENCIES) {
   const url = `https://api.frankfurter.app/latest?from=${from}&to=${TARGET}`;
@@ -57,6 +77,28 @@ for (const from of CURRENCIES) {
   console.log(`  ${from} -> ${TARGET}  ${rate}   (ECB ${json.date})`);
 }
 
+// The display direction, in ONE request — Frankfurter takes a list.
+try {
+  const url = `https://api.frankfurter.app/latest?from=${TARGET}&to=${DISPLAY.join(',')}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  for (const to of DISPLAY) {
+    const rate = json?.rates?.[to];
+    if (!(rate > 0)) {
+      console.warn(`  ⚠️ ${TARGET}->${to}: no usable rate — skipped`);
+      continue;
+    }
+    rows.push({ as_of: json.date, base: TARGET, quote: to, rate, source: SOURCE });
+    console.log(`  ${TARGET} -> ${to}  ${rate}   (ECB ${json.date})`);
+  }
+} catch (err) {
+  // Display rates failing is survivable: the site falls back to showing AUD,
+  // which is what it did before any of this existed. Ranking is unaffected
+  // because that uses the rows above.
+  console.warn(`  ⚠️ display rates: ${err.message} — skipped`);
+}
+
 if (!rows.length) {
   console.error('nothing fetched; fx_rates unchanged');
   process.exit(1);
@@ -66,20 +108,25 @@ if (!rows.length) {
 // just what it stored.
 const { data: current } = await supabase
   .from('fx_rates')
-  .select('base, rate, as_of')
-  .eq('quote', TARGET)
+  .select('base, quote, rate, as_of')
   .order('as_of', { ascending: false });
 
+// Keyed by the PAIR. Keying on base alone was fine while everything quoted
+// into AUD; now that AUD->X rows exist too, it would compare USD->AUD against
+// AUD->USD and report nonsense drift.
 const newest = new Map();
-for (const r of current || []) if (!newest.has(r.base)) newest.set(r.base, r);
+for (const r of current || []) {
+  const k = `${r.base}/${r.quote}`;
+  if (!newest.has(k)) newest.set(k, r);
+}
 
 console.log('');
 for (const r of rows) {
-  const was = newest.get(r.base);
-  if (!was) { console.log(`  ${r.base}: new`); continue; }
+  const was = newest.get(`${r.base}/${r.quote}`);
+  if (!was) { console.log(`  ${r.base}->${r.quote}: new`); continue; }
   const drift = ((r.rate - Number(was.rate)) / Number(was.rate)) * 100;
   console.log(
-    `  ${r.base}: ${Number(was.rate).toFixed(4)} (${was.as_of}) -> ${r.rate.toFixed(4)} ` +
+    `  ${r.base}->${r.quote}: ${Number(was.rate).toFixed(4)} (${was.as_of}) -> ${r.rate.toFixed(4)} ` +
     `(${r.as_of})   ${drift >= 0 ? '+' : ''}${drift.toFixed(2)}%`
   );
 }

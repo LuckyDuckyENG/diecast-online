@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import CurrencyPicker from './CurrencyPicker';
 
 export default function Footer() {
   return (
@@ -81,6 +82,10 @@ export default function Footer() {
           <p className="text-white/50 text-sm">
             © {new Date().getFullYear()} Diecasts. All rights reserved.
           </p>
+          {/* Overrides the guess made from the visitor's country. Footer
+              rather than header: it changes the approximation beside a price,
+              not the price itself, and the mobile header is already full. */}
+          <CurrencyPicker />
           <div className="flex items-center gap-6">
             <a href="#" className="text-white/50 hover:text-white transition-colors">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

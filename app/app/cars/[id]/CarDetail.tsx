@@ -5,6 +5,7 @@ import { logClick } from '@/lib/logClick';
 import PriceSparkline from '@/app/components/PriceSparkline';
 import { pickSeries, pickEbaySeries, type ModelHistory } from '@/lib/priceHistory';
 import TeamColorFallback from '../../components/TeamColorFallback';
+import { useCurrency } from '../../components/CurrencyProvider';
 
 import { useState } from 'react';
 import Navbar from '../../components/Navbar';
@@ -53,6 +54,16 @@ export default function CarDetail({
 }) {
   const [selectedManufacturer, setSelectedManufacturer] = useState<string>('all');
   const [selectedScale, setSelectedScale] = useState<string>('all');
+
+  /**
+   * `money` renders an AUD figure in the visitor's currency; `converting` says
+   * whether that is actually happening, so a heading can be labelled honestly.
+   *
+   * Only AUD figures go through this. A shop's own price is shown in the
+   * shop's own currency and is never converted, because that is the number
+   * their card is charged.
+   */
+  const { format: money, amount: inCurrency, code: moneyCode } = useCurrency();
 
   // Names the moved-over JSX below still uses
   const carData = car;
@@ -434,7 +445,10 @@ export default function CarDetail({
                                     <span>
                                       {retailer.currency} ${retailer.price.toFixed(2)}
                                       <span className="text-sm text-[var(--text-secondary)] ml-2">
-                                        (~AUD ${retailer.priceAUD.toFixed(2)})
+                                        {/* The shop's own price is above and
+                                            untouched. Only this approximation
+                                            follows the reader. */}
+                                        (~{money(retailer.priceAUD)})
                                       </span>
                                     </span>
                                   )}
@@ -482,7 +496,7 @@ export default function CarDetail({
                           */}
                           <p className="text-xs text-[var(--text-tertiary)] mb-1">Lowest shop price</p>
                           <p className="font-black text-2xl sm:text-3xl text-[var(--accent)] whitespace-nowrap">
-                            AUD {parseFloat(variant.lowestPrice).toFixed(2)}
+                            {money(parseFloat(variant.lowestPrice))}
                           </p>
                         </>
                       )}
@@ -527,7 +541,7 @@ export default function CarDetail({
                             <p className="whitespace-nowrap">
                               {variant.shopRange.count} shops ·{' '}
                               <span className="text-[var(--text-secondary)] font-semibold">
-                                AUD {variant.shopRange.low.toFixed(2)}–{variant.shopRange.high.toFixed(2)}
+                                {moneyCode} {inCurrency(variant.shopRange.low).toFixed(2)}–{inCurrency(variant.shopRange.high).toFixed(2)}
                               </span>
                             </p>
                           )}
@@ -535,7 +549,7 @@ export default function CarDetail({
                             <p className="whitespace-nowrap">
                               {variant.ebayRange.count} on eBay ·{' '}
                               <span className="text-[var(--text-secondary)] font-semibold">
-                                AUD {variant.ebayRange.low.toFixed(2)}–{variant.ebayRange.high.toFixed(2)}
+                                {moneyCode} {inCurrency(variant.ebayRange.low).toFixed(2)}–{inCurrency(variant.ebayRange.high).toFixed(2)}
                               </span>
                             </p>
                           )}
