@@ -341,6 +341,9 @@ export async function POST(request: NextRequest) {
           auto_linked: true,
           _tier: a.tier,
           _autoLink: a.autoLink,
+          // Carried for the review queue, which shows the person deciding WHY
+          // this listing was matched and why it was not trusted to link itself.
+          _reason: a.reason ?? null,
         });
       }
 
@@ -410,7 +413,10 @@ export async function POST(request: NextRequest) {
     if (!dryRun && autoWrites.length) {
       // Only SKU matches are written. Review-tier matches are reported and
       // deliberately left for a person — see lib/ebayBatch.
-      const payload = autoWrites.map(({ _tier, _autoLink, ...row }) => row);
+      // Every underscore-prefixed field is internal and must be stripped —
+      // PostgREST rejects the whole insert on one unknown column, so a new
+      // one added for the review queue would break auto-linking entirely.
+      const payload = autoWrites.map(({ _tier, _autoLink, _reason, ...row }) => row);
       // Keyed on the listing, not the model — migration 015 replaced
       // UNIQUE (model_id) with UNIQUE (model_id, ebay_item_id) so a model can
       // hold every listing found for it rather than one arbitrary winner.
@@ -422,6 +428,47 @@ export async function POST(request: NextRequest) {
 
       if (writeError) throw new Error(`Link write failed: ${writeError.message}`);
       console.log(`✅ linked ${payload.length} models`);
+    }
+
+    /**
+     * Keep the review candidates. Before this they existed only in the response
+     * below, so the pass over every season on 2026-09-28 found about 625 and
+     * discarded all of them when the panel closed.
+     *
+     * ignoreDuplicates is the whole point: a candidate already in the table
+     * keeps the row it has, which is what makes a stored REJECTION stick. A
+     * plain upsert would overwrite status with its 'pending' default and
+     * resurrect every "no" on the next search, so the queue would refill as
+     * fast as it was emptied.
+     *
+     * The cost of that choice is that a pending candidate keeps the price it
+     * was found at rather than a fresh one. `found_at` is stored so the queue
+     * can show its age, and accepting writes an ebay_links row which the next
+     * refresh-ebay re-checks and deletes if the listing has gone — so
+     * staleness self-corrects through machinery that already exists.
+     */
+    if (!dryRun && review.length) {
+      const candidates = review.map(
+        ({ _tier, _autoLink, _reason, last_checked_at, last_updated, auto_linked, ...row }) => ({
+          ...row,
+          tier: _tier,
+          reason: _reason,
+        })
+      );
+      const { error: reviewError } = await supabase
+        .from('ebay_review_candidates')
+        .upsert(candidates, {
+          onConflict: 'model_id,ebay_item_id',
+          ignoreDuplicates: true,
+        });
+      // Migration 023 may not have been applied yet. Failing to keep them is
+      // exactly the old behaviour, so this warns and carries on rather than
+      // losing a search that otherwise succeeded.
+      if (reviewError) {
+        console.warn(`⚠️ review candidates not saved (${reviewError.message})`);
+      } else {
+        console.log(`📋 ${candidates.length} candidates queued for review`);
+      }
     }
 
     if (!dryRun && logRows.length && logAvailable) {
