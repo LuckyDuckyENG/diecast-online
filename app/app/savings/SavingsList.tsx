@@ -6,6 +6,7 @@ import Link from 'next/link';
 import type { SavingRow } from '@/lib/savingsData';
 import { slugify } from '@/lib/carSlug';
 import { logClick } from '@/lib/logClick';
+import { useCurrency } from '@/app/components/CurrencyProvider';
 
 /**
  * The driver filter, and why this page needs one when /browse already sorts.
@@ -25,6 +26,10 @@ import { logClick } from '@/lib/logClick';
  */
 
 function Row({ r }: { r: SavingRow }) {
+  // Every figure on this page is an AUD amount from the database, so all three
+  // follow the reader's currency. The shop's own quoted price is not shown
+  // here -- this page is about the gap, not the till.
+  const { format: money, amount: inCurrency, code: moneyCode } = useCurrency();
   return (
     <li className="border border-[var(--border-light)] rounded-xl p-4 hover:border-[var(--accent)] transition-colors">
       {/*
@@ -65,7 +70,7 @@ function Row({ r }: { r: SavingRow }) {
             two competing figures.
           */}
           <p className="text-sm text-[var(--text-tertiary)] mt-1 truncate">
-            usually AUD {r.typical.toFixed(2)} across {r.shopCount} shops
+            usually {money(r.typical)} across {r.shopCount} shops
           </p>
         </div>
         </Link>
@@ -84,7 +89,7 @@ function Row({ r }: { r: SavingRow }) {
         */}
         <div className="text-right shrink-0">
           <p className="font-display font-black text-xl text-[var(--text-primary)] whitespace-nowrap">
-            AUD {r.price.toFixed(2)}
+            {money(r.price)}
           </p>
           {/*
             rel matches what the car page sends: "sponsored" on eBay because
@@ -115,7 +120,7 @@ function Row({ r }: { r: SavingRow }) {
             at {r.seller} ↗
           </a>
           <p className="mt-1.5 inline-block rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)] whitespace-nowrap">
-            AUD {Math.round(r.saving)} below typical
+            {moneyCode} {Math.round(inCurrency(r.saving))} below typical
           </p>
         </div>
       </div>

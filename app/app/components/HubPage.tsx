@@ -2,6 +2,7 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import Breadcrumb from './Breadcrumb';
 import ModelCard from './ModelCard';
+import Money from './Money';
 import type { HubData } from '@/lib/hubData';
 
 /**
@@ -48,7 +49,9 @@ export default function HubPage({
             {hub.lowestPrice !== null && (
               <span>
                 from{' '}
-                <strong className="text-[var(--accent)]">AUD ${hub.lowestPrice.toFixed(2)}</strong>
+                <strong className="text-[var(--accent)]">
+                  <Money aud={hub.lowestPrice} />
+                </strong>
               </span>
             )}
           </div>
@@ -64,9 +67,9 @@ export default function HubPage({
           <p className="text-xs text-[var(--text-tertiary)] leading-relaxed max-w-3xl">
             <strong className="text-[var(--text-secondary)]">About these prices.</strong> Prices and
             stock are collected automatically from each retailer&apos;s website and may be out of
-            date or incorrect. Figures shown in AUD for non-Australian shops are approximate
-            conversions and exclude shipping, duties and taxes. Always confirm the current price on
-            the retailer&apos;s own site before purchasing.
+            date or incorrect. Converted figures are approximate and exclude shipping, duties and
+            taxes; each shop charges in its own currency. Always confirm the current price on the
+            retailer&apos;s own site before purchasing.
           </p>
         </div>
       </div>
