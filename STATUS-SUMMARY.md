@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-28
+# Status Summary — last updated 2026-09-29
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -932,6 +932,20 @@ is fixed by writing code.
   404 there plus a working page route means restart, not debug.
   The dev server writes a readable log at `.next/dev/logs/next-development.log`,
   including browser console errors, which is faster than reproducing in the UI.
+- **A clean local build proves nothing about a cached remote one.** On
+  2026-09-29 a deploy failed with twelve Turbopack errors, all
+  `Can't resolve '@vercel/turbopack-next/internal/font/google/font'`, tracing
+  to `app/layout.tsx`. Nothing was wrong with the fonts, which had not been
+  touched in months. The tell was the third line of the log: **"Restored build
+  cache from previous deployment"**. The cached font module is keyed to a hash
+  of the layout (`jetbrains_mono_291a4495`), and editing layout.tsx to add a
+  provider moved the hash while the cache kept the old module. The same
+  commit built in 3.3s locally from a deleted `.next`, on the same Next
+  version and the same bundler.
+  **Fix: Redeploy with "Use existing Build Cache" UNTICKED.** If it recurs,
+  `VERCEL_FORCE_NO_BUILD_CACHE=1` removes the class.
+  Worth pairing with the trap above: local verification cannot see either of
+  these, and a deploy has now failed invisibly three times.
 - **Module-scope API clients turn optional env vars into hard build dependencies.**
   `new Exa(process.env.EXA_API_KEY)` at module scope failed the entire deploy because
   the key wasn't set on Vercel. Construct per request.
@@ -3040,36 +3054,136 @@ they are worth keeping rather than discarding.
   and price on the right, accept and reject. The per-listing picker already
   renders this shape; it needs a source that is a table rather than a response.
 
+## The site stopped assuming everyone is Australian — 2026-09-29
+
+Vercel Analytics, first week of real traffic:
+
+```
+15 visitors · 28 page views · 9 of them from google.com
+US 40% · AU 20% · NL 13% · SG 13% · IT 7%
+Mobile 71% (Android 57%)
+```
+
+Three things followed from that, in order of how much they mattered.
+
+### Mobile had no search at all
+
+The typeahead lived in the navbar's `hidden md:flex` block, so it rendered
+into every page's HTML and was then hidden by CSS below 768px. The only
+reachable search was the home page's separate plain input. **71% of visitors
+could not search**, which is also why `search_queries` sat at one row — its own
+test — for three days.
+
+Now a second row under the navbar on mobile, always visible. A row rather than
+an icon because search is the primary navigation of a catalogue and nobody
+taps a magnifying glass for a feature they do not know exists. Costs ~48px.
+
+**Inputs are 16px below md.** Safari on iOS zooms the viewport when a smaller
+field takes focus and never zooms back out, and the home page's field was 15px
+— the first thing a phone visitor touches.
+
+### Prices follow the reader
+
+Every figure was AUD. Worse than the usual version of this: an American
+reading a Belgian shop saw EUR with an AUD approximation beside it, two
+foreign currencies and neither theirs.
+
+**Only the approximation moves.** Each shop row still leads with the price the
+shop charges, because that is what the card is billed. Ranking still runs on
+`price_aud`, so the cheapest shop cannot differ by country through rounding.
+No rounding to "psychological" prices either — shops round because they set
+prices; this site reports them, and rounding a reported number falsifies the
+one thing it exists to get right.
+
+**It is client-side, which is not the obvious choice.** Car pages, browse and
+the hubs are statically prerendered with a one-day revalidate after the egress
+outage. Per-visitor currency in the HTML means making them dynamic again. So
+AUD ships in the markup, matching the JSON-LD, and the browser rewrites after
+hydration. Verified: 1,501 pages still prerender.
+
+```
+/api/fx    force-static, 6h window, refreshes itself when the stored rate
+           passes a day old -> about one ECB call a day, never on a visitor's
+           path, database answers at request time
+/api/geo   dynamic, country only, kept apart from /api/fx because that one is
+           cached and would serve the first visitor's country to everyone
+```
+
+**No constant fallback, deliberately.** With no rate it shows AUD. A
+confidently wrong rate is how this broke before, when a hardcoded 1.5 stood
+against a real 1.3902 for five weeks.
+
+Rates now cover USD, EUR, GBP, CAD, NZD, SGD, JPY, stored in BOTH directions
+from ECB rather than inverting one — 1/1.4237 is 1.42369, and a display
+disagreeing with the ranking in the fourth decimal is a bug report waiting to
+be filed.
+
+### The cheapest shop is almost never local, and the page never said so
+
+The most consequential of the three, because it made a false statement true
+rather than a true one easier to read. Across the 749 cars with an in-stock
+shop offer, the cheapest is in:
+
+```
+BE 47%  ·  CN 28%  ·  CA 10%  ·  AU 7%  ·  UK 4%  ·  US 4%
+```
+
+**93% of cars are cheapest from abroad, and only 7% from an Australian shop.**
+The page called all of them "cheapest" and never named a country, to an
+audience that is 73% not Australian. A Belgian shop at AUD 129 plus
+international postage is not obviously cheaper than a local one at AUD 150.
+
+`retailers.region` existed and was simply never passed through. Now a quiet
+code on each car-page row and beside the seller on /savings. Postage is still
+not in the data, so no saving is promised and none is claimed — the country is
+stated and nothing more, which is the fact a reader needs to weigh it.
+
+For eBay the code is the SELLER's country, not the marketplace's: eBay
+Australia carries 854 listings from GB, 784 from JP and 495 from IT.
+
+**Coverage gap:** 2,241 eBay rows predate the `item_country` column and show
+no badge rather than a wrong one. The next refresh-ebay backfills them.
+
+### The old note was wrong, and worth knowing why
+
+"Foreign shops are not labelled" sat under *Sweep — still open* marked
+harmless, reasoning that out-of-stock links cannot set a headline price. That
+held when the catalogue was Australian. It stopped holding when
+miniatures-minichamps became the largest source, and nothing re-examined it.
+
 ## Next up
 
-Re-cut 2026-09-28, after the catalogue source ran out, and revised the same day
-once the eBay pass had run. The old item 1 (the eBay pass) is done and has been
-replaced by what it left behind.
+Re-cut 2026-09-28 after the catalogue source ran out, revised the same day
+once the eBay pass had run, and again on 2026-09-29.
 
 **The catalogue is no longer the bottleneck.** 2013 was the last season
 miniatures-minichamps publishes, so the import loop that has driven the last
 week is finished. What is left divides cleanly into three: the one job with a
 DEADLINE, the one gap that is now clearly biggest, and everything else.
 
-1. **THE REVIEW QUEUE — the eBay pass was run, and this is what it left.**
-   Every season 1977-2026 has now been through `batch-ebay-search`. The
-   auto-linker took what it could and the rest is waiting on a person:
+1. **RUN MIGRATION 023. It is the only thing standing between you and ~600
+   eBay links, and it takes a minute.**
+
+   The review queue is BUILT — table, write path, API and
+   `/admin/review` — and none of it does anything until the table exists.
+   There is no `exec_sql` RPC on this project, so DDL goes through the
+   Supabase SQL editor by hand, the same way 021 and 022 were applied.
 
    ```
-   ~625 review candidates, and NONE of them are stored anywhere
-      2020-2026  533     2017-2019  44     pre-1995  48
+   1. Supabase SQL editor -> run supabase/migrations/023_ebay_review_candidates.sql
+   2. Admin -> batch eBay search, any season, live
+   3. /admin/review
    ```
 
-   **Review candidates live only in the API response.** The route persists
-   auto-links to `ebay_links` and one row per model to `ebay_search_log`
-   (model, pool size, matched, query — no candidate detail). Close the panel
-   and the candidates are gone until the search is re-run, which costs another
-   full pass over eBay.
+   Step 2 is not optional. The ~625 candidates found on 2026-09-28 were never
+   stored and are genuinely gone; the queue only fills from searches run AFTER
+   the table exists.
 
-   That is what makes this the top item. ~600 probably-good links exist, were
-   found, were displayed, and were then discarded, and there is no UI that
-   would let anyone work through them at their own pace. **See "The eBay pass
-   ran" below for the design sketch.**
+   Until then the search warns and carries on, which is exactly the old
+   behaviour, and the page says so rather than looking broken.
+
+   **See "The eBay pass ran" below** for why rejection is a column rather than
+   a delete, which is the decision the whole table turns on.
 
 2. **2020 has 59 models with no price from any source**, three times any other
    season and a third of the 190 total. Worth understanding as a season rather
