@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-29
+# Status Summary — last updated 2026-09-30
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -3161,35 +3161,79 @@ miniatures-minichamps publishes, so the import loop that has driven the last
 week is finished. What is left divides cleanly into three: the one job with a
 DEADLINE, the one gap that is now clearly biggest, and everything else.
 
-1. **RUN MIGRATION 023. It is the only thing standing between you and ~600
-   eBay links, and it takes a minute.**
+1. **NIKI LAUDA — measured 2026-09-30, ready to import, not started.**
 
-   The review queue is BUILT — table, write path, API and
-   `/admin/review` — and none of it does anything until the table exists.
-   There is no `exec_sql` RPC on this project, so DDL goes through the
-   Supabase SQL editor by hand, the same way 021 and 022 were applied.
+   Do this with a fresh head. Every historic import so far has hit something
+   mid-way, and two traps are already known for this one.
 
    ```
-   1. Supabase SQL editor -> run supabase/migrations/023_ebay_review_candidates.sql
-   2. Admin -> batch eBay search, any season, live
-   3. /admin/review
+   96 F1 products in the sitemap
+     91  within his career 1971-1985
+      5  are 2019 Mercedes W10 tribute liveries — EXCLUDE
+     66  of 91 name an event; the rest import as "Season"
+     89  distinct SKUs
+   by year 1971:3 1972:4 1973:4 1974:10 1975:5 1976:7 1977:17
+           1978:10 1979:6 · 1982:6 1983:7 1984:7 1985:5
+   makers  gp-replicas 39 · tecnomodel 24 · spark 13 · minichamps 6 · other 9
    ```
 
-   Step 2 is not optional. The ~625 candidates found on 2026-09-28 were never
-   stored and are genuinely gone; the queue only fills from searches run AFTER
-   the table exists.
+   The 1980-1981 gap is real: he was retired and came back in 1982. That the
+   data reproduces it is the best evidence the name match is not dragging in
+   junk.
 
-   Until then the search warns and carries on, which is exactly the old
-   behaviour, and the page says so rather than looking broken.
+   **Reference rows needed — nine, against Senna's twenty:**
+
+   ```
+   seasons  1971 1972 1973 1974 1975 1976      6 missing
+   teams    March, BRM                        2 missing
+   driver   Niki Lauda                        1 missing
+   makers   all seven already held            0 missing
+   ```
+
+   Ferrari, Brabham and McLaren already exist from Senna and Villeneuve, and
+   every manufacturer he appears under is already there. This is the
+   compounding the Senna write-up predicted.
+
+   **Expect 20-30 cars and 60-90 models, not 96.** The precedents run at 5.1
+   products per car (Senna, 264 -> 52) and 3.2 (Villeneuve, ~117 -> 37).
+   Quoting the gross count is the exact overstatement this doc warns about.
+
+   **Villeneuve is NOT the next one — he is already done.** 37 cars, 76
+   models, 1977-1982, all ten of his chassis including the McLaren M23 debut.
+   The "125" in the old candidate list was shop products available, not cars
+   missing, and it read as an opportunity for over a week.
+
+   **Your entire pre-1995 catalogue is two drivers**, Senna and Villeneuve,
+   87 cars between them. Nobody else has a single car. Behind Lauda sit Hill
+   92, Prost 78, Mansell 78, and 1,127 importable pre-1990 rows in total.
+
+2. **THE REVIEW QUEUE — 1,233 candidates, none decided.**
+
+   Migration 023 applied 2026-09-30 and every season re-run to fill it.
+
+   ```
+   1,233 pending across 1,221 models
+      pre-1995 51 · 2013-2019 81 · 2020-2026 1,101
+   295 of those models have NO eBay listing at all
+   ```
+
+   Those 295 are the highest value per click: accepting one takes a model
+   from no secondary-market data to a price. The other ~926 add a listing to
+   a model that already has one, which sharpens the cheapest-of-N claim and
+   changes less. There is no filter for that in the UI yet — worth adding
+   only after working enough rows to know you want it.
+
+   Stop-start safe: every decision writes immediately, and a rejection is
+   permanent so the queue genuinely shrinks.
 
    **See "The eBay pass ran" below** for why rejection is a column rather than
    a delete, which is the decision the whole table turns on.
 
-2. **2020 has 59 models with no price from any source**, three times any other
+3. **2020 has 59 models with no price from any source**, three times any other
    season and a third of the 190 total. Worth understanding as a season rather
    than picking off one by one.
 
-3. **Finish the shop sweeps.** Horizondiecast, Yuui and Notjustcollectibles have
+4. **Finish the shop sweeps.** Horizondiecast, Yuui and Notjustcollectibles have
    not been swept at all and carry the back-catalogue and Bburago stock nothing
    else has.
 
@@ -3203,49 +3247,49 @@ DEADLINE, the one gap that is now clearly biggest, and everything else.
    sent it, which is why several "the sweep found nothing new" runs were actually
    full re-sweeps of already-linked models.
 
-4. **The October refresh** — see the deadline box at the top. eBay is the one
+5. **The October refresh** — see the deadline box at the top. eBay is the one
    with a date: its oldest rows go stale 2026-10-10.
 
-5. **The retailer SWEEP records no price observations.** `refresh-prices` and
+6. **The retailer SWEEP records no price observations.** `refresh-prices` and
    `refresh-ebay` both append to `price_observations`; the sweep writes through
    `attachRetailerLink` and does not. So links created by a sweep sit outside the
    price history until a Refresh All Retailers picks them up. Third write path,
    two of them recording history — the kind of inconsistency that gets forgotten.
-6. **Own the images, or keep hotlinking.** Every product photo is served from a
+7. **Own the images, or keep hotlinking.** Every product photo is served from a
    retailer's CDN — 24 hosts, their bandwidth, their copyright, and any of them
    can break every image by renaming a file. None block a `diecasts.app` referer
    today, but that is a snapshot. Copying to Supabase Storage at fill time solves
    breakage, bandwidth and ownership together, and 3,030 images is cheap now and
    a migration later. **A real decision, not a nice-to-have.**
-7. **112 models still have no image**, down from a much worse ratio: images now
+8. **112 models still have no image**, down from a much worse ratio: images now
    cover 3,030 of 3,142. Where only an eBay photo exists it is applied by hand on
    purpose — see the images note at the top.
-8. **37 cars have no models at all**, so they are invisible by construction. This
+9. **37 cars have no models at all**, so they are invisible by construction. This
    went UP from 21 as the season imports ran, because sync-csv creates the car
    before the models and leaves an orphan when every SKU already exists.
    15 are 2020 rows held in `f1_2020_HOLD_no_sku.csv` awaiting a SKU.
-9. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
+10. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
     problem in the currency audit.
-10. **8 retailer links whose URL states a different scale than the model** — see
+11. **8 retailer links whose URL states a different scale than the model** — see
     Data findings. Splits into wrong links and wrong catalogue scale; do not
     blind-fix.
-11. **More seasons — but the shop is exhausted, so this means a NEW SOURCE.**
+12. **More seasons — but the shop is exhausted, so this means a NEW SOURCE.**
     2013 was the oldest season miniatures-minichamps carries. Going further needs
     either another catalogue or the historic drivers, and the driver route is
     already proven: Senna gave 52 cars and 153 models, and Villeneuve (125
     pre-1995 products), Lauda (102), Hill (92), Prost (78) and Mansell (78) are
     waiting behind the same pipeline. Stock is not a decay curve — 2000 and 1995
     have more product than 2005 and 2010, because iconic sells.
-12. **2026 eBay is still nearly empty, and now we know it is not a bug.** Run
+13. **2026 eBay is still nearly empty, and now we know it is not a bug.** Run
     2026-09-28 with the season two-thirds done and the cars long since shipped:
     187 models, **4 auto-links and 10 review candidates, 173 no match**. The old
     note said to revisit "once the cars ship". They have. There is simply no
     secondary market for a current-season model that every shop still stocks
     new. Revisit in 2027, not before.
-13. Rotate the eBay and Exa credentials still sitting in the repo history.
-14. **Circuit aliases.** "silverstone", "monza" and "spa" still find nothing in
+14. Rotate the eBay and Exa credentials still sitting in the repo history.
+15. **Circuit aliases.** "silverstone", "monza" and "spa" still find nothing in
     search or suggestions, because races are stored by country.
-15. **Driver-page cards say "3 manufacturers"** where browse and search name them.
+16. **Driver-page cards say "3 manufacturers"** where browse and search name them.
     One line, `hubData.ts:91`.
 
 ### What this list no longer contains
