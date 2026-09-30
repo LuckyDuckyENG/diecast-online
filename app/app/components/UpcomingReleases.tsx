@@ -57,7 +57,7 @@ const upcomingModels = [
 
 export default function UpcomingReleases() {
   return (
-    <section className="bg-[var(--section-bg)] py-16 px-8">
+    <section className="bg-[var(--section-bg)] py-16 px-4 sm:px-8">
       <div className="max-w-[1240px] mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>

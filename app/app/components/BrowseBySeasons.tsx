@@ -17,7 +17,7 @@ const seasons = [
 
 export default function BrowseBySeasons() {
   return (
-    <section className="bg-[var(--section-bg)] py-16 px-8">
+    <section className="bg-[var(--section-bg)] py-16 px-4 sm:px-8">
       <div className="max-w-[1240px] mx-auto">
         <div className="mb-8">
           <h2 className="font-display font-black text-3xl text-[var(--text-primary)] mb-1">

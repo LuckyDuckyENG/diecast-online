@@ -112,7 +112,18 @@ export default function CarDetail({
     <div className="min-h-screen bg-[var(--background)]">
       <Navbar />
 
-      <div className="max-w-[1240px] mx-auto px-8 py-8">
+      {/*
+        px-4 below sm, not px-8.
+
+        71% of visitors are on mobile, 57% of them on Android, and this is the
+        page essentially all of them land on — Google sends them straight to a
+        specific car. At px-8 a 360px screen lost 64px, 18% of its width, on a
+        page whose main content is a table of shops, prices and origin codes.
+        That is the one place the site can least afford to be narrow.
+
+        Matches the Navbar, which has done px-4 sm:px-8 since it was written.
+      */}
+      <div className="max-w-[1240px] mx-auto px-4 sm:px-8 py-8">
         <Breadcrumb items={breadcrumbItems} />
 
         {/* Car header */}

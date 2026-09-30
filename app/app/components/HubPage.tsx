@@ -26,7 +26,8 @@ export default function HubPage({
     <div className="min-h-screen bg-[var(--background)]">
       <Navbar />
 
-      <div className="max-w-[1440px] mx-auto px-8 py-8">
+      {/* px-4 below sm — see CarDetail. 64px of a 360px screen is 18% of it. */}
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-8">
         <Breadcrumb items={breadcrumb} />
 
         <div className="mb-10 max-w-3xl">
