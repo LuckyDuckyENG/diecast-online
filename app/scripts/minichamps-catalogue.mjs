@@ -42,6 +42,19 @@ const SITEMAPS = ['/1_gb_0_sitemap.xml', '/1_gb_1_sitemap.xml'];
 
 const args = process.argv.slice(2);
 const only = args.includes('--driver') ? args[args.indexOf('--driver') + 1] : null;
+/**
+ * How many rows to print for --driver. 25 was hardcoded, and 25 is fewer than
+ * any candidate driver has: Lauda alone returns 96.
+ *
+ * That cap defeated the one rule this file exists to enforce — "do not plan a
+ * session off a gross count, run it and read the rows". You could read the
+ * count or a quarter of the rows, never the set. Deciding whether a driver is
+ * worth days of work needs the whole list, because the disqualifying entries
+ * do not distribute evenly: 4 of Lauda's first 25 are 2019 Mercedes tribute
+ * liveries driven by Hamilton and Bottas, which are not his cars at all.
+ */
+const limitArg = args.includes('--limit') ? Number(args[args.indexOf('--limit') + 1]) : 25;
+const LIMIT = Number.isFinite(limitArg) && limitArg > 0 ? limitArg : 25;
 
 async function sitemapText(pathname) {
   mkdirSync(CACHE, { recursive: true });
@@ -277,7 +290,7 @@ const main = async () => {
   if (only) {
     const hits = f1.filter(p => p.slug.includes(only.toLowerCase()));
     console.log(`\n"${only}" — ${hits.length} F1 products`);
-    for (const p of hits.slice(0, 25)) {
+    for (const p of hits.slice(0, LIMIT)) {
       const f = field(p);
       console.log(`   ${String(p.sku).padEnd(14)} ${String(f.year || '????').padEnd(5)} ${String(f.maker || '?').padEnd(12)} ${String(f.event || '—').padEnd(22)} ${p.slug.slice(0, 50)}`);
     }
