@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-09-30
+# Status Summary — last updated 2026-10-03
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -347,6 +347,86 @@ cache. Worth fixing if this becomes a routine sweep.
 `scripts/test-sitemap-mm.ts` proves the whole chain offline against the cached
 sitemap and cached product pages — no network, so it tests our parsing rather
 than the shop's uptime.
+
+## Five historic drivers, and one generator — 2026-10-03
+
+```
+pre-1995: 215 cars across 5 drivers
+  Lauda 50 · Senna 50 · Mansell 41 · Prost 37 · Villeneuve 37
+catalogue 1,485 cars · 3,363 models · 1,371 visible
+```
+
+Prost and Mansell cost **two reference rows between them** — just their names.
+Every season and every team they drove for already existed. Senna needed
+twenty. That is the compounding this file predicted when it said "those rows
+are the reusable part", and it has now arrived.
+
+`scripts/build-driver-csv.mjs --driver <name>` replaces the three
+near-identical per-driver scripts. Before deleting them it was verified to
+reproduce the Lauda CSV byte for byte, and to differ from the Villeneuve one
+only by removing five rows it used to emit twice and by reading a bare "imola"
+as the San Marino GP.
+
+**DO NOT RE-IMPORT VILLENEUVE.** His models are keyed on URL part numbers from
+before the page-ref rule, which `skuFrom: url` reproduces — but the shared
+event vocabulary now reads "imola" as the San Marino GP where his import filed
+it as "Season". Event is part of what identifies a car, so a re-run creates two
+new cars rather than matching. The config exists to verify the script, not to
+run again.
+
+### Four bugs the --review pass caught, each a class rather than a one-off
+
+**The entrant is whichever team appears EARLIEST in the slug**, not the first
+matching rule. Prost 1993 reads `williams-renault-fw15c` — Williams built it,
+Renault supplied the engine — and Renault is ALSO a real Prost team from
+1981-83, so it sat in his list legitimately and took five Williams with it.
+Config order must never be load-bearing. This is the 2017 bug that filed 11
+Williams under Mercedes, arriving by a different door.
+
+**Scale is a whitelist of the two the catalogue has columns for.** It was a
+1:12-only exclusion because 1:12 is what the first two drivers happened to
+contain. Prost has a 1:64, which passed and produced a row with both SKU
+columns empty — a car with no models, invisible by construction.
+
+**A short part number is not automatically a fragment.** Brumm genuinely
+numbers its models R593, R447, R267. A blanket five-character minimum dropped
+seven real Villeneuve models. Truncation is only suspicious when the page
+states no SKU at all.
+
+**The engine sits between the marque and the chassis** — `lotus-ford-91`,
+`ferrari-f1-189-640`, where 640 is also called F1-89. Anchoring chassis rules
+on the marque lost nine Mansell models.
+
+### Products that carry a name without being that driver's car
+
+Every driver so far has had some, so look for them:
+
+- **Lauda**: five Mercedes W10s from Monaco 2019, driven by Hamilton and
+  Bottas weeks after he died, sold as "hommage à Niki Lauda".
+- **Prost**: the Prost AP01 that Olivier Panis drove for the team he owned
+  after retiring, and the 1977 Renault RS01 he demo-drove at Monaco 2018,
+  which would have imported as a 2018 Monaco entry.
+- **"hill" is two drivers.** 75 rows are Graham (1950s-70s), 25 are Damon
+  (1990s). A name match merges a father and son into one driver.
+
+### The check that has caught every real bug: chassis against year
+
+Printed by --review. Every pair should be a car that existed that year. It
+found the five 126C2s dated 1980 where the 2 was Villeneuve's race number, and
+an FW14 dated 1992 when Williams raced only the FW14B that season. It also
+CONFIRMS things that look wrong and are not: Lauda's 312B3 in 1975 (it ran the
+first two rounds before the 312T), his BT46 in 1977 (the prototype, tested a
+year before it raced), Mansell's banned Lotus 88A and 88B in 1981 (they ran in
+practice at Long Beach), and his Lotus 79 in 1979 (a Paul Ricard test a year
+before his debut).
+
+### Still unheld
+
+Graham Hill is 16 reference rows — 13 seasons and 2 teams — and he is the
+beachhead into the 1960s, where the sitemap holds **311 importable rows and the
+catalogue holds none**. A decade-opening project with a whole era of vocabulary
+to learn, worth doing deliberately rather than as a follow-on. Damon Hill is 25
+products behind 7 rows. 1,127 importable pre-1990 rows exist in total.
 
 ## Historic drivers — Senna proved the pipeline
 
@@ -3161,52 +3241,21 @@ miniatures-minichamps publishes, so the import loop that has driven the last
 week is finished. What is left divides cleanly into three: the one job with a
 DEADLINE, the one gap that is now clearly biggest, and everything else.
 
-1. **NIKI LAUDA — measured 2026-09-30, ready to import, not started.**
-
-   Do this with a fresh head. Every historic import so far has hit something
-   mid-way, and two traps are already known for this one.
+1. **THE OCTOBER REFRESH. It is the only item with a deadline, and it is close.**
 
    ```
-   96 F1 products in the sitemap
-     91  within his career 1971-1985
-      5  are 2019 Mercedes W10 tribute liveries — EXCLUDE
-     66  of 91 name an event; the rest import as "Season"
-     89  distinct SKUs
-   by year 1971:3 1972:4 1973:4 1974:10 1975:5 1976:7 1977:17
-           1978:10 1979:6 · 1982:6 1983:7 1984:7 1985:5
-   makers  gp-replicas 39 · tecnomodel 24 · spark 13 · minichamps 6 · other 9
+   eBay      5,621 rows · oldest 22d  ->  first expire in 8 days
+   retailer  6,607 rows · 11 already stale · 2,550 aged 24d+
    ```
 
-   The 1980-1981 gap is real: he was retired and came back in 1982. That the
-   data reproduces it is the best evidence the name match is not dragging in
-   junk.
+   The site refuses to quote a price older than 30 days, so these revert to
+   "Check price on site" TOGETHER rather than trickling — they were swept in a
+   cluster. 70% of traffic lands on car pages and a car page with no prices is
+   a dead page, so this protects what already works rather than adding to it.
 
-   **Reference rows needed — nine, against Senna's twenty:**
-
-   ```
-   seasons  1971 1972 1973 1974 1975 1976      6 missing
-   teams    March, BRM                        2 missing
-   driver   Niki Lauda                        1 missing
-   makers   all seven already held            0 missing
-   ```
-
-   Ferrari, Brabham and McLaren already exist from Senna and Villeneuve, and
-   every manufacturer he appears under is already there. This is the
-   compounding the Senna write-up predicted.
-
-   **Expect 20-30 cars and 60-90 models, not 96.** The precedents run at 5.1
-   products per car (Senna, 264 -> 52) and 3.2 (Villeneuve, ~117 -> 37).
-   Quoting the gross count is the exact overstatement this doc warns about.
-
-   **Villeneuve is NOT the next one — he is already done.** 37 cars, 76
-   models, 1977-1982, all ten of his chassis including the McLaren M23 debut.
-   The "125" in the old candidate list was shop products available, not cars
-   missing, and it read as an opportunity for over a week.
-
-   **Your entire pre-1995 catalogue is two drivers**, Senna and Villeneuve,
-   87 cars between them. Nobody else has a single car. Behind Lauda sit Hill
-   92, Prost 78, Mansell 78, and 1,127 importable pre-1990 rows in total.
-
+   `scripts/fetch-fx.mjs` first, then Refresh eBay, then Refresh All Retailers.
+   The retailer side is ~3 hours from localhost at this size and would time out
+   on Vercel, so it wants a session you can leave running.
 2. **THE REVIEW QUEUE — 1,233 candidates, none decided.**
 
    Migration 023 applied 2026-09-30 and every season re-run to fill it.
