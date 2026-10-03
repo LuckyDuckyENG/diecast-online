@@ -26,16 +26,37 @@ export default function Footer() {
           </div>
 
           {/* Links */}
-          <div className="flex gap-12">
+          {/* gap-12 is 48px of a 360px screen. After it, two columns have
+              ~140px each and "For Retailers" and "Terms of Service" wrap. */}
+          <div className="flex gap-8 sm:gap-12">
             {/* Browse */}
             <div>
               <h3 className="font-display font-bold text-sm uppercase tracking-wide mb-4">
                 Browse
               </h3>
-              <ul className="space-y-2.5">
+              {/*
+                THE ONLY LINK TO /savings USED TO BE IN THE DESKTOP NAVBAR,
+                inside `hidden md:flex`.
+
+                So for the 71% of visitors on a phone the page was unreachable
+                except through Google, and it had one visitor. That page holds
+                91 affiliate-tagged eBay rows — the densest concentration of
+                monetisable links anywhere outside a car page — and nobody
+                could get to them.
+
+                The header is not the place to fix it: it already carries a
+                logo, Browse and a full-width search row at 112px of a ~650px
+                screen. The footer is where mobile navigation actually lives.
+              */}
+              <ul className="space-y-1">
                 <li>
-                  <Link href="/browse" className="text-white/70 text-sm hover:text-white transition-colors">
+                  <Link href="/browse" className="block py-1.5 text-white/70 text-sm hover:text-white transition-colors">
                     All Models
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/savings" className="block py-1.5 text-white/70 text-sm hover:text-white transition-colors">
+                    Best Prices
                   </Link>
                 </li>
               </ul>
@@ -46,29 +67,33 @@ export default function Footer() {
               <h3 className="font-display font-bold text-sm uppercase tracking-wide mb-4">
                 About
               </h3>
-              <ul className="space-y-2.5">
+              {/* Same tap targets as the Browse column: a 20px line of text
+                  with 10px between is well under the ~44px a thumb expects,
+                  and these sit at the bottom of the page where a miss means
+                  scrolling back. */}
+              <ul className="space-y-1">
                 <li>
-                  <Link href="/about" className="text-white/70 text-sm hover:text-white transition-colors">
+                  <Link href="/about" className="block py-1.5 text-white/70 text-sm hover:text-white transition-colors">
                     About
                   </Link>
                 </li>
                 <li>
-                  <Link href="/retailers" className="text-white/70 text-sm hover:text-white transition-colors">
+                  <Link href="/retailers" className="block py-1.5 text-white/70 text-sm hover:text-white transition-colors">
                     For Retailers
                   </Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="text-white/70 text-sm hover:text-white transition-colors">
+                  <Link href="/contact" className="block py-1.5 text-white/70 text-sm hover:text-white transition-colors">
                     Contact
                   </Link>
                 </li>
                 <li>
-                  <Link href="/privacy" className="text-white/70 text-sm hover:text-white transition-colors">
+                  <Link href="/privacy" className="block py-1.5 text-white/70 text-sm hover:text-white transition-colors">
                     Privacy Policy
                   </Link>
                 </li>
                 <li>
-                  <Link href="/terms" className="text-white/70 text-sm hover:text-white transition-colors">
+                  <Link href="/terms" className="block py-1.5 text-white/70 text-sm hover:text-white transition-colors">
                     Terms of Service
                   </Link>
                 </li>
