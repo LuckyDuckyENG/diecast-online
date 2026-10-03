@@ -3256,7 +3256,31 @@ DEADLINE, the one gap that is now clearly biggest, and everything else.
    `scripts/fetch-fx.mjs` first, then Refresh eBay, then Refresh All Retailers.
    The retailer side is ~3 hours from localhost at this size and would time out
    on Vercel, so it wants a session you can leave running.
-2. **THE REVIEW QUEUE — 1,233 candidates, none decided.**
+2. **AUTOMATE THE REFRESH — but not as a weekly full pass, which cannot work.**
+
+   Two hard limits, both measured on 2026-10-03:
+
+   ```
+   eBay Browse API   ~5,000 calls/day. The refresh makes ONE per listing.
+                     Today it used exactly 5,000 against 5,398 links and only
+                     finished because 621 were already fresh. Next time it
+                     will not.
+   Vercel functions  300s ceiling. The retailer refresh is ~3 hours. It
+                     cannot run there at all, and the eBay slice would be tight.
+   ```
+
+   So the shape is a **rolling daily slice**, not a weekly sweep: refresh the
+   ~800 oldest links each day. Nothing ever passes a week old, the cap is
+   never approached, and it dissolves the cluster-expiry problem rather than
+   rescheduling it — everything currently expires on the same day because it
+   was all swept on the same day.
+
+   Home is a **GitHub Action on a cron** (free, no meaningful timeout, secrets
+   already manageable) or Windows Task Scheduler locally. Not Vercel.
+
+   The route already supports this: `refresh-ebay` has plan mode, returning
+   ids ordered oldest-first, so a slice is just the first N of that list.
+3. **THE REVIEW QUEUE — 1,233 candidates, none decided.**
 
    Migration 023 applied 2026-09-30 and every season re-run to fill it.
 
@@ -3278,11 +3302,11 @@ DEADLINE, the one gap that is now clearly biggest, and everything else.
    **See "The eBay pass ran" below** for why rejection is a column rather than
    a delete, which is the decision the whole table turns on.
 
-3. **2020 has 59 models with no price from any source**, three times any other
+4. **2020 has 59 models with no price from any source**, three times any other
    season and a third of the 190 total. Worth understanding as a season rather
    than picking off one by one.
 
-4. **Finish the shop sweeps.** Horizondiecast, Yuui and Notjustcollectibles have
+5. **Finish the shop sweeps.** Horizondiecast, Yuui and Notjustcollectibles have
    not been swept at all and carry the back-catalogue and Bburago stock nothing
    else has.
 
@@ -3296,49 +3320,49 @@ DEADLINE, the one gap that is now clearly biggest, and everything else.
    sent it, which is why several "the sweep found nothing new" runs were actually
    full re-sweeps of already-linked models.
 
-5. **The October refresh** — see the deadline box at the top. eBay is the one
+6. **The October refresh** — see the deadline box at the top. eBay is the one
    with a date: its oldest rows go stale 2026-10-10.
 
-6. **The retailer SWEEP records no price observations.** `refresh-prices` and
+7. **The retailer SWEEP records no price observations.** `refresh-prices` and
    `refresh-ebay` both append to `price_observations`; the sweep writes through
    `attachRetailerLink` and does not. So links created by a sweep sit outside the
    price history until a Refresh All Retailers picks them up. Third write path,
    two of them recording history — the kind of inconsistency that gets forgotten.
-7. **Own the images, or keep hotlinking.** Every product photo is served from a
+8. **Own the images, or keep hotlinking.** Every product photo is served from a
    retailer's CDN — 24 hosts, their bandwidth, their copyright, and any of them
    can break every image by renaming a file. None block a `diecasts.app` referer
    today, but that is a snapshot. Copying to Supabase Storage at fill time solves
    breakage, bandwidth and ownership together, and 3,030 images is cheap now and
    a migration later. **A real decision, not a nice-to-have.**
-8. **112 models still have no image**, down from a much worse ratio: images now
+9. **112 models still have no image**, down from a much worse ratio: images now
    cover 3,030 of 3,142. Where only an eBay photo exists it is applied by hand on
    purpose — see the images note at the top.
-9. **37 cars have no models at all**, so they are invisible by construction. This
+10. **37 cars have no models at all**, so they are invisible by construction. This
    went UP from 21 as the season imports ran, because sync-csv creates the car
    before the models and leaves an orphan when every SKU already exists.
    15 are 2020 rows held in `f1_2020_HOLD_no_sku.csv` awaiting a SKU.
-10. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
+11. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
     problem in the currency audit.
-11. **8 retailer links whose URL states a different scale than the model** — see
+12. **8 retailer links whose URL states a different scale than the model** — see
     Data findings. Splits into wrong links and wrong catalogue scale; do not
     blind-fix.
-12. **More seasons — but the shop is exhausted, so this means a NEW SOURCE.**
+13. **More seasons — but the shop is exhausted, so this means a NEW SOURCE.**
     2013 was the oldest season miniatures-minichamps carries. Going further needs
     either another catalogue or the historic drivers, and the driver route is
     already proven: Senna gave 52 cars and 153 models, and Villeneuve (125
     pre-1995 products), Lauda (102), Hill (92), Prost (78) and Mansell (78) are
     waiting behind the same pipeline. Stock is not a decay curve — 2000 and 1995
     have more product than 2005 and 2010, because iconic sells.
-13. **2026 eBay is still nearly empty, and now we know it is not a bug.** Run
+14. **2026 eBay is still nearly empty, and now we know it is not a bug.** Run
     2026-09-28 with the season two-thirds done and the cars long since shipped:
     187 models, **4 auto-links and 10 review candidates, 173 no match**. The old
     note said to revisit "once the cars ship". They have. There is simply no
     secondary market for a current-season model that every shop still stocks
     new. Revisit in 2027, not before.
-14. Rotate the eBay and Exa credentials still sitting in the repo history.
-15. **Circuit aliases.** "silverstone", "monza" and "spa" still find nothing in
+15. Rotate the eBay and Exa credentials still sitting in the repo history.
+16. **Circuit aliases.** "silverstone", "monza" and "spa" still find nothing in
     search or suggestions, because races are stored by country.
-16. **Driver-page cards say "3 manufacturers"** where browse and search name them.
+17. **Driver-page cards say "3 manufacturers"** where browse and search name them.
     One line, `hubData.ts:91`.
 
 ### What this list no longer contains
