@@ -33,18 +33,38 @@ function Row({ r }: { r: SavingRow }) {
   return (
     <li className="border border-[var(--border-light)] rounded-xl p-4 hover:border-[var(--accent)] transition-colors">
       {/*
-        TWO destinations, because the row answers two questions.
-        The body goes to the car page, which is where the comparison lives and
-        the reason the site exists. The shop name goes straight to the listing
-        being quoted — without it the row names an exact model at an exact shop
-        and then makes you open the car page, work out which scale and maker it
-        meant, and find that shop in a list.
-        A nested <a> inside a <Link> is invalid, so the body link wraps only
-        the part that leads inward.
+        TWO destinations, and the BODY GOES TO THE SHOP.
+
+        It used to be the other way round: the image, title and comparison
+        line — the whole left side, flex-1 — linked to the car page, while the
+        shop was twelve pixels of text on the right. On a desktop you can aim
+        at that. On a phone you cannot, so every tap landed on the car page,
+        which is the one destination this page's visitor did not ask for.
+
+        The premise of the row decides it. It says "this exact model is AUD 70
+        below what it usually costs, at this exact shop", and it already
+        summarises the comparison inline — "usually AUD 389 across 5 shops".
+        The question it leaves is "where", and the answer is the shop.
+
+        The car page is still one tap away, as an explicit link rather than an
+        accidental one. 71% of visitors are on a phone and this is the page
+        whose entire subject is acting on a price.
       */}
       <div className="flex gap-4 items-center">
-        <Link
-          href={r.carSlug ? `/cars/${r.carSlug}` : '#'}
+        <a
+          href={r.url}
+          onClick={() => logClick({
+            modelId: r.modelId,
+            carSlug: r.carSlug,
+            retailer: r.seller,
+            kind: r.kind === 'ebay' ? 'ebay' : 'shop',
+            priceAud: r.price,
+            // Every row on this page IS the cheapest found for its model --
+            // that is the page's whole premise.
+            wasCheapest: true,
+          })}
+          target="_blank"
+          rel={r.kind === 'ebay' ? 'sponsored noopener noreferrer' : 'noopener noreferrer'}
           className="flex gap-4 items-center min-w-0 flex-1"
         >
         {r.imageUrl ? (
@@ -73,7 +93,7 @@ function Row({ r }: { r: SavingRow }) {
             usually {money(r.typical)} across {r.shopCount} shops
           </p>
         </div>
-        </Link>
+        </a>
 
         {/*
           THE PRICE IS THE BIG NUMBER, not the saving.
@@ -92,46 +112,37 @@ function Row({ r }: { r: SavingRow }) {
             {money(r.price)}
           </p>
           {/*
-            rel matches what the car page sends: "sponsored" on eBay because
-            those links are affiliate-tagged, plain noopener for a shop.
+            Not a link any more — the whole row is. Saying where it goes is
+            still essential: the row states a saving outright, 47% of cheapest
+            offers are Belgian and 28% Chinese, and postage is not in the data.
+            The origin is the one fact that stops "AUD 70 below typical"
+            implying a comparison postage may reverse. Stated, never warned
+            about. The arrow marks that the row leaves the site.
           */}
-          <a
-            href={r.url}
-            /*
-              Same measurement as the car page. A click from here is the
-              strongest signal the site has: this row exists BECAUSE the price
-              is below what the model normally costs, so following it is
-              someone acting on the comparison itself.
-            */
-            onClick={() => logClick({
-              modelId: r.modelId,
-              carSlug: r.carSlug,
-              retailer: r.seller,
-              kind: r.kind === 'ebay' ? 'ebay' : 'shop',
-              priceAud: r.price,
-              // Every row on this page IS the cheapest found for its model --
-              // that is the page's whole premise.
-              wasCheapest: true,
-            })}
-            target="_blank"
-            rel={r.kind === 'ebay' ? 'sponsored noopener noreferrer' : 'noopener noreferrer'}
-            className="text-xs text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:underline truncate max-w-[10rem] ml-auto block"
-          >
+          <p className="text-xs text-[var(--text-tertiary)] truncate max-w-[10rem] ml-auto">
             at {r.seller}
-            {/*
-              Where it ships from, on the page that states a saving outright.
-              47% of cheapest offers are Belgian and 28% Chinese, and postage
-              is not in the data — so the origin is the one fact that stops
-              "AUD 320 below typical" implying a comparison postage may
-              reverse. Stated, never warned about.
-            */}
             {r.region ? ` (${r.region.toUpperCase()})` : ''} ↗
-          </a>
+          </p>
           <p className="mt-1.5 inline-block rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)] whitespace-nowrap">
             {moneyCode} {Math.round(inCurrency(r.saving))} below typical
           </p>
         </div>
       </div>
+
+      {/*
+        The way back in, explicit rather than accidental.
+        It cannot live inside the row above — that is one big anchor to the
+        shop now, and an <a> inside an <a> is invalid — so it sits underneath
+        on its own line with a thumb-sized target.
+      */}
+      {r.carSlug && (
+        <Link
+          href={`/cars/${r.carSlug}`}
+          className="mt-2 inline-block py-1.5 text-xs text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:underline"
+        >
+          Compare all prices for this model →
+        </Link>
+      )}
     </li>
   );
 }
