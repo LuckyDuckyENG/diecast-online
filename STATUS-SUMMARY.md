@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-10-03
+# Status Summary — last updated 2026-10-05
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -3231,6 +3231,57 @@ harmless, reasoning that out-of-stock links cannot set a headline price. That
 held when the catalogue was Australian. It stopped holding when
 miniatures-minichamps became the largest source, and nothing re-examined it.
 
+## The mobile pass, and what measurement could not have told us — 2026-10-05
+
+```
+/browse    3,513,272 -> 1,286,278 bytes · 1,267 cards -> 48
+/savings   289 rows -> 48 (24 per section)
+```
+
+Both pages rendered everything at once. On a phone at grid-cols-2 that was
+about 634 rows of scroll, and 3.5MB before anything appeared.
+
+**Researched rather than guessed.** Baymard puts the default at 50-150 on
+desktop and 15-30 on mobile, the mobile figure lower because a phone shows
+two to four items per screen. Show More beats both alternatives in their
+testing: subjects called pagination slow, and infinite scroll breaks
+returning to your place.
+
+**Infinite scroll was specifically rejected**, and not only on their
+evidence. It would make the FOOTER UNREACHABLE on /browse, and the footer is
+a mobile route to /savings. Returning to your place is also the common
+journey here — Gutierrez across three seasons, Ricciardo across five.
+
+**One deliberate divergence from Google.** Its guidance is to make Show More
+a real `<a href>` to a unique URL. That needs /browse?page=2 on the server,
+and reading searchParams makes the page dynamic — the thing that blew the
+egress quota on 2026-09-22. Discovery no longer depends on this page: the
+sitemap carries every car URL, hubs link their own, car pages link ~16 each.
+What is lost is internal link equity from one hub. **Watch /cars/
+impressions in Search Console for a month.** If they soften, the fix is
+statically generated /browse/page/N — 27 prerendered pages, no dynamic reads.
+
+### Four things only a person holding the phone found
+
+Every one of these was invisible to every measurement available:
+
+- **A /savings row linked to the car page, not the shop.** The image, title
+  and comparison line — flex-1, the whole left side — went inward, while the
+  shop was twelve pixels of text. On a desktop you can aim at that.
+- **The row squeezed its content into 75px.** Three truncated lines after the
+  image and a whitespace-nowrap price column took the width.
+- **The footer was not enough for /savings.** Added there first on the
+  reasoning that the header was full. Reachable is not visible: you had to
+  pass 48 cards to find it. The header width estimate that ruled it out was
+  simply too pessimistic — it comes to 301 of 328 at 360px.
+- **A bare text link beside a filled button reads as promotional copy.** The
+  eye sorts "button = navigation, loose text = a message". It needed a
+  border to become a destination.
+
+The lesson worth keeping: analytics says WHICH pages are used, never whether
+the thing on them can be tapped. 75 visitors a week would not have surfaced
+any of this.
+
 ## Next up
 
 Re-cut 2026-09-28 after the catalogue source ran out, revised the same day
@@ -3241,22 +3292,34 @@ miniatures-minichamps publishes, so the import loop that has driven the last
 week is finished. What is left divides cleanly into three: the one job with a
 DEADLINE, the one gap that is now clearly biggest, and everything else.
 
-1. **THE OCTOBER REFRESH. It is the only item with a deadline, and it is close.**
+1. **THE CAR-PAGE OUTBOUND AFFORDANCE. Small, and deferred four times now.**
 
-   ```
-   eBay      5,621 rows · oldest 22d  ->  first expire in 8 days
-   retailer  6,607 rows · 11 already stale · 2,550 aged 24d+
-   ```
+   A shop row on a car page is a whole `<a>`, and nothing says so — no arrow,
+   no button, no underline. `/savings` gets this right (`at Downies ↗`) and
+   the car page does not.
 
-   The site refuses to quote a price older than 30 days, so these revert to
-   "Check price on site" TOGETHER rather than trickling — they were swept in a
-   cluster. 70% of traffic lands on car pages and a car page with no prices is
-   a dead page, so this protects what already works rather than adding to it.
+   It matters because of where people are: 70% of traffic lands on a car
+   page, 71% of visitors are on a phone with no hover state to discover it
+   with, and the outbound click is the only measurable outcome the site has.
+   Twelve so far.
 
-   `scripts/fetch-fx.mjs` first, then Refresh eBay, then Refresh All Retailers.
-   The retailer side is ~3 hours from localhost at this size and would time out
-   on Vercel, so it wants a session you can leave running.
-2. **AUTOMATE THE REFRESH — but not as a weekly full pass, which cannot work.**
+   Half an hour. It keeps being pushed behind things with deadlines, and
+   there is no deadline left.
+
+2. **THE REVIEW QUEUE — 1,276 pending, none decided.**
+
+   Stop-start safe: every decision writes immediately and a rejection is
+   permanent, so forty rows and walking away costs nothing. 295 of those
+   models have no eBay listing at all, which is the highest value per click.
+
+3. **1989 and 1990 return almost nothing, and it may not be scarcity.**
+
+   51 models between them, 4 linked. Only 7 came back with an empty pool —
+   so for the other 44 eBay HAD listings and the matcher rejected every one.
+   Those are the Ferrari 640 and 641 of Prost and Mansell, famous cars.
+   Surrounding seasons do not behave like this. Half an hour to find out
+   whether the queries are malformed for those chassis.
+4. **AUTOMATE THE REFRESH — but not as a weekly full pass, which cannot work.**
 
    Two hard limits, both measured on 2026-10-03:
 
@@ -3280,33 +3343,11 @@ DEADLINE, the one gap that is now clearly biggest, and everything else.
 
    The route already supports this: `refresh-ebay` has plan mode, returning
    ids ordered oldest-first, so a slice is just the first N of that list.
-3. **THE REVIEW QUEUE — 1,233 candidates, none decided.**
-
-   Migration 023 applied 2026-09-30 and every season re-run to fill it.
-
-   ```
-   1,233 pending across 1,221 models
-      pre-1995 51 · 2013-2019 81 · 2020-2026 1,101
-   295 of those models have NO eBay listing at all
-   ```
-
-   Those 295 are the highest value per click: accepting one takes a model
-   from no secondary-market data to a price. The other ~926 add a listing to
-   a model that already has one, which sharpens the cheapest-of-N claim and
-   changes less. There is no filter for that in the UI yet — worth adding
-   only after working enough rows to know you want it.
-
-   Stop-start safe: every decision writes immediately, and a rejection is
-   permanent so the queue genuinely shrinks.
-
-   **See "The eBay pass ran" below** for why rejection is a column rather than
-   a delete, which is the decision the whole table turns on.
-
-4. **2020 has 59 models with no price from any source**, three times any other
+5. **2020 has 59 models with no price from any source**, three times any other
    season and a third of the 190 total. Worth understanding as a season rather
    than picking off one by one.
 
-5. **Finish the shop sweeps.** Horizondiecast, Yuui and Notjustcollectibles have
+6. **Finish the shop sweeps.** Horizondiecast, Yuui and Notjustcollectibles have
    not been swept at all and carry the back-catalogue and Bburago stock nothing
    else has.
 
@@ -3320,49 +3361,49 @@ DEADLINE, the one gap that is now clearly biggest, and everything else.
    sent it, which is why several "the sweep found nothing new" runs were actually
    full re-sweeps of already-linked models.
 
-6. **The October refresh** — see the deadline box at the top. eBay is the one
+7. **The October refresh** — see the deadline box at the top. eBay is the one
    with a date: its oldest rows go stale 2026-10-10.
 
-7. **The retailer SWEEP records no price observations.** `refresh-prices` and
+8. **The retailer SWEEP records no price observations.** `refresh-prices` and
    `refresh-ebay` both append to `price_observations`; the sweep writes through
    `attachRetailerLink` and does not. So links created by a sweep sit outside the
    price history until a Refresh All Retailers picks them up. Third write path,
    two of them recording history — the kind of inconsistency that gets forgotten.
-8. **Own the images, or keep hotlinking.** Every product photo is served from a
+9. **Own the images, or keep hotlinking.** Every product photo is served from a
    retailer's CDN — 24 hosts, their bandwidth, their copyright, and any of them
    can break every image by renaming a file. None block a `diecasts.app` referer
    today, but that is a snapshot. Copying to Supabase Storage at fill time solves
    breakage, bandwidth and ownership together, and 3,030 images is cheap now and
    a migration later. **A real decision, not a nice-to-have.**
-9. **112 models still have no image**, down from a much worse ratio: images now
+10. **112 models still have no image**, down from a much worse ratio: images now
    cover 3,030 of 3,142. Where only an eBay photo exists it is applied by hand on
    purpose — see the images note at the top.
-10. **37 cars have no models at all**, so they are invisible by construction. This
+11. **37 cars have no models at all**, so they are invisible by construction. This
    went UP from 21 as the season imports ran, because sync-csv creates the car
    before the models and leaves an orphan when every SKU already exists.
    15 are 2020 rows held in `f1_2020_HOLD_no_sku.csv` awaiting a SKU.
-11. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
+12. **Remove the TLD currency guess** in `attachRetailerLink` — it caused every
     problem in the currency audit.
-12. **8 retailer links whose URL states a different scale than the model** — see
+13. **8 retailer links whose URL states a different scale than the model** — see
     Data findings. Splits into wrong links and wrong catalogue scale; do not
     blind-fix.
-13. **More seasons — but the shop is exhausted, so this means a NEW SOURCE.**
+14. **More seasons — but the shop is exhausted, so this means a NEW SOURCE.**
     2013 was the oldest season miniatures-minichamps carries. Going further needs
     either another catalogue or the historic drivers, and the driver route is
     already proven: Senna gave 52 cars and 153 models, and Villeneuve (125
     pre-1995 products), Lauda (102), Hill (92), Prost (78) and Mansell (78) are
     waiting behind the same pipeline. Stock is not a decay curve — 2000 and 1995
     have more product than 2005 and 2010, because iconic sells.
-14. **2026 eBay is still nearly empty, and now we know it is not a bug.** Run
+15. **2026 eBay is still nearly empty, and now we know it is not a bug.** Run
     2026-09-28 with the season two-thirds done and the cars long since shipped:
     187 models, **4 auto-links and 10 review candidates, 173 no match**. The old
     note said to revisit "once the cars ship". They have. There is simply no
     secondary market for a current-season model that every shop still stocks
     new. Revisit in 2027, not before.
-15. Rotate the eBay and Exa credentials still sitting in the repo history.
-16. **Circuit aliases.** "silverstone", "monza" and "spa" still find nothing in
+16. Rotate the eBay and Exa credentials still sitting in the repo history.
+17. **Circuit aliases.** "silverstone", "monza" and "spa" still find nothing in
     search or suggestions, because races are stored by country.
-17. **Driver-page cards say "3 manufacturers"** where browse and search name them.
+18. **Driver-page cards say "3 manufacturers"** where browse and search name them.
     One line, `hubData.ts:91`.
 
 ### What this list no longer contains
