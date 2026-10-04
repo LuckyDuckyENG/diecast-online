@@ -53,17 +53,40 @@ export default function Navbar() {
           </Link>
         </div>
 
+        {/*
+          BEST PRICES — its own child, not grouped with Browse.
+
+          It lived inside the right-hand group first, which meant
+          justify-between pushed a plain text link hard against a red button
+          while the whole middle of the bar sat empty. They read as one
+          smudged cluster rather than two destinations.
+
+          As a sibling, the three visible children on mobile — logo, this,
+          Browse — spread across the bar on their own, and the gap does the
+          separating without a divider.
+
+          Why it is in the header at all: the footer link was not enough. On
+          /browse you had to pass 48 cards to reach the one page whose subject
+          is the thing the site is for. Reachable is not visible.
+
+          A text link rather than a second button. Two buttons do not fit at
+          360px, and would compete for the same attention if they did; Browse
+          keeps the emphasis. About stays in the footer, which is where
+          genuinely secondary things belong.
+        */}
+        <Link
+          href="/savings"
+          className="md:hidden font-semibold text-sm hover:text-[var(--accent)] transition-colors whitespace-nowrap"
+          style={{ color: '#3a3833' }}
+        >
+          Best prices
+        </Link>
+
         {/* Right Side */}
         <div className="flex items-center gap-3 flex-none">
           {/* Browse lives here as well as in the hidden md: block, because that
               block takes the search box with it below md — which left a phone
               visitor with no route into the catalogue at all. */}
-          <Link
-            href="/savings"
-            className="md:hidden font-semibold text-sm text-[#3a3833] hover:text-[var(--accent)] transition-colors whitespace-nowrap"
-          >
-            Best prices
-          </Link>
           <Link
             href="/browse"
             className="md:hidden font-bold text-sm sm:text-[15px] px-3 sm:px-4 py-2 rounded-[10px] text-white hover:brightness-[0.92] transition-all"
@@ -71,26 +94,6 @@ export default function Navbar() {
           >
             Browse
           </Link>
-          {/*
-            BEST PRICES IS HERE BECAUSE THE FOOTER WAS NOT ENOUGH.
-
-            It was added to the footer first, on the reasoning that the mobile
-            header was full and the footer is where mobile navigation lives.
-            That was wrong in practice: the footer sits below the whole page,
-            so on /browse you now have to pass 48 cards to reach a link to the
-            one page whose subject is the thing the site is for. Looking at
-            the top of /browse on a phone, it is simply not there.
-
-            It fits as a text link beside the button, measured at 360px:
-            logo ~102, gap 12, "Best prices" at text-sm ~77, gap 12, Browse at
-            px-3 ~72 — 275 of the 328 available. The Browse button drops to
-            px-3 and text-sm below sm to buy that room, which is also why this
-            is a text link rather than a second button: two buttons would not
-            fit, and would compete for the same attention anyway.
-
-            About stays in the footer. It is genuinely secondary and the slot
-            is worth more here.
-          */}
         </div>
       </div>
 
