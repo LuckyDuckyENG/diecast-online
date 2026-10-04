@@ -25,6 +25,51 @@ import { useCurrency } from '@/app/components/CurrencyProvider';
  * Every driver stays reachable.
  */
 
+/**
+ * Rows rendered before "Show more", per section.
+ *
+ * Lower than browse's 48 because these are full-width list rows rather than
+ * grid cards — a phone shows two or three at a time, so Baymard's 15-30
+ * mobile figure lands at the bottom of its range rather than the top.
+ *
+ * It also fixes something else. The two sections are never merged, because a
+ * retail price and a used asking price are different kinds of number — but
+ * that left "Cheaper on eBay" sitting below 208 shop rows, which on a phone
+ * is a scroll nobody completes. Those 91 eBay rows are the affiliate half.
+ * Capping the first section puts the second one a screen away instead.
+ */
+const PAGE = 24;
+
+/** One section's worth of rows, with its own Show more. */
+function RowList({ rows, prefix }: { rows: SavingRow[]; prefix: string }) {
+  const [shown, setShown] = useState(PAGE);
+  // Back to the top of the list when the driver filter changes it.
+  useEffect(() => { setShown(PAGE); }, [rows.length]);
+  const visible = rows.slice(0, shown);
+  const remaining = rows.length - visible.length;
+  return (
+    <>
+      <ul className="space-y-3">
+        {visible.map(r => <Row key={`${prefix}-${r.modelId}`} r={r} />)}
+      </ul>
+      {remaining > 0 && (
+        <div className="mt-6 flex flex-col items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShown(s => s + PAGE)}
+            className="rounded-lg bg-[var(--accent)] px-6 py-3 font-bold text-white hover:brightness-[0.92] transition-all"
+          >
+            Show more
+          </button>
+          <p className="text-sm text-[var(--text-tertiary)]">
+            Showing {visible.length} of {rows.length}
+          </p>
+        </div>
+      )}
+    </>
+  );
+}
+
 function Row({ r }: { r: SavingRow }) {
   // Every figure on this page is an AUD amount from the database, so all three
   // follow the reader's currency. The shop's own quoted price is not shown
@@ -271,7 +316,7 @@ export default function SavingsList({ shop, ebay }: { shop: SavingRow[]; ebay: S
           <p className="text-sm text-[var(--text-tertiary)] mb-4">
             {s.length} {s.length === 1 ? 'model' : 'models'} a retailer is selling below the usual price.
           </p>
-          <ul className="space-y-3">{s.map(r => <Row key={`s-${r.modelId}`} r={r} />)}</ul>
+          <RowList rows={s} prefix="s" />
         </section>
       )}
 
@@ -290,7 +335,7 @@ export default function SavingsList({ shop, ebay }: { shop: SavingRow[]; ebay: S
             shops charge. A used or private sale — check condition and postage
             before comparing.
           </p>
-          <ul className="space-y-3">{e.map(r => <Row key={`e-${r.modelId}`} r={r} />)}</ul>
+          <RowList rows={e} prefix="e" />
         </section>
       )}
     </>
