@@ -74,10 +74,23 @@ export default function Navbar() {
           keeps the emphasis. About stays in the footer, which is where
           genuinely secondary things belong.
         */}
+        {/*
+          OUTLINED, NOT BARE TEXT.
+
+          As plain text beside a filled red button it read as promotional copy
+          rather than a destination — the eye sorts "button = navigation,
+          loose text = a message". A border makes it the same kind of object
+          as Browse.
+
+          Secondary on purpose, and in three ways: no fill, a lighter weight
+          of border than the accent, and slightly less vertical padding than
+          Browse. Browse keeps the emphasis because the catalogue is the main
+          route; this is the alternative, not a rival.
+        */}
         <Link
           href="/savings"
-          className="md:hidden font-semibold text-sm hover:text-[var(--accent)] transition-colors whitespace-nowrap"
-          style={{ color: '#3a3833' }}
+          className="md:hidden font-semibold text-sm px-3 py-1.5 rounded-[10px] border transition-colors whitespace-nowrap hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          style={{ color: '#3a3833', borderColor: '#e0ddd6' }}
         >
           Best prices
         </Link>
