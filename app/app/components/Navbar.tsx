@@ -59,16 +59,37 @@ export default function Navbar() {
               block takes the search box with it below md — which left a phone
               visitor with no route into the catalogue at all. */}
           <Link
+            href="/savings"
+            className="md:hidden font-semibold text-sm text-[#3a3833] hover:text-[var(--accent)] transition-colors whitespace-nowrap"
+          >
+            Best prices
+          </Link>
+          <Link
             href="/browse"
-            className="md:hidden font-bold text-[15px] px-4 py-2 rounded-[10px] text-white hover:brightness-[0.92] transition-all"
+            className="md:hidden font-bold text-sm sm:text-[15px] px-3 sm:px-4 py-2 rounded-[10px] text-white hover:brightness-[0.92] transition-all"
             style={{ background: '#cf2f2a' }}
           >
             Browse
           </Link>
           {/*
-            About is deliberately NOT here any more. The footer already links
-            it, and the slot is worth more as the space that lets the search
-            row below breathe. See that row for why search earned it.
+            BEST PRICES IS HERE BECAUSE THE FOOTER WAS NOT ENOUGH.
+
+            It was added to the footer first, on the reasoning that the mobile
+            header was full and the footer is where mobile navigation lives.
+            That was wrong in practice: the footer sits below the whole page,
+            so on /browse you now have to pass 48 cards to reach a link to the
+            one page whose subject is the thing the site is for. Looking at
+            the top of /browse on a phone, it is simply not there.
+
+            It fits as a text link beside the button, measured at 360px:
+            logo ~102, gap 12, "Best prices" at text-sm ~77, gap 12, Browse at
+            px-3 ~72 — 275 of the 328 available. The Browse button drops to
+            px-3 and text-sm below sm to buy that room, which is also why this
+            is a text link rather than a second button: two buttons would not
+            fit, and would compete for the same attention anyway.
+
+            About stays in the footer. It is genuinely secondary and the slot
+            is worth more here.
           */}
         </div>
       </div>
