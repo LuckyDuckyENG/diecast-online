@@ -50,7 +50,20 @@ function Row({ r }: { r: SavingRow }) {
         accidental one. 71% of visitors are on a phone and this is the page
         whose entire subject is acting on a price.
       */}
-      <div className="flex gap-4 items-center">
+      {/*
+        STACKS BELOW sm, BECAUSE THREE COLUMNS DO NOT FIT A PHONE.
+
+        At 360px: 296px survives the page and row padding, the image takes 80
+        and the gap 16, and the price column needs ~125 because "AUD 70 below
+        typical" is whitespace-nowrap. That leaves 75px for the title, the
+        scale-and-race line and "usually AUD 389 across 5 shops" — all three
+        of which are `truncate`, so they were being chopped to a few
+        characters each. The row's entire content is those three lines.
+
+        Stacked, the text gets the full width and the price block sits under
+        it on its own line. Unchanged from sm up.
+      */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-center">
         <a
           href={r.url}
           onClick={() => logClick({
@@ -107,10 +120,20 @@ function Row({ r }: { r: SavingRow }) {
           "AUD 320 below typical" cannot be misread as a price the way "−AUD
           320" can. Still never "save AUD 320" — postage is not in the data.
         */}
-        <div className="text-right shrink-0">
-          <p className="font-display font-black text-xl text-[var(--text-primary)] whitespace-nowrap">
-            {money(r.price)}
-          </p>
+        <div className="shrink-0 sm:text-right">
+          {/*
+            Price and saving share a line on a phone, where there is width to
+            spare once stacked, and go back to stacked from sm — which is the
+            desktop arrangement that put the price above the pill deliberately.
+          */}
+          <div className="flex items-center gap-3 sm:block">
+            <p className="font-display font-black text-xl text-[var(--text-primary)] whitespace-nowrap">
+              {money(r.price)}
+            </p>
+            <p className="inline-block rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)] whitespace-nowrap sm:mt-1.5">
+              {moneyCode} {Math.round(inCurrency(r.saving))} below typical
+            </p>
+          </div>
           {/*
             Not a link any more — the whole row is. Saying where it goes is
             still essential: the row states a saving outright, 47% of cheapest
@@ -118,13 +141,14 @@ function Row({ r }: { r: SavingRow }) {
             The origin is the one fact that stops "AUD 70 below typical"
             implying a comparison postage may reverse. Stated, never warned
             about. The arrow marks that the row leaves the site.
+
+            max-w only from sm: stacked on a phone it has the full width and
+            does not need truncating, and "Miniatures Minichamps (BE)" is
+            exactly the kind of name that loses its country to an ellipsis.
           */}
-          <p className="text-xs text-[var(--text-tertiary)] truncate max-w-[10rem] ml-auto">
+          <p className="text-xs text-[var(--text-tertiary)] truncate sm:max-w-[10rem] sm:ml-auto">
             at {r.seller}
             {r.region ? ` (${r.region.toUpperCase()})` : ''} ↗
-          </p>
-          <p className="mt-1.5 inline-block rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)] whitespace-nowrap">
-            {moneyCode} {Math.round(inCurrency(r.saving))} below typical
           </p>
         </div>
       </div>
