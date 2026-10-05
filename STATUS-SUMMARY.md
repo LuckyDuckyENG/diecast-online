@@ -36,11 +36,14 @@
 ## Where things stand
 
 ```
-cars 1357  |  models 3142  |  retailer links 6447  |  eBay links 5432  |  retailers 47  |  drivers 72
-slugs 1357/1357   |   models buyable 2952/3142   |   images 3030/3142
-models with an eBay listing 1560/3142   |   on several listings 1078
-seasons 34: 1977-1994 and 2013-2026
+cars 1550  |  models 3441  |  retailer links 6620  |  eBay links 5501  |  retailers 47  |  drivers 86
+slugs 1550/1550   |   images 3214/3441   |   teams 34
+seasons 41: 1971-1994 and 2010-2026
 ```
+
+The per-year visible table below is from 2026-09-29 and does NOT include the
+five historic drivers or 2010-2012. Re-cut it after the eBay pass for the new
+seasons, not before — a car with no listing yet is not evidence of a gap.
 
 ```
 cars visible 1265/1357  =  93%
@@ -51,19 +54,22 @@ cars visible 1265/1357  =  93%
    2023 145/164 2024 127/127 2025 118/120 2026 82/82
 ```
 
-**THE SOURCE IS EXHAUSTED.** Every season miniatures-minichamps publishes,
-2013 to 2023, is now reconciled against its catalogue rather than resting on a
-hand-built CSV. 2017 held 10 cars where the shop publishes 124. Finished
-2026-09-28 with 2013. Over roughly a week the catalogue went from **894 cars
-to 1,357**; against yesterday's snapshot alone that is +165 cars and +294
-models, and visible cars moved 1,104 -> 1,265.
+**The source was NOT exhausted at 2013** — that claim stood here for a week
+and was wrong. Every season miniatures-minichamps publishes is now reconciled
+against its catalogue rather than resting on a hand-built CSV, and the floor
+turned out to be **2010**, not 2013. 2017 held 10 cars where the shop
+publishes 124. Over roughly a week the catalogue went from **894 cars to
+1,550**.
 
-There is no next season to import from this shop. Further catalogue growth
-needs either a different source or the historic drivers (see Senna, below).
+What made 2013 look like the floor was thin yield rather than no yield: 2010
+gives 22 rows and 2011 gives 18, against 417 for 2023. A season that returns
+twenty rows reads like a season that returns none if you only glance at it.
+Below 2010 the shop genuinely stops, and further growth needs either a
+different source or the historic drivers (see Senna, below).
 
-**Note 2011 and 2012 exist as season rows with zero cars** — created as
-reference rows and never used. Harmless, but they will produce empty hubs if
-anything ever iterates seasons blindly.
+**The season rows for 2011 and 2012 are no longer empty** — they held zero
+cars for months, created as reference rows and never used. 2010 did not exist
+at all; the table jumped 1994 -> 2011.
 
 
 **Images: 722/865, with only 42 buyable models still lacking one.** Sweeps fill a
@@ -427,6 +433,96 @@ beachhead into the 1960s, where the sitemap holds **311 importable rows and the
 catalogue holds none**. A decade-opening project with a whole era of vocabulary
 to learn, worth doing deliberately rather than as a follow-on. Damon Hill is 25
 products behind 7 rows. 1,127 importable pre-1990 rows exist in total.
+
+## 2010, 2011 and 2012 — the floor was lower than the doc said — 2026-10-05
+
+```
+2012   38 rows from 59 fetched   31 cars   38 models   (imported first)
+2011   18 rows from 51 fetched   16 cars   18 models
+2010   22 rows from 40 fetched   18 cars   22 models
+       review 0 in all three · 0 orphan models · 0 models without a SKU
+```
+
+Catalogue 1,516 -> **1,550 cars** and 3,401 -> **3,441 models**. New reference
+rows: season 2010, teams HRT and Virgin Racing, and eight drivers (Heidfeld,
+Alguersuari, de la Rosa, Barrichello, Yamamoto, Glock, Buemi, plus Michael
+Schumacher for 2012).
+
+### The exclusion that is a naming decision, not a factual one
+
+**Trulli's 2010 T127 is deliberately left out.** Not because it is the wrong
+kind of product, but because of what naming it would do to an existing hub.
+
+The 2010 entrant was **Lotus Racing of Malaysia**, which is not the Enstone
+team holding Senna's 97T, Mansell's cars, the 2012 E20 and the 2013 E21. Two
+genuinely different teams, one word. But `findTeam` in `sync-csv.js` matches
+with `.includes`, so a row named "Lotus Racing" makes `findTeam('Lotus')`
+ambiguous: both names contain the word, and `.find()` returns whichever row
+Postgres hands back first. Insertion order would probably favour the older
+row — but "probably" is not a guarantee, and the failure mode is silently
+moving Senna's and Mansell's cars onto the wrong hub on some future
+re-import.
+
+**Making exact match win is not the fix.** The comment block on
+`teamMappings` already records that it was tried and was worse: it picked a
+bare "Ferrari" row over "Scuderia Ferrari", which is the exact thing that
+table exists to prevent. So the collision cannot be fixed at the matcher.
+
+One car waits rather than risking the hub. Revisit when the 2011 Team Lotus
+and the 2012-14 Caterham rows make the lineage worth a deliberate decision —
+Caterham already exists as a team row, so the shape of that decision is
+available. Verified after import: the Lotus hub still reads 38 cars across
+1979-1987 and 2012-2015, with no 2010 entry.
+
+`HRT` and `Virgin Racing` were checked for the same collision in both
+directions before being created, and neither shares a substring with any of
+the 32 existing team names. Marussia already exists as the 2012+ successor to
+Virgin, and the two names do not overlap.
+
+### The exclusion that was only correct because a season was missing
+
+The STR7 rule excluded Toro Rosso's 2012 chassis as "an old car at a test
+session", which was true of the 2014 slug (Verstappen's first F1 test) and
+catastrophically false for 2012 itself. Importing 2012 would have dropped the
+real race cars.
+
+**Exclusion rules now carry a third element: the year the car is actually
+from**, and the rule is skipped when importing that year.
+
+```js
+[/(?:^|-)str7(?:-|$)/, 'old car at a test session', 2012],
+const hit = EXCLUDE.find(([re, , nativeYear]) => nativeYear !== year && re.test(o.slug));
+```
+
+This is a general hazard, not a one-off. Every "old car at a later event"
+rule is a landmine for the season the car belongs to, and the landmine is
+invisible until that season is imported. The R30 rule has the same shape and
+no native year yet, because the R30 is a 2010 car that a 2010 run would
+import under Renault.
+
+### Constructors' championship pieces name no driver
+
+`red-bull-renault-rb6-team-champion-f1-2010` is the car in championship
+livery with **no driver named**, because the award is the team's. Every car
+in this catalogue belongs to a driver, so there is nowhere to put it, and
+inventing one would attribute a constructors' title to whichever name got
+picked. Excluded, one per championship year.
+
+### Two flags that were the check being wrong, not the import
+
+Worth recording, because both will fire again on the next import:
+
+- **`W02 under Mercedes-AMG Petronas`** looked like a mismatch. It is not:
+  every Mercedes W-chassis in the catalogue sits there (W02, W03, W04, W05),
+  because `teamMappings` lists `Mercedes-AMG Petronas` first. Consistent.
+- **`Showcar` has no chassis expectation.** It is an established pattern, not
+  a parse failure — 31 showcars across 11 teams and 2010-2018.
+
+A pre-import check that tested team names with `includes` also reported
+"Lotus Racing" as already held, because the Enstone "Lotus" contains it. The
+same `.includes` that created the real hazard hid it from the check. Team and
+driver existence checks must use **exact** match; the only thing that then
+needs a mapping is `Red Bull` -> `Red Bull Racing`.
 
 ## Historic drivers — Senna proved the pipeline
 
@@ -3340,7 +3436,19 @@ statically generated /browse/page/N.
 ## Next up
 
 Re-cut 2026-09-28 after the catalogue source ran out, revised the same day
-once the eBay pass had run, and again on 2026-09-29.
+once the eBay pass had run, and again on 2026-09-29. Items 1 and 7 below are
+DONE as of 2026-10-04 and left in place only so the reasoning survives.
+
+**0. THE eBay PASS FOR 2010, 2011 AND 2012.** 78 new models have no
+secondary-market layer at all, so a good share of their cars are invisible on
+`/browse` until this runs. It is the last step of the import, not a separate
+job, and the per-year visible table at the top of this doc cannot be re-cut
+until it has happened.
+
+Expect thin returns and do not read that as a bug. These are fifteen-year-old
+models in a market that rewards fame: 1989 and 1990 return almost nothing (see
+item 3) and 2026 returns almost nothing for the opposite reason. A season can
+be correctly imported and still have little for eBay to match.
 
 **The catalogue is no longer the bottleneck.** 2013 was the last season
 miniatures-minichamps publishes, so the import loop that has driven the last
@@ -3442,8 +3550,9 @@ DEADLINE, the one gap that is now clearly biggest, and everything else.
 13. **8 retailer links whose URL states a different scale than the model** — see
     Data findings. Splits into wrong links and wrong catalogue scale; do not
     blind-fix.
-14. **More seasons — but the shop is exhausted, so this means a NEW SOURCE.**
-    2013 was the oldest season miniatures-minichamps carries. Going further needs
+14. **More seasons — the shop is NOW exhausted, so this means a NEW SOURCE.**
+    2010 is the oldest season miniatures-minichamps carries; 2013 was not, and
+    this entry said so for a week. Going further needs
     either another catalogue or the historic drivers, and the driver route is
     already proven: Senna gave 52 cars and 153 models, and Villeneuve (125
     pre-1995 products), Lauda (102), Hill (92), Prost (78) and Mansell (78) are
