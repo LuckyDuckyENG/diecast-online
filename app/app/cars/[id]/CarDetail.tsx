@@ -357,8 +357,31 @@ export default function CarDetail({
                             >
                               <div className="flex flex-col gap-0.5 min-w-0">
                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                  {/*
+                                    THE ARROW IS THE ONLY THING SAYING THIS ROW
+                                    IS A LINK.
+
+                                    The whole row is an <a> and nothing marked
+                                    it: no arrow, no button, no underline. On a
+                                    desktop a hover state eventually reveals it.
+                                    71% of visitors are on a phone and never get
+                                    one, and this is the page 70% of all traffic
+                                    lands on — so the single action the site
+                                    exists to produce was unsignposted for most
+                                    people on the page where it happens.
+
+                                    Matches /savings, which has read "at Downies
+                                    ↗" since it was built. Always visible rather
+                                    than hover-only, for the same reason.
+                                  */}
                                   <span className="font-bold text-[var(--text-primary)]">
                                     {retailer.name}
+                                    <span
+                                      aria-hidden="true"
+                                      className="ml-1 font-normal text-[var(--text-tertiary)] group-hover:text-[var(--accent)] transition-colors"
+                                    >
+                                      ↗
+                                    </span>
                                   </span>
                                   {/*
                                     WHERE IT SHIPS FROM.
