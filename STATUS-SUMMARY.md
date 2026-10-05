@@ -3282,6 +3282,61 @@ The lesson worth keeping: analytics says WHICH pages are used, never whether
 the thing on them can be tapped. 75 visitors a week would not have surfaced
 any of this.
 
+## Baseline for the mobile + savings changes — 2026-10-05
+
+Recorded BEFORE the changes can have had an effect, because otherwise this
+gets judged by memory and mood. Do not edit these numbers; add a dated
+check-in underneath instead.
+
+```
+BEFORE
+  /savings visitors          ~1          (it was desktop-navbar-only)
+  car page visitors          ~51
+  outbound_clicks            12, ALL unattributed (no source column yet)
+  of those, was_cheapest     9 of 12 (75%)
+  by kind                    shop 11 · eBay 1
+  Search Console             43 clicks · 739 impressions · position 10.8
+  Vercel                     35 visitors · 86 pageviews · 51% bounce
+  /browse page weight        3,513,272 bytes · 1,267 cards
+```
+
+### Shipped, with dates — attribute nothing to a change before its date
+
+```
+2026-10-04  /savings linked in the footer (first mobile route at all)
+2026-10-04  savings row body goes to the SHOP, not the car page
+2026-10-05  savings row stacks below sm (was 75px of usable width)
+2026-10-05  Show more on /browse and /savings — 48 and 24 per section
+2026-10-05  Best prices in the mobile header, outlined
+2026-10-05  migration 024: outbound_clicks.source
+2026-10-05  car-page shop rows marked with ↗
+```
+
+**The jump nav was never built.** Capping each /savings section at 24 rows
+put "Cheaper on eBay" a screen down instead of below 208 rows, which was the
+problem the jump nav was for. Do not record it as shipped.
+
+### What to look for, and what cannot be measured
+
+- **Does /savings get reached at all**, especially on mobile. One visitor was
+  never evidence against it — nobody on a phone could reach the page.
+- **Clicks by source, per day.** This is the real test and it starts from
+  today. The 12 existing rows are null and stay null.
+- **Do car-page clicks rise after the ↗.** The cleanest single test, because
+  nothing else changed on that page.
+
+**"Clicks per session" is NOT measurable.** outbound_clicks has no session
+id and Vercel sessions cannot be joined to it. Anything phrased per-session
+is a question this data cannot answer; use clicks per day by source.
+
+**Give it weeks, not days.** At 35 visitors a week a handful of sessions
+swings any percentage, so one bad week means nothing and one good week means
+nothing. Check fortnightly, same cadence as Search Console.
+
+**Also watch /cars/ impressions for a month.** /browse now ships 48 car links
+instead of 1,267. If impressions soften, the remedy is already written down:
+statically generated /browse/page/N.
+
 ## Next up
 
 Re-cut 2026-09-28 after the catalogue source ran out, revised the same day
