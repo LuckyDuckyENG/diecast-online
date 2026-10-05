@@ -133,6 +133,33 @@ const EXCLUDE = [
    * rode in before the race.
    */
   [/308-gts|(?:^|-)parade(?:-|$)/, 'parade road car'],
+  /**
+   * Constructors' championship pieces. "red-bull-renault-rb6-team-champion-
+   * f1-2010" is the car in championship livery with NO DRIVER named, because
+   * the award is the team's. Every car in this catalogue belongs to a driver,
+   * so there is nowhere to put it — and inventing one would attribute a
+   * constructors' title to whichever name got picked.
+   */
+  [/team-champion/, "constructors' championship piece, no driver"],
+  /**
+   * Trulli's 2010 T127, left out for a naming reason rather than a factual one.
+   *
+   * The 2010 entrant was "Lotus Racing" (Malaysia), which is NOT the Enstone
+   * team that holds Senna's 97T, Mansell's cars, the 2012 E20 and the 2013
+   * E21. But findTeam in sync-csv.js matches on `includes`, so a row named
+   * "Lotus Racing" would make findTeam('Lotus') ambiguous: both rows contain
+   * the word, and `.find()` returns whichever the database hands back first.
+   * A future re-import could silently move the Enstone cars.
+   *
+   * Making exact match win is not the fix -- the comment block on teamMappings
+   * records that it was tried and was worse, because it picked a bare
+   * "Ferrari" row over "Scuderia Ferrari".
+   *
+   * So one car waits rather than risking the Lotus hub. Revisit when the
+   * 2011 Team Lotus and 2012-14 Caterham rows make the lineage worth a
+   * deliberate decision.
+   */
+  [/(?:^|-)t127(?:-|$)/, 'Lotus Racing would collide with the Enstone Lotus team row'],
 ];
 
 const dropped = [];
@@ -179,6 +206,31 @@ const CHASSIS = {
    * E22. Marussia ran the MR02 and Caterham the CT03, both teams' last but
    * one season.
    */
+  /**
+   * 2010. Three new teams at the back, and the one naming trap in this block.
+   *
+   * HRT's car is written "hrt-f1-10", so F110 must be read before F10 or
+   * Ferrari's chassis claims it. Ferrari's own F10 is safe either way: the
+   * HRT slug has "f1-10" with a hyphen and never the token "f10".
+   *
+   * T127 is LOTUS RACING, the Malaysian entrant — not the Enstone team this
+   * catalogue calls Lotus. They are unrelated: Lotus Racing became Team Lotus
+   * in 2011 and Caterham in 2012, while Enstone ran the Renault R30 that year
+   * and took the Lotus name in 2012. Filing the T127 under "Lotus" would put
+   * Trulli's backmarker on the same hub as Raikkonen's E20 and Senna's 97T.
+   */
+  2010: [[/(?:^|-)rb6(?![0-9])/, 'RB6'], [/(?:^|-)c29(?:-|$)/, 'C29'],
+         [/str5(?![0-9])/, 'STR5'], [/hrt-f1-?10|(?:^|-)f110(?:-|$)/, 'F110'],
+         [/(?:^|-)f10(?:-|$)/, 'F10'], [/fw32/, 'FW32'], [/vr-?01/, 'VR-01']],
+  /**
+   * 2011. Mercedes wrote its car MGP W02, so the token is w02 rather than a
+   * bare W. Sauber's C30 appears as "sauber-c30-ferrari" in one slug, with
+   * the engine attached.
+   */
+  2011: [[/(?:^|-)rb7(?![0-9])/, 'RB7'], [/mp4-?26/, 'MP4-26'],
+         [/(?:^|-)w02(?:-|$)/, 'W02'], [/fw33/, 'FW33'],
+         [/(?:^|-)c30(?:-|$)/, 'C30'], [/str6(?![0-9])/, 'STR6'],
+         [/vjm04/, 'VJM04']],
   /**
    * 2012. Schumacher's last season and Vettel's third title.
    *
@@ -329,6 +381,14 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 2010-2011. T127 is Lotus RACING, the Malaysian team that became Caterham,
+  // and is deliberately not "Lotus" — see the chassis note above. Named for
+  // the season it raced in rather than its successor, which is what every
+  // other era-specific name in this file does.
+  RB6: 'Red Bull', C29: 'Sauber', STR5: 'Toro Rosso', F10: 'Ferrari',
+  FW32: 'Williams', T127: 'Lotus Racing', F110: 'HRT', 'VR-01': 'Virgin Racing',
+  RB7: 'Red Bull', 'MP4-26': 'McLaren', W02: 'Mercedes', FW33: 'Williams',
+  C30: 'Sauber', STR6: 'Toro Rosso', VJM04: 'Force India',
   // 2012. CT01 is Caterham, not Lotus — the backmarker had been renamed by
   // then, and the E20 is the Enstone team the catalogue already calls Lotus
   // for 2013's E21.
@@ -446,6 +506,19 @@ const DRIVERS = {
    * imported.
    */
   'michael-schumacher': 'Michael Schumacher',
+  /**
+   * 2010-2011. Three teams at the back of the 2010 grid that existed for only
+   * a season or two, and the midfield that preceded the names this catalogue
+   * already knows.
+   *
+   * ASCII throughout, matching "Jean-Eric Vergne" rather than Jean-Éric —
+   * the catalogue is consistent about that and a stray accent creates a
+   * second driver row that looks identical in a list.
+   */
+  heidfeld: 'Nick Heidfeld', alguersuari: 'Jaime Alguersuari',
+  'de-la-rosa': 'Pedro de la Rosa', barrichello: 'Rubens Barrichello',
+  trulli: 'Jarno Trulli', yamamoto: 'Sakon Yamamoto',
+  glock: 'Timo Glock', buemi: 'Sebastien Buemi',
   'charles-pic': 'Charles Pic', kovalainen: 'Heikki Kovalainen',
   sutil: 'Adrian Sutil', vergne: 'Jean-Eric Vergne', lotterer: 'Andre Lotterer',
   haryanto: 'Rio Haryanto', 'jenson-button': 'Jenson Button',
