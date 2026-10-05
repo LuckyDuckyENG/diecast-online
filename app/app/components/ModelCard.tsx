@@ -23,6 +23,8 @@ interface ModelCardProps {
   /** Cheapest and dearest for that scale. */
   priceRange?: { low: number; high: number; count: number } | null;
   imageUrl?: string;
+  /** imageUrl came from an eBay listing, not a product shot. Captioned. */
+  imageFromEbay?: boolean;
   releaseDate?: string;
   liveryName?: string;
   teamPrimaryColor?: string;
@@ -46,6 +48,7 @@ export default function ModelCard({
   priceScale,
   priceRange,
   imageUrl,
+  imageFromEbay,
   releaseDate,
   liveryName,
   teamPrimaryColor,
@@ -71,7 +74,15 @@ export default function ModelCard({
           <img
             src={imageUrl}
             alt={name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            /**
+             * An eBay photo is contained rather than cropped. A product shot is
+             * framed for a catalogue and survives a 4:3 cover crop; a seller's
+             * photo is framed however they held the camera, so cropping it to
+             * fill is what cuts the nose off the car.
+             */
+            className={`w-full h-full group-hover:scale-105 transition-transform duration-300 ${
+              imageFromEbay ? 'object-contain' : 'object-cover'
+            }`}
           />
         ) : team && liveryName && teamPrimaryColor && teamTextColor ? (
           <TeamColorFallback
@@ -94,6 +105,17 @@ export default function ModelCard({
         {hasStore === false && (
           <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-white/90 text-[var(--text-tertiary)] text-[10px] sm:text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-[var(--border-light)]">
             Not yet listed
+          </div>
+        )}
+        {/*
+          Bottom left, so it cannot collide with "Not yet listed" top left or
+          the release badge top right. Said plainly because most of these are
+          used items: the photo is evidence of one seller's model, not a
+          catalogue photograph of the product.
+        */}
+        {imageFromEbay && (
+          <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-white/90 text-[var(--text-tertiary)] text-[10px] sm:text-xs px-2 py-0.5 rounded-md border border-[var(--border-light)]">
+            eBay listing photo
           </div>
         )}
       </div>

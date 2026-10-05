@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import { selectAll } from './selectAll';
 import { shouldHidePrice } from './freshness';
 import { ebayAffiliateUrl } from './ebayAffiliate';
+import { buildEbayPhotoMap } from './ebayPhoto';
 
 /**
  * Where a model is cheaper than what it usually costs.
@@ -44,6 +45,8 @@ export interface SavingRow {
   driver: string | null;
   event: string | null;
   imageUrl: string | null;
+  /** imageUrl is a photo from an eBay listing, not a product shot. Captioned. */
+  imageFromEbay?: boolean;
   /** Cheapest live price, and who has it. */
   price: number;
   seller: string;
@@ -105,7 +108,8 @@ export async function getSavings(): Promise<{ shop: SavingRow[]; ebay: SavingRow
     selectAll<any>(supabase, 'price_history',
       'model_id, price_aud, in_stock, is_preorder, retailer_id, last_checked_at, recorded_at, product_url'),
     selectAll<any>(supabase, 'ebay_links',
-      'model_id, price_aud, availability, last_checked_at, created_at, seller, item_condition, ebay_url, marketplace'),
+      // ebay_image is for the last-resort photo on models no shop sells.
+      'model_id, price_aud, availability, last_checked_at, created_at, seller, item_condition, ebay_url, marketplace, ebay_image'),
     selectAll<any>(supabase, 'models', 'id, car_id, scale, image_url, manufacturer_sku, manufacturers(name)'),
     selectAll<any>(supabase, 'cars', 'id, slug, season_id, driver_id, event_name'),
     selectAll<any>(supabase, 'seasons', 'id, year'),
@@ -162,6 +166,9 @@ export async function getSavings(): Promise<{ shop: SavingRow[]; ebay: SavingRow
     });
   }
 
+  // Rows already in hand, so no extra read.
+  const ebayPhotos = buildEbayPhotoMap(ebayRows, priceRows);
+
   const describe = (modelId: string) => {
     const m = M.get(modelId);
     const c = m ? C.get(m.car_id) : null;
@@ -174,7 +181,10 @@ export async function getSavings(): Promise<{ shop: SavingRow[]; ebay: SavingRow
       year: c ? Y.get(c.season_id) ?? null : null,
       driver: c ? D.get(c.driver_id) ?? null : null,
       event: c?.event_name ?? null,
-      imageUrl: m?.image_url ?? null,
+      // A product shot wins; the eBay snapshot only fills a model that has
+      // none and no shop to supply one. See lib/ebayPhoto.ts.
+      imageUrl: m?.image_url ?? ebayPhotos.get(modelId) ?? null,
+      imageFromEbay: !m?.image_url && ebayPhotos.has(modelId),
     };
   };
 

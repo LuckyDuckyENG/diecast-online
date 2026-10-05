@@ -74,6 +74,14 @@ export default function CarDetail({
   const eventName = carData.event_name || 'Grand Prix';
   const masterTitle = `${eventName} - ${carData.chassis_name} - ${driver?.name} - ${carData.season?.year}`;
   const heroImage = variants.find((v: any) => v.image_url)?.image_url || null;
+  /**
+   * The last resort, for a model no shop sells: a photo from one of its eBay
+   * listings. Only consulted when no variant has a real image, so a product
+   * shot is never displaced — see lib/ebayPhoto.ts.
+   */
+  const heroFromEbay = heroImage
+    ? null
+    : variants.find((v: any) => v.ebayPhoto)?.ebayPhoto || null;
 
   // Filter variants by scale AND manufacturer
   let filteredVariants = variants;
@@ -137,12 +145,26 @@ export default function CarDetail({
 
           <div className="flex flex-col md:flex-row gap-8">
             {/* Main Image */}
-            <div className="w-full md:w-[400px] h-[260px] md:h-[300px] bg-[var(--surface)] rounded-lg overflow-hidden shrink-0">
+            <div className="w-full md:w-[400px] h-[260px] md:h-[300px] bg-[var(--surface)] rounded-lg overflow-hidden shrink-0 relative">
               {/* Fall back to the team-coloured panel rather than a placeholder
                   file — /placeholder.jpg never existed, so a car with no image
                   rendered a broken-image icon. Matches what ModelCard does. */}
               {heroImage ? (
                 <img src={heroImage} alt={masterTitle} className="w-full h-full object-cover" />
+              ) : heroFromEbay ? (
+                <>
+                  {/* Contained, not cropped: a seller's photo is framed however
+                      they held the camera, so filling the panel is what cuts
+                      the car in half. */}
+                  <img
+                    src={heroFromEbay}
+                    alt={masterTitle}
+                    className="w-full h-full object-contain"
+                  />
+                  <span className="absolute bottom-2 left-2 bg-white/90 text-[var(--text-tertiary)] text-[11px] px-2 py-0.5 rounded-md border border-[var(--border-light)]">
+                    eBay listing photo
+                  </span>
+                </>
               ) : (
                 <TeamColorFallback
                   teamName={carData.team?.name || ''}

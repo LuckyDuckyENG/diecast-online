@@ -52,6 +52,12 @@ export interface Model {
   /** Cheapest and dearest for that scale. Null when there is nothing to compare. */
   priceRange?: { low: number; high: number; count: number } | null;
   imageUrl?: string;
+  /**
+   * True when imageUrl is a photo from an eBay listing rather than a product
+   * shot — often somebody's second-hand item. Said on the card rather than
+   * hidden, so the catalogue does not quietly read like classifieds.
+   */
+  imageFromEbay?: boolean;
   releaseDate?: string;
   scale?: string;
   liveryName?: string;

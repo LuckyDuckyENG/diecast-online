@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import { slugify, teamSlug } from './carSlug';
 import type { Model } from './types';
 import { selectAll } from './selectAll';
+import { buildEbayPhotoMap, ebayPhotoForVariants } from './ebayPhoto';
 
 /**
  * Hub pages: /drivers/[slug], /teams/[slug], /seasons/[year].
@@ -56,7 +57,9 @@ async function loadCatalogue() {
     `),
     selectAll<any>(supabase, 'models', 'id, car_id, image_url, scale, manufacturers(name)'),
     selectAll<any>(supabase, 'price_history', 'model_id, price, price_aud, in_stock'),
-    selectAll<any>(supabase, 'ebay_links', 'model_id'),
+    // ebay_image is the last-resort photo for cars with none. One extra
+    // column on a scan already happening, so it adds no read.
+    selectAll<any>(supabase, 'ebay_links', 'model_id, ebay_image'),
   ]);
 
   const modelsByCar = new Map<string, any[]>();
@@ -76,10 +79,18 @@ async function loadCatalogue() {
     ...(ebay || []).map((e: any) => e.model_id),
   ]);
 
-  return { cars: cars || [], modelsByCar, pricesByModel, sellable };
+  // Rows already in hand, so no extra read.
+  const ebayPhotos = buildEbayPhotoMap(ebay || [], prices || []);
+
+  return { cars: cars || [], modelsByCar, pricesByModel, sellable, ebayPhotos };
 }
 
-function toHubCar(car: any, modelsByCar: Map<string, any[]>, pricesByModel: Map<string, any[]>): HubCar {
+function toHubCar(
+  car: any,
+  modelsByCar: Map<string, any[]>,
+  pricesByModel: Map<string, any[]>,
+  ebayPhotos: Map<string, string> = new Map()
+): HubCar {
   const variants = modelsByCar.get(car.id) || [];
   const linked = variants.flatMap(v => pricesByModel.get(v.id) || []);
   const quotable = linked.filter(p => p.in_stock !== false && p.price > 0);
@@ -92,7 +103,12 @@ function toHubCar(car: any, modelsByCar: Map<string, any[]>, pricesByModel: Map<
     year: car.season?.year || 0,
     driver: car.driver?.name,
     team: car.team?.name,
-    imageUrl: variants.find(v => v.image_url)?.image_url || null,
+    // A product shot wins; the eBay snapshot only fills a car that has none
+    // and no shop that could ever supply one. See lib/ebayPhoto.ts.
+    imageUrl: variants.find(v => v.image_url)?.image_url
+      || ebayPhotoForVariants(variants, ebayPhotos) || null,
+    imageFromEbay: !variants.some(v => v.image_url)
+      && !!ebayPhotoForVariants(variants, ebayPhotos),
     scale: variants[0]?.scale || '1:18',
     liveryName: car.chassis_name,
     teamPrimaryColor: car.team?.primary_color,
@@ -111,7 +127,7 @@ async function buildHub(
   subject: string,
   title: string
 ): Promise<HubData | null> {
-  const { cars, modelsByCar, pricesByModel, sellable } = await loadCatalogue();
+  const { cars, modelsByCar, pricesByModel, sellable, ebayPhotos } = await loadCatalogue();
 
   const matching = cars.filter(
     (c: any) => match(c) && (modelsByCar.get(c.id) || []).some(m => sellable.has(m.id))
@@ -120,7 +136,7 @@ async function buildHub(
   if (matching.length < MIN_CARS_FOR_HUB) return null;
 
   const hubCars = matching
-    .map(c => toHubCar(c, modelsByCar, pricesByModel))
+    .map(c => toHubCar(c, modelsByCar, pricesByModel, ebayPhotos))
     .sort((a, b) => (b.year || 0) - (a.year || 0) || a.name.localeCompare(b.name));
 
   const allVariants = matching.flatMap(c => modelsByCar.get(c.id) || []);

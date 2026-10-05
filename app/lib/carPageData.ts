@@ -5,6 +5,7 @@ import { formatAge, shouldHidePrice } from './freshness';
 import { toAud } from './currency';
 import { ebayAffiliateUrl } from './ebayAffiliate';
 import { isUuid } from './carSlug';
+import { buildEbayPhotoMap } from './ebayPhoto';
 
 /**
  * Data loading for the car detail page.
@@ -100,6 +101,12 @@ export interface CarVariant {
   ebayRange: PriceSpan | null;
   /** The listing that set the eBay low, so its line can be drawn under it. */
   ebayLowItemId: string | null;
+  /**
+   * An eBay listing photo, set only when this model has no image of its own
+   * AND no shop sells it, so no product shot is ever coming. Never written to
+   * models.image_url — see lib/ebayPhoto.ts for why.
+   */
+  ebayPhoto: string | null;
 }
 
 
@@ -216,6 +223,8 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
   // Buyable first, then cheapest. Sorting on price alone would let a sold-out
   // listing head the list purely for being cheap, which reads as the best offer
   // and is the one thing you cannot act on.
+  // Both already fetched above, so the last-resort photo costs no extra read.
+  const ebayPhotos = buildEbayPhotoMap(allEbay || [], allPrices || []);
   const isSoldOut = (r: any) => /OUT_OF_STOCK/i.test(r.availability || '');
   for (const list of ebayByModel.values()) {
     list.sort((a: any, b: any) => {
@@ -357,6 +366,9 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
       shopRange: span(quotable),
       ebayRange: span(ebayLive),
       ebayLowItemId: ebayLowest ? ebayLowest.ebayItemId ?? null : null,
+      // Null whenever the model has a real photo, so the hero never has to
+      // choose between two pictures.
+      ebayPhoto: variant.image_url ? null : ebayPhotos.get(variant.id) ?? null,
     };
   });
 

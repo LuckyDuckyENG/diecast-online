@@ -3,6 +3,7 @@ import { REQUIRE_RETAILER, fetchModelIdsWithStore } from './storeCoverage';
 import { selectAll } from './selectAll';
 import { priceSpan, cheapest } from './priceSpan';
 import { shouldHidePrice } from './freshness';
+import { buildEbayPhotoMap, ebayPhotoForVariants } from './ebayPhoto';
 import type { Model } from './types';
 
 /**
@@ -74,8 +75,13 @@ export async function getBrowseCars(): Promise<Model[]> {
     selectAll<any>(supabase, 'price_history',
       'model_id, price_aud, in_stock, is_preorder, last_checked_at, recorded_at'),
     selectAll<any>(supabase, 'ebay_links',
-      'model_id, price_aud, availability, last_checked_at, created_at, sold_quantity'),
+      // ebay_image is for the last-resort photo on cars that have none. One
+      // more column on a scan already happening, so it costs no extra read.
+      'model_id, price_aud, availability, last_checked_at, created_at, sold_quantity, ebay_image'),
   ]);
+
+  // Both arguments are rows already in hand, so this adds no query.
+  const ebayPhotos = buildEbayPhotoMap(ebayRows, priceRows);
 
   /**
    * How many of this car have actually SOLD on eBay.
@@ -126,6 +132,7 @@ export async function getBrowseCars(): Promise<Model[]> {
     const eventName = car.event_name || 'Grand Prix';
     const hasStore = variants.some((v: any) => modelIdsWithStore.has(v.id));
     const variantWithImage = variants.find((v: any) => v.image_url);
+    const ebayPhoto = variantWithImage ? null : ebayPhotoForVariants(variants, ebayPhotos);
 
     /**
      * ONE PRODUCT, not the whole car — which means scale AND maker.
@@ -216,7 +223,11 @@ export async function getBrowseCars(): Promise<Model[]> {
       lowestFrom: best?.from ?? null,
       priceScale: best ? `${best.scale} ${best.maker}` : null,
       priceRange: best?.span ?? null,
-      imageUrl: variantWithImage?.image_url || null,
+      // A real product shot wins. The eBay snapshot only appears where no
+      // model on this car has a picture and no shop could ever supply one --
+      // see lib/ebayPhoto.ts for why this is resolved here and never written.
+      imageUrl: variantWithImage?.image_url || ebayPhoto || null,
+      imageFromEbay: !variantWithImage?.image_url && !!ebayPhoto,
       releaseDate: undefined,
       scale: variants[0]?.scale || '1:18',
       variantCount: variants.length,
