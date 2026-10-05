@@ -72,18 +72,22 @@ cars for months, created as reference rows and never used. 2010 did not exist
 at all; the table jumped 1994 -> 2011.
 
 
-**Images: 722/865, with only 42 buyable models still lacking one.** Sweeps fill a
+**Images: 3,214/3,441, with 227 models lacking one.** Sweeps fill a
 missing image from the shop's own photo and never overwrite one already set —
 demonstrated: shop A writes, shop B is skipped, A's photo survives. The guard is
 `.is('image_url', null)` as a condition on the UPDATE, so concurrent sweeps
 cannot race through it. Placeholders are refused (`Image_Placeholders_F1_<uuid>`).
 
-**Where a model has no image but an eBay listing does, the photo is applied BY
-HAND, deliberately** — 43 models are in that position. An eBay image is a photograph of one seller's actual item —
-sometimes boxed, used, or on a kitchen table — where a retailer feed image is a
-product shot. Since first-write is permanent, auto-applying one would block a
-clean retailer photo forever. The per-listing picker shows a thumbnail beside
-each 📸 so the choice is made on sight.
+**An eBay listing photo is NEVER written to that column, but it is now shown
+where nothing else can be.** 53 cars that rendered the team-coloured panel now
+show a photo, resolved at render time — see "The eBay photo, shown without
+being stored" below. Writing one would spend the single permanent slot on a
+used-item snapshot and make the model invisible to every future sweep.
+
+The hand-applied route still exists and is still the right one where a choice
+is worth making: 95 models carry an `ebayimg.com` URL in `image_url`, picked on
+sight through the per-listing picker, which shows a thumbnail beside each 📸.
+Those render uncaptioned, because the caption exists for unvetted photos.
 
 Live on Vercel at diecasts.app. Migrations 007–017 applied. `next build` clean.
 **Submitted to Google Search Console 2026-08-13** — domain verified by DNS,
@@ -3334,6 +3338,12 @@ miniatures-minichamps became the largest source, and nothing re-examined it.
 /savings   289 rows -> 48 (24 per section)
 ```
 
+**Revised 2026-10-06 — the first page is now 150 and the step doubles.** A
+fixed +48 meant 29 clicks to reach the end of 1,419 cars, and the person it
+annoyed first was the one using the site hardest. Hunting for underpriced
+models means going deep. See "Show more was right, its arithmetic was not"
+below; the research above still stands, the step size was never part of it.
+
 Both pages rendered everything at once. On a phone at grid-cols-2 that was
 about 634 rows of scroll, and 3.5MB before anything appeared.
 
@@ -3353,9 +3363,191 @@ a real `<a href>` to a unique URL. That needs /browse?page=2 on the server,
 and reading searchParams makes the page dynamic — the thing that blew the
 egress quota on 2026-09-22. Discovery no longer depends on this page: the
 sitemap carries every car URL, hubs link their own, car pages link ~16 each.
-What is lost is internal link equity from one hub. **Watch /cars/
-impressions in Search Console for a month.** If they soften, the fix is
-statically generated /browse/page/N — 27 prerendered pages, no dynamic reads.
+What is lost is internal link equity from one hub.
+
+**That watch item is RETIRED. Measured 2026-10-06 from the built HTML:**
+
+```
+distinct cars linked from hub pages : 1419
+distinct cars linked from /browse   : 150
+union, reachable by a crawler       : 1419   <- browse adds nothing unique
+cars in sitemap                     : 1419   <- exact match
+```
+
+The 1,267 links /browse used to ship were **redundant**. Every car the
+sitemap contains is already linked from a driver, team or season hub, and the
+hubs have no cap at all — the Lauda hub links all 44 of his cars. So capping
+browse orphaned nothing and there is no Search Console signal to wait for.
+The /browse/page/N remedy stays written down but has no trigger.
+
+Why the two counts agree exactly: hub inclusion and sitemap inclusion are
+gated on the SAME predicate, that something sells the car. Which also means
+the 131 cars outside both (1,550 - 1,419) are not a linking problem but a
+coverage one — a single retailer link moves a car into a hub and the sitemap
+together. See the retailer-sweep case below.
+
+## The eBay photo, shown without being stored — 2026-10-06
+
+53 cars had no picture and showed the team-coloured panel. All of them sell
+only on eBay, and eBay's own listing photo was already sitting in
+`ebay_links.ebay_image`, unused.
+
+**Resolved at render, never written, and that is the design.** A retailer
+sweep fills `models.image_url` through `attachRetailerLink`, guarded by
+`.update({ image_url }).is('image_url', null)` — first photo written is
+permanent, every later shop refused. Correct for a product shot. But writing
+an eBay photo there spends that one slot on a snapshot of somebody's
+second-hand item and makes the model invisible to every future sweep.
+Horizondiecast, Yuui and Notjustcollectibles are unswept and carry exactly
+this era's back-catalogue, so a clean shot plausibly IS still coming. A
+fallback keeps the column null, so a card upgrades itself the day a sweep
+lands, with nothing to migrate or undo.
+
+```
+models with no image                                      227
+  no retailer, eBay photo available   73   <- filled by this
+  HAS a retailer, eBay photo avail.    0   <- excluded on purpose
+  no eBay photo at all                154   <- irreducible, nothing to show
+```
+
+Only where NO retailer sells the model: one a shop stocks is left out even
+with no picture, because its photo is coming from the feed. That condition
+currently excludes **nothing** — measured at zero — and exists for the sweeps
+that have not run.
+
+**225px -> 500px.** Every stored image is a thumbnail, all 5,574 of them.
+Verified against real images here: 225px ~8KB, 500px ~30KB, 1600px 70-300KB,
+and these are genuine CDN renders rather than upscales. 1600 would put a third
+of a megabyte into a grid for nothing.
+
+**Contained, not cropped, and captioned "eBay listing photo".** 68 of the
+listings behind these are Used condition, so the picture is evidence of one
+seller's item rather than a catalogue photograph. A product shot is framed for
+a catalogue and survives a 4:3 cover crop; a seller's photo is framed however
+they held the camera, so filling the frame is what cuts the car in half.
+
+Live on browse, car pages, the hubs, the home page and search, in each case
+built from table scans those pages already perform, or reads already scoped to
+the result set. **Full scans were specifically avoided** — relatedCars runs on
+every one of 1,550 prerendered car pages, where two extra scans would be ~18
+million rows of egress per build, which is how the quota went on 2026-09-22.
+
+### Two places it is deliberately absent, because it cannot fire
+
+Both now carry a comment where the fallback would have gone, so the omission
+reads as a decision rather than an oversight.
+
+- **/savings.** Every row is gated on `prices.length >= MIN_SHOPS`, because an
+  eBay price is measured against the SHOP median. So every row has >= 3 shop
+  prices, which means retailer links, which is exactly what the fallback
+  excludes. It is also not needed: all 31 rows already carry a photo and the
+  page has no blank placeholders. A first attempt DID wire it here and measured
+  zero photos — correct and permanent rather than a bug, so it was removed.
+- **relatedCars.** `candidates` is filtered to cars with a retailer link, and
+  none of the 53 has one.
+
+A `fetchEbayPhotosFor` helper was written for the home page and search and
+then deleted, once both turned out to have the rows in hand already. Dead code
+that reads like a feature is worse than none.
+
+## The retailer sweep case, measured — 2026-10-06
+
+The question was whether shops would carry cars this old at all. They do:
+
+```
+era         models   a retailer stocks it   an eBay listing
+pre-1995      446       339 ( 76%)            119 ( 27%)
+2010-2012      78         0 (  0%)             45 ( 58%)
+2013-2020    1048       952 ( 91%)            364 ( 35%)
+2021-2026    1869      1785 ( 96%)           1099 ( 59%)
+```
+
+**Age is not the barrier** — 76% of pre-1995 models have a retailer link, so
+shops stock 30-to-50-year-old product. And 2010-2012 is not low, it is exactly
+zero of 78, which is the signature of a sweep that has never run rather than a
+market that is not there. Those models were imported on 2026-10-05 and a
+retailer link only ever comes from a sweep.
+
+**Every sweep ever run predates these three seasons.** So the prize is not
+only the three unswept shops; it is a `gaps only` pass across the 24 already
+done, which were asked about a catalogue that did not contain 2010-2012.
+
+```
+23 cars    enter the hubs and the sitemap (currently reachable only by URL)
+78 models  get a shop price, so a comparison exists at all
+45 models  swap an eBay snapshot for a real product shot
+```
+
+The price coverage matters more than the pictures. With no shop price these
+cars cannot reach /savings (it needs 3 shop prices) and cannot be suggested in
+related cars (it needs a retailer link), so they sit outside two internal link
+paths regardless of how they look.
+
+**Do not read 76% as a forecast.** Pre-1995 is Senna, Lauda, Prost and
+Villeneuve product that shops reissue because iconic sells. 2010-2012 is
+ordinary mid-era stock that may genuinely be out of production. Age is not the
+barrier, fame might be, and one sweep is the only way to find out.
+
+Remember: restart offsets from 0 (three seasons were imported, which re-sorts
+the candidate list), tick `gaps only`, and press Apply repeatedly rather than
+alternating with Dry run.
+
+## Show more was right, its arithmetic was not — 2026-10-06
+
+The research picked the mechanism correctly and said nothing about the step,
+so the step was left at the page size. That made the control linear: 29 clicks
+to reach the end of 1,419 cars on /browse, 8 for the shop section of /savings.
+
+**The costs are not where they look.** /browse is almost all fixed cost:
+
+```
+data for all 1,550 cars (client filtering/sorting, paid either way)  1.22 MB
+per card of markup                                                   1.4 KB
+
+  48 cards -> 1.29 MB      150 cards -> 1.43 MB      1,419 cards -> 3.18 MB
+```
+
+Tripling the first screen costs 11%. Rendering everything costs +1.9MB and a
+~14,000-node DOM. So the first page is 150 (the top of Baymard's desktop
+range) and each click DOUBLES the step: 150 -> 450 -> 1,050 -> everything.
+Three clicks, and most visits never reach the button. Built out at 1.44MB
+against 1.43 predicted.
+
+The opt-in direction is the point. The original 3.5MB fault was that EVERY
+visitor paid it on first load; a third click is someone asking for the whole
+catalogue.
+
+**Lazy images, which this NEEDED rather than merely wanted.** ModelCard loaded
+eagerly, so 150 cards would have fired 150 image requests at once -- three
+times the old page, which would have made a lighter page feel slower. Grid
+callers now mark the first row priority and the rest defer: 4 eager, 146 lazy.
+Worth noting the card images were eager at 48 too; this was a pre-existing
+fault that only became load-bearing when the first page grew.
+
+/savings keeps its first page at 24. Full-width rows are already a long scroll
+on a phone, and an 80px thumbnail carries none of the weight that justified a
+bigger first screen on browse. Only its step changed.
+
+### The reset that threw away your clicks
+
+`shown` snapped back to the first page whenever the filtered length changed.
+Go ten pages deep, touch one filter, start over -- when narrowing what you are
+already looking at is the entire point of a filter.
+
+It clamps to the new length now. The case the old reset existed for still
+works: filter down to 12 results while 480 are shown, `remaining` computes to
+0, and the button does not render.
+
+### What this says about measurement
+
+The page-weight numbers were measurable and were measured. The 29 clicks were
+equally measurable and nobody measured them, because the research answered
+"which control" and the question that mattered was "how fast does it open".
+The signal came from one annoyed user who happens to own the site.
+
+That is the same lesson as the four phone findings below, arriving by a
+different route: the instrumentation was never going to say this. 90 visitors
+a month cannot produce a click-depth histogram.
 
 ### Four things only a person holding the phone found
 
@@ -3439,23 +3631,21 @@ Re-cut 2026-09-28 after the catalogue source ran out, revised the same day
 once the eBay pass had run, and again on 2026-09-29. Items 1 and 7 below are
 DONE as of 2026-10-04 and left in place only so the reasoning survives.
 
-**0. THE eBay PASS FOR 2010, 2011 AND 2012.** 78 new models have no
-secondary-market layer at all, so a good share of their cars are invisible on
-`/browse` until this runs. It is the last step of the import, not a separate
-job, and the per-year visible table at the top of this doc cannot be re-cut
-until it has happened.
-
-Expect thin returns and do not read that as a bug. These are fifteen-year-old
-models in a market that rewards fame: 1989 and 1990 return almost nothing (see
-item 3) and 2026 returns almost nothing for the opposite reason. A season can
-be correctly imported and still have little for eBay to match.
+**0. THE RETAILER SWEEP, `gaps only`, OFFSETS FROM 0.** The eBay pass for
+2010-2012 is DONE (58% coverage, better than 2013-2020's 35%, the secondary
+market behaving exactly as it should for older cars). The retailer side has
+never run against these seasons — nor has any sweep, since all 24 swept shops
+were asked about a catalogue that did not contain them. Full case and numbers
+under "The retailer sweep case, measured" below. 23 cars enter the hubs and
+sitemap, 78 models get a shop price at all.
 
 **The catalogue is no longer the bottleneck.** 2013 was the last season
 miniatures-minichamps publishes, so the import loop that has driven the last
 week is finished. What is left divides cleanly into three: the one job with a
 DEADLINE, the one gap that is now clearly biggest, and everything else.
 
-1. **THE CAR-PAGE OUTBOUND AFFORDANCE. Small, and deferred four times now.**
+1. ~~**THE CAR-PAGE OUTBOUND AFFORDANCE**~~ — DONE 2026-10-04, the `↗` ships on
+   every shop row. Kept for the reasoning only.
 
    A shop row on a car page is a whole `<a>`, and nothing says so — no arrow,
    no button, no underline. `/savings` gets this right (`at Downies ↗`) and
@@ -3538,9 +3728,9 @@ DEADLINE, the one gap that is now clearly biggest, and everything else.
    today, but that is a snapshot. Copying to Supabase Storage at fill time solves
    breakage, bandwidth and ownership together, and 3,030 images is cheap now and
    a migration later. **A real decision, not a nice-to-have.**
-10. **112 models still have no image**, down from a much worse ratio: images now
-   cover 3,030 of 3,142. Where only an eBay photo exists it is applied by hand on
-   purpose — see the images note at the top.
+10. **154 models have no photo in ANY source**, eBay included — the irreducible
+   remainder now that the eBay fallback covers the 73 that had one. Images cover
+   3,214 of 3,441. Only a shop sweep can move this number.
 11. **37 cars have no models at all**, so they are invisible by construction. This
    went UP from 21 as the season imports ran, because sync-csv creates the car
    before the models and leaves an orphan when every SKU already exists.
