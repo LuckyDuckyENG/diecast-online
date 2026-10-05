@@ -25,6 +25,16 @@ interface ModelCardProps {
   imageUrl?: string;
   /** imageUrl came from an eBay listing, not a product shot. Captioned. */
   imageFromEbay?: boolean;
+  /**
+   * Load this card's image immediately instead of lazily.
+   *
+   * Defaults to LAZY, because these cards appear in grids of 150 and a phone
+   * shows two at a time -- eager loading there fires every request at once for
+   * images nobody will scroll to. Grid callers set this on the first row only,
+   * so the largest visible image is never deferred and the LCP does not
+   * regress.
+   */
+  imagePriority?: boolean;
   releaseDate?: string;
   liveryName?: string;
   teamPrimaryColor?: string;
@@ -49,6 +59,7 @@ export default function ModelCard({
   priceRange,
   imageUrl,
   imageFromEbay,
+  imagePriority,
   releaseDate,
   liveryName,
   teamPrimaryColor,
@@ -74,6 +85,7 @@ export default function ModelCard({
           <img
             src={imageUrl}
             alt={name}
+            loading={imagePriority ? 'eager' : 'lazy'}
             /**
              * An eBay photo is contained rather than cropped. A product shot is
              * framed for a catalogue and survives a 4:3 cover crop; a seller's

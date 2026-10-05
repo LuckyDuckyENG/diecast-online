@@ -77,7 +77,7 @@ export default async function SearchPage({
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {results.map(car => (
+            {results.map((car, i) => (
               <ModelCard
                 key={car.id}
                 id={car.id}
@@ -93,6 +93,7 @@ export default async function SearchPage({
                 liveryName={car.liveryName ?? undefined}
                 imageUrl={car.imageUrl ?? undefined}
                 imageFromEbay={car.imageFromEbay}
+                imagePriority={i < 4}
                 teamPrimaryColor={car.teamPrimaryColor ?? undefined}
                 teamTextColor={car.teamTextColor ?? undefined}
                 hasStore={car.hasStore}

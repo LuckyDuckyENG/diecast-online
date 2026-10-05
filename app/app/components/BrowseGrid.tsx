@@ -11,38 +11,64 @@ interface BrowseGridProps {
 }
 
 /**
- * How many cards to render before "Show more".
+ * How many cards to render before "Show more", and how fast that grows.
  *
  * The page used to render all 1,267 at once: 3.5MB of HTML, 1,366 <img>
  * elements, and at grid-cols-2 roughly 634 rows to scroll on a phone.
  *
- * Baymard's product-list research puts the default at 50-150 on desktop and
- * 15-30 on mobile, the mobile figure being lower precisely because a phone
- * shows two to four items per screen — which is this grid exactly. 48 is one
- * number for both: four full rows on desktop, 24 on a phone, and a round
- * multiple of 2, 3 and 4 so no row is left ragged at any breakpoint.
+ * It was then 48 with a FIXED +48 per click, which was wrong in a way the
+ * research does not cover: reaching the end of 1,419 cars took 29 clicks. No
+ * copy makes 29 clicks pleasant, and the person it annoyed first was the one
+ * using the site hardest -- hunting for underpriced models, which means going
+ * deep rather than landing and leaving.
  *
- * Load More rather than pagination or infinite scroll, also from that
- * research: subjects called pagination slow, and infinite scroll breaks
- * returning to your place — which is the common journey here, where people
- * open several cars from one list. It would also make the footer unreachable,
- * and the footer is the only mobile route to /savings.
+ * MEASURED, which is what settled the numbers. The page's cost is almost all
+ * fixed: 1.22MB is the serialized data for all 1,550 cars, needed so filtering
+ * and sorting happen on the client, and it is paid no matter how many cards are
+ * drawn. A card's markup is only ~1.4KB on top.
+ *
+ *     48 cards -> 1.29MB     150 cards -> 1.43MB     1,419 cards -> 3.18MB
+ *
+ * So tripling the first screen costs 11%, while rendering everything costs
+ * +1.9MB and a ~14,000-node DOM. 150 is also the top of Baymard's 50-150
+ * desktop range.
+ *
+ * Each click then DOUBLES the step rather than adding a constant, so the list
+ * opens out: 150 -> 450 -> 1,050 -> everything. Three clicks, and the common
+ * case never sees the button at all. Someone clicking a third time is asking
+ * for the whole catalogue, and the weight is theirs to opt into -- the original
+ * 3.5MB problem was that EVERY visitor paid it on first load.
+ *
+ * Load More rather than pagination or infinite scroll, from that research:
+ * subjects called pagination slow, and infinite scroll breaks returning to
+ * your place -- which is the common journey here, where people open several
+ * cars from one list. It would also make the footer unreachable, and the
+ * footer is the only mobile route to /savings.
  */
-const PAGE = 48;
+const FIRST_PAGE = 150;
 
 export default function BrowseGrid({ models, sortBy, onSortChange }: BrowseGridProps) {
-  const [shown, setShown] = useState(PAGE);
+  const [shown, setShown] = useState(FIRST_PAGE);
+  const [step, setStep] = useState(FIRST_PAGE * 2);
 
   /**
-   * Back to the first page whenever the list itself changes.
+   * CLAMPED when the list changes, not reset.
    *
-   * Without this, filtering down to 12 results while 240 are "shown" leaves
-   * the count stuck high, and the next Show more jumps by a page that is no
-   * longer there. Keyed on length and sort rather than the array identity,
-   * which is rebuilt on every render by the parent's useMemo.
+   * It used to snap back to the first page, which threw away every click you
+   * had made: go ten pages deep, touch one filter, start again. Keeping the
+   * depth is the whole point of the filter -- you are narrowing what you are
+   * already looking at.
+   *
+   * The case the old reset existed for still has to work: filtering down to 12
+   * results while 480 are "shown" must not leave a Show more button offering a
+   * page that is not there. Clamping to the new length handles it, and
+   * `remaining` then computes to 0 so the button simply does not render.
+   *
+   * Keyed on length and sort rather than the array identity, which is rebuilt
+   * on every render by the parent's useMemo.
    */
   useEffect(() => {
-    setShown(PAGE);
+    setShown(s => Math.max(FIRST_PAGE, Math.min(s, models.length)));
   }, [models.length, sortBy]);
 
   const visible = models.slice(0, shown);
@@ -81,8 +107,11 @@ export default function BrowseGrid({ models, sortBy, onSortChange }: BrowseGridP
       {models.length > 0 ? (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
-            {visible.map((model) => (
-              <ModelCard key={model.id} {...model} />
+            {visible.map((model, i) => (
+              /* The first row loads eagerly so the largest visible image is not
+                 deferred; everything below the fold waits. At 150 cards that is
+                 the difference between 4 image requests on load and 150. */
+              <ModelCard key={model.id} {...model} imagePriority={i < 4} />
             ))}
           </div>
 
@@ -107,7 +136,7 @@ export default function BrowseGrid({ models, sortBy, onSortChange }: BrowseGridP
               */}
               <button
                 type="button"
-                onClick={() => setShown(s => s + PAGE)}
+                onClick={() => { setShown(s => s + step); setStep(n => n * 2); }}
                 className="rounded-lg bg-[var(--accent)] px-6 py-3 font-bold text-white hover:brightness-[0.92] transition-all"
               >
                 Show more

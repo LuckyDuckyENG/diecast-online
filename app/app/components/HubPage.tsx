@@ -59,8 +59,8 @@ export default function HubPage({
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
-          {hub.cars.map(car => (
-            <ModelCard key={car.id} {...car} />
+          {hub.cars.map((car, i) => (
+            <ModelCard key={car.id} {...car} imagePriority={i < 4} />
           ))}
         </div>
 

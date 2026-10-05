@@ -40,11 +40,32 @@ import { useCurrency } from '@/app/components/CurrencyProvider';
  */
 const PAGE = 24;
 
+/**
+ * Each Show more then DOUBLES the step rather than adding a constant page.
+ *
+ * Same reasoning as BrowseGrid: a fixed step made the shop section a 9-click
+ * walk, and the person who noticed was the one using the page as intended --
+ * hunting for underpriced models means going deep. Doubling turns it into
+ * 24 -> 72 -> 168 -> everything.
+ *
+ * The first page stays at 24 here, unlike browse's 150. These are full-width
+ * rows rather than grid cards, so 24 is already a long scroll on a phone, and
+ * the rows carry no images beyond an 80px thumbnail -- the weight argument that
+ * justified a bigger first screen on browse does not apply.
+ */
+
 /** One section's worth of rows, with its own Show more. */
 function RowList({ rows, prefix }: { rows: SavingRow[]; prefix: string }) {
   const [shown, setShown] = useState(PAGE);
-  // Back to the top of the list when the driver filter changes it.
-  useEffect(() => { setShown(PAGE); }, [rows.length]);
+  const [step, setStep] = useState(PAGE * 2);
+  /**
+   * CLAMPED when the driver filter changes, not reset. Resetting threw away
+   * every click already made; clamping to the new length keeps the depth while
+   * still preventing a Show more that offers rows which are not there.
+   */
+  useEffect(() => {
+    setShown(s => Math.max(PAGE, Math.min(s, rows.length)));
+  }, [rows.length]);
   const visible = rows.slice(0, shown);
   const remaining = rows.length - visible.length;
   return (
@@ -56,7 +77,7 @@ function RowList({ rows, prefix }: { rows: SavingRow[]; prefix: string }) {
         <div className="mt-6 flex flex-col items-center gap-2">
           <button
             type="button"
-            onClick={() => setShown(s => s + PAGE)}
+            onClick={() => { setShown(s => s + step); setStep(n => n * 2); }}
             className="rounded-lg bg-[var(--accent)] px-6 py-3 font-bold text-white hover:brightness-[0.92] transition-all"
           >
             Show more
