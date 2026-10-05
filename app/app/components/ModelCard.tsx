@@ -77,7 +77,20 @@ export default function ModelCard({
   return (
     <Link
       href={`/cars/${slug || id}`}
-      className="group block bg-white border border-[var(--border-light)] rounded-[14px] overflow-hidden hover:shadow-lg hover:border-[var(--border-medium)] transition-all duration-200"
+      /**
+       * content-visibility, because /browse renders the whole catalogue.
+       *
+       * ~1,400 cards is a ~14,000-node DOM, and the cost of that is layout and
+       * paint rather than bytes. `auto` lets the browser skip both for cards
+       * that are off screen, which is nearly all of them, and
+       * contain-intrinsic-size keeps the scrollbar honest before a card has
+       * been measured once (`auto` then remembers its real height).
+       *
+       * Unlike display:none this stays searchable with Ctrl+F and stays in the
+       * DOM for crawlers, which is why it suits a page whose job is linking to
+       * every car.
+       */
+      className="group block bg-white border border-[var(--border-light)] rounded-[14px] overflow-hidden hover:shadow-lg hover:border-[var(--border-medium)] transition-all duration-200 [content-visibility:auto] [contain-intrinsic-size:auto_320px]"
     >
       {/* Image */}
       <div className="aspect-[4/3] bg-[#efeee9] relative overflow-hidden">

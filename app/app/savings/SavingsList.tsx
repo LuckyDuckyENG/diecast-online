@@ -26,68 +26,30 @@ import { useCurrency } from '@/app/components/CurrencyProvider';
  */
 
 /**
- * Rows rendered before "Show more", per section.
+ * EVERY row renders, in both sections. There is no Show more.
  *
- * Lower than browse's 48 because these are full-width list rows rather than
- * grid cards — a phone shows two or three at a time, so Baymard's 15-30
- * mobile figure lands at the bottom of its range rather than the top.
+ * Removed with browse's, for the same reason: this page exists to be read
+ * through by someone looking for a price worth acting on, and a click between
+ * them and the rest of the list is friction paid over and over.
  *
- * It also fixes something else. The two sections are never merged, because a
- * retail price and a used asking price are different kinds of number — but
- * that left "Cheaper on eBay" sitting below 208 shop rows, which on a phone
- * is a scroll nobody completes. Those 91 eBay rows are the affiliate half.
- * Capping the first section puts the second one a screen away instead.
- */
-const PAGE = 24;
-
-/**
- * Each Show more then DOUBLES the step rather than adding a constant page.
+ * Cheaper here than on browse. These rows carry an 80px thumbnail rather than
+ * a 4:3 card image, and there are a few hundred of them rather than 1,419, so
+ * the whole page is a fraction of browse's weight even rendered in full. The
+ * thumbnails already load lazily.
  *
- * Same reasoning as BrowseGrid: a fixed step made the shop section a 9-click
- * walk, and the person who noticed was the one using the page as intended --
- * hunting for underpriced models means going deep. Doubling turns it into
- * 24 -> 72 -> 168 -> everything.
- *
- * The first page stays at 24 here, unlike browse's 150. These are full-width
- * rows rather than grid cards, so 24 is already a long scroll on a phone, and
- * the rows carry no images beyond an 80px thumbnail -- the weight argument that
- * justified a bigger first screen on browse does not apply.
+ * The two sections are still never merged -- a retail price and a used asking
+ * price are different kinds of number. That was the other reason the cap
+ * existed: it kept "Cheaper on eBay" from sitting below 208 shop rows. With
+ * no cap the eBay section is further down again, so if it turns out to need
+ * reaching, the fix is a jump link to it rather than a cap on the first one.
  */
 
-/** One section's worth of rows, with its own Show more. */
+/** One section's worth of rows. */
 function RowList({ rows, prefix }: { rows: SavingRow[]; prefix: string }) {
-  const [shown, setShown] = useState(PAGE);
-  const [step, setStep] = useState(PAGE * 2);
-  /**
-   * CLAMPED when the driver filter changes, not reset. Resetting threw away
-   * every click already made; clamping to the new length keeps the depth while
-   * still preventing a Show more that offers rows which are not there.
-   */
-  useEffect(() => {
-    setShown(s => Math.max(PAGE, Math.min(s, rows.length)));
-  }, [rows.length]);
-  const visible = rows.slice(0, shown);
-  const remaining = rows.length - visible.length;
   return (
-    <>
-      <ul className="space-y-3">
-        {visible.map(r => <Row key={`${prefix}-${r.modelId}`} r={r} />)}
-      </ul>
-      {remaining > 0 && (
-        <div className="mt-6 flex flex-col items-center gap-2">
-          <button
-            type="button"
-            onClick={() => { setShown(s => s + step); setStep(n => n * 2); }}
-            className="rounded-lg bg-[var(--accent)] px-6 py-3 font-bold text-white hover:brightness-[0.92] transition-all"
-          >
-            Show more
-          </button>
-          <p className="text-sm text-[var(--text-tertiary)]">
-            Showing {visible.length} of {rows.length}
-          </p>
-        </div>
-      )}
-    </>
+    <ul className="space-y-3">
+      {rows.map(r => <Row key={`${prefix}-${r.modelId}`} r={r} />)}
+    </ul>
   );
 }
 
