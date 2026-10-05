@@ -92,6 +92,7 @@ export default async function SearchPage({
                 team={car.team ?? undefined}
                 liveryName={car.liveryName ?? undefined}
                 imageUrl={car.imageUrl ?? undefined}
+                imageFromEbay={car.imageFromEbay}
                 teamPrimaryColor={car.teamPrimaryColor ?? undefined}
                 teamTextColor={car.teamTextColor ?? undefined}
                 hasStore={car.hasStore}

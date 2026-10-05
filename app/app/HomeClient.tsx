@@ -233,7 +233,17 @@ export default function HomeClient({
                 <span style={{ display: 'block', height: '4px', background: car.teamColor }} />
                 <span style={{ height: '160px', background: '#efeee9', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
                   {car.imageUrl ? (
-                    <img src={car.imageUrl} alt={car.driver} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <>
+                      {/* An eBay photo is contained, not cropped: a seller's
+                          photo is framed however they held the camera, so
+                          filling the frame is what cuts the car in half. */}
+                      <img src={car.imageUrl} alt={car.driver} style={{ width: '100%', height: '100%', objectFit: car.imageFromEbay ? 'contain' : 'cover' }} />
+                      {car.imageFromEbay && (
+                        <span style={{ position: 'absolute', bottom: '8px', left: '8px', fontSize: '10.5px', color: '#9a958c', background: 'rgba(255,255,255,0.9)', padding: '2px 7px', borderRadius: '6px', border: '1px solid #ecebe6' }}>
+                          eBay listing photo
+                        </span>
+                      )}
+                    </>
                   ) : (
                     <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: '#9a958c', background: 'rgba(255,255,255,0.8)', padding: '4px 10px', borderRadius: '6px' }}>model photo</span>
                   )}
@@ -273,7 +283,17 @@ export default function HomeClient({
                 <span style={{ display: 'block', height: '4px', background: car.teamColor }} />
                 <span style={{ height: '160px', background: '#efeee9', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
                   {car.imageUrl ? (
-                    <img src={car.imageUrl} alt={car.driver} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <>
+                      {/* An eBay photo is contained, not cropped: a seller's
+                          photo is framed however they held the camera, so
+                          filling the frame is what cuts the car in half. */}
+                      <img src={car.imageUrl} alt={car.driver} style={{ width: '100%', height: '100%', objectFit: car.imageFromEbay ? 'contain' : 'cover' }} />
+                      {car.imageFromEbay && (
+                        <span style={{ position: 'absolute', bottom: '8px', left: '8px', fontSize: '10.5px', color: '#9a958c', background: 'rgba(255,255,255,0.9)', padding: '2px 7px', borderRadius: '6px', border: '1px solid #ecebe6' }}>
+                          eBay listing photo
+                        </span>
+                      )}
+                    </>
                   ) : (
                     <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: '#9a958c', background: 'rgba(255,255,255,0.8)', padding: '4px 10px', borderRadius: '6px' }}>model photo</span>
                   )}

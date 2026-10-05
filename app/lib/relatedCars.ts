@@ -65,6 +65,13 @@ export async function getRelatedCars(car: any): Promise<RelatedGroup[]> {
       id: c.id,
       slug: c.slug,
       title: `${c.event_name} - ${c.chassis_name} - ${c.driver?.name} - ${c.season?.year}`,
+      /**
+       * No eBay-photo fallback, and none would ever fire. `candidates` below
+       * is filtered to cars with a RETAILER link, and the fallback only
+       * applies to models no shop sells -- measured 2026-10-05, none of the 53
+       * cars it covers has a retailer link at all. Wiring one in here would be
+       * dead code that reads like a feature.
+       */
       imageUrl: models.find(m => m.image_url)?.image_url || null,
       hasStore: prices.length > 0,
       lowestPrice: quotable.length

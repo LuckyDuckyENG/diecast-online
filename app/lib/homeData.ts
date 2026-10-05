@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import { slugify } from './carSlug';
 import { getHubSlugs } from './hubData';
 import { fetchModelIdsWithStore } from './storeCoverage';
+import { buildEbayPhotoMap, ebayPhotoForVariants } from './ebayPhoto';
 import { shouldHidePrice } from './freshness';
 
 /**
@@ -36,6 +37,8 @@ export interface HomeCar {
   livery: string;
   teamColor: string;
   imageUrl: string | null;
+  /** imageUrl is an eBay listing photo, not a product shot. Captioned. */
+  imageFromEbay?: boolean;
   /** Distinct shops selling any model of this car — not the model count. */
   retailers: number;
   /**
@@ -137,12 +140,25 @@ export async function getHomeData(): Promise<{
   // to quote it. eBay is excluded — a secondary-market asking price is not a
   // retail comparison.
   const modelIds = (allModels || []).map((m: any) => m.id);
-  const { data: priceRows } = modelIds.length
-    ? await supabase
-        .from('price_history')
-        .select('model_id, retailer_id, price_aud, in_stock, last_checked_at, recorded_at')
-        .in('model_id', modelIds)
-    : { data: [] as any[] };
+  /**
+   * eBay rows come along for the last-resort photo on cars with no picture.
+   *
+   * Scoped to these models, like the prices beside it. The newest 60 cars hold
+   * roughly a hundred models, so this is a small read -- where a full scan of
+   * ebay_links would be 5,501 rows for a dozen thumbnails.
+   */
+  const [{ data: priceRows }, { data: ebayRows }] = await Promise.all([
+    modelIds.length
+      ? supabase
+          .from('price_history')
+          .select('model_id, retailer_id, price_aud, in_stock, last_checked_at, recorded_at')
+          .in('model_id', modelIds)
+      : Promise.resolve({ data: [] as any[] }),
+    modelIds.length
+      ? supabase.from('ebay_links').select('model_id, ebay_image').in('model_id', modelIds)
+      : Promise.resolve({ data: [] as any[] }),
+  ]);
+  const ebayPhotos = buildEbayPhotoMap(ebayRows || [], priceRows || []);
 
   const priceByCar = new Map<string, { low: number | null; shops: Set<string> }>();
   for (const m of allModels || []) {
@@ -172,7 +188,12 @@ export async function getHomeData(): Promise<{
         team: car.team?.name || '',
         livery: car.chassis_name || '',
         teamColor: car.team?.primary_color || '#cf2f2a',
-        imageUrl: models.find((m: any) => m.image_url)?.image_url || null,
+        // A product shot wins; the eBay snapshot only fills a car with none
+        // and no shop that could ever supply one. See lib/ebayPhoto.ts.
+        imageUrl: models.find((m: any) => m.image_url)?.image_url
+          || ebayPhotoForVariants(models, ebayPhotos) || null,
+        imageFromEbay: !models.some((m: any) => m.image_url)
+          && !!ebayPhotoForVariants(models, ebayPhotos),
         retailers: priceByCar.get(car.id)?.shops.size ?? 0,
         lowestPrice: priceByCar.get(car.id)?.low ?? null,
         _buyable: models.some((m: any) => sellable.has(m.id)),

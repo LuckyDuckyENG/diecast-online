@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { selectAll } from './selectAll';
+import { buildEbayPhotoMap, ebayPhotoForVariants } from './ebayPhoto';
 
 /**
  * Search, filtered by the DATABASE rather than by the browser.
@@ -42,6 +43,8 @@ export interface SearchCar {
   manufacturers: string[];
   scales: string[];
   imageUrl: string | null;
+  /** imageUrl is an eBay listing photo, not a product shot. Captioned. */
+  imageFromEbay?: boolean;
   teamPrimaryColor: string | null;
   teamTextColor: string | null;
   hasStore: boolean;
@@ -177,9 +180,12 @@ async function decorate(cars: any[]): Promise<SearchCar[]> {
       ? selectAll<any>(supabase, 'price_history', 'model_id', qb => qb.in('model_id', modelIds))
       : Promise.resolve([]),
     modelIds.length
-      ? selectAll<any>(supabase, 'ebay_links', 'model_id', qb => qb.in('model_id', modelIds))
+      // ebay_image is the last-resort photo for cars with none.
+      ? selectAll<any>(supabase, 'ebay_links', 'model_id, ebay_image', qb => qb.in('model_id', modelIds))
       : Promise.resolve([]),
   ]);
+  // Built from rows already fetched above, so this adds no query.
+  const ebayPhotos = buildEbayPhotoMap(ebayRows, priceRows);
   const sold = new Set<string>([
     ...priceRows.map((p: any) => p.model_id),
     ...ebayRows.map((e: any) => e.model_id),
@@ -205,7 +211,12 @@ async function decorate(cars: any[]): Promise<SearchCar[]> {
         : `${makers.slice(0, 2).join(' · ')} +${makers.length - 2}`,
       manufacturers: makers,
       scales,
-      imageUrl: variants.find(v => v.image_url)?.image_url || null,
+      // A product shot wins; the eBay snapshot only fills a car with none and
+      // no shop that could ever supply one. See lib/ebayPhoto.ts.
+      imageUrl: variants.find(v => v.image_url)?.image_url
+        || ebayPhotoForVariants(variants, ebayPhotos) || null,
+      imageFromEbay: !variants.some(v => v.image_url)
+        && !!ebayPhotoForVariants(variants, ebayPhotos),
       teamPrimaryColor: car.team?.primary_color ?? null,
       teamTextColor: car.team?.text_color ?? null,
       hasStore: variants.some(v => sold.has(v.id)),

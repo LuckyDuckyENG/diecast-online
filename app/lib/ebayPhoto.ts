@@ -20,6 +20,7 @@
  * with nothing to migrate or undo.
  */
 
+
 /**
  * eBay stores every image at 225px -- all 5,574 of them. That is a thumbnail,
  * and a 4:3 card is nowhere near it, so the size token has to be swapped.

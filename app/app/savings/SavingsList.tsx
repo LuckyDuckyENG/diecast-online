@@ -130,20 +130,9 @@ function Row({ r }: { r: SavingRow }) {
           className="flex gap-4 items-center min-w-0 flex-1"
         >
         {r.imageUrl ? (
-          /**
-           * No "eBay listing photo" caption here, unlike the cards: at 80px it
-           * would be illegible, and it would also be redundant. A model with no
-           * retailer has no shop prices, so it can only ever reach the eBay
-           * section, and those rows already say they are eBay listings.
-           *
-           * Contained rather than cropped though, for the same reason as the
-           * cards -- a seller's photo is not framed for a square.
-           */
           // eslint-disable-next-line @next/next/no-img-element
           <img src={r.imageUrl} alt="" loading="lazy"
-            className={`w-20 h-20 rounded-lg shrink-0 bg-[var(--border-light)] ${
-              r.imageFromEbay ? 'object-contain' : 'object-cover'
-            }`} />
+            className="w-20 h-20 object-cover rounded-lg shrink-0 bg-[var(--border-light)]" />
         ) : (
           <div className="w-20 h-20 rounded-lg shrink-0 bg-[var(--border-light)]" />
         )}
