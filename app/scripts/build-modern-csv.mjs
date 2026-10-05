@@ -97,8 +97,21 @@ const EXCLUDE = [
    * had his first F1 test in it at Adria that year -- teams run a two-year-old
    * chassis for private testing, so the slug's year is the event's, not the
    * car's.
+   *
+   * THE THIRD ELEMENT IS THE YEAR THE CAR IS ACTUALLY FROM, and the rule is
+   * skipped when importing that year. Without it, importing 2012 would drop
+   * the real STR7 race cars as test cars -- the exclusion was only ever
+   * correct because 2012 had not been imported.
    */
-  [/(?:^|-)str7(?:-|$)/, 'old car at a test session'],
+  [/(?:^|-)str7(?:-|$)/, 'old car at a test session', 2012],
+  /**
+   * Lotus ran the 2010 Renault R30 for private testing in 2012, which is how
+   * Raikkonen prepared for his return. Same shape as the STR7 and the SF71H:
+   * a two-year-old chassis at a later test, so the slug's year belongs to the
+   * session rather than the car. No native year here -- the R30 is a 2010
+   * car and would be imported as one by a 2010 run, under Renault.
+   */
+  [/(?:^|-)r30(?:-|$)[a-z0-9-]*test/, 'old car at a test session'],
   /** Not race cars: a launch presentation and a concept study. */
   [/(?:^|-)presentation(?:-|$)|concept-study|(?:^|-)concept(?:-|$)/, 'presentation or concept'],
   /**
@@ -124,7 +137,9 @@ const EXCLUDE = [
 
 const dropped = [];
 const kept = all.filter(o => {
-  const hit = EXCLUDE.find(([re]) => re.test(o.slug));
+  // A rule carrying a native year is skipped when importing that year: the
+  // product is the real race car then, not an old chassis at a later test.
+  const hit = EXCLUDE.find(([re, , nativeYear]) => nativeYear !== year && re.test(o.slug));
   if (hit) { dropped.push([o.urlSku, hit[1]]); return false; }
   if (!yearsIn(o.slug).includes(year)) { dropped.push([o.urlSku, `not a ${year} car`]); return false; }
   if (!o.scale) { dropped.push([o.urlSku, 'no scale on the page']); return false; }
@@ -164,6 +179,26 @@ const CHASSIS = {
    * E22. Marussia ran the MR02 and Caterham the CT03, both teams' last but
    * one season.
    */
+  /**
+   * 2012. Schumacher's last season and Vettel's third title.
+   *
+   * F2012 must be read before the bare year token or "ferrari-f2012-f1-2012"
+   * loses its chassis -- same shape as 2013's F138 also being written f2013.
+   *
+   * MP4-27 is safe from the historic-McLaren exclusion above, which matches a
+   * SINGLE digit after "mp4-": that rule catches MP4/4 and MP4/6 at modern
+   * events and leaves two-digit modern codes alone.
+   *
+   * Only ONE Lotus here, which is the thing to check rather than assume. In
+   * 2011 "Team Lotus" and "Lotus Renault GP" were different entrants, but by
+   * 2012 the backmarker had become Caterham and the shop labels it so. The
+   * E20 is Lotus F1, which is what 2013's E21 is already filed under.
+   */
+  2012: [[/(?:^|-)w03(?:-|$)/, 'W03'], [/(?:^|-)f2012(?:-|$)/, 'F2012'],
+         [/(?:^|-)rb8(?![0-9])/, 'RB8'], [/(?:^|-)e20(?:-|$)/, 'E20'],
+         [/vjm05/, 'VJM05'], [/fw34/, 'FW34'], [/str7(?![0-9])/, 'STR7'],
+         [/mp4-?27/, 'MP4-27'], [/(?:^|-)c31(?:-|$)/, 'C31'],
+         [/(?:^|-)ct01(?:-|$)/, 'CT01']],
   2013: [[/(?:^|-)w04(?:-|$)/, 'W04'], [/f138|(?:^|-)f2013(?:-|$)/, 'F138'], [/rb9(?![0-9])/, 'RB9'],
          [/vjm06/, 'VJM06'], [/fw35/, 'FW35'], [/(?:^|-)e21(?:-|$)/, 'E21'],
          [/str8(?![0-9])/, 'STR8'], [/mp4-?28/, 'MP4-28'],
@@ -294,6 +329,12 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 2012. CT01 is Caterham, not Lotus — the backmarker had been renamed by
+  // then, and the E20 is the Enstone team the catalogue already calls Lotus
+  // for 2013's E21.
+  W03: 'Mercedes', F2012: 'Ferrari', RB8: 'Red Bull', E20: 'Lotus',
+  VJM05: 'Force India', FW34: 'Williams', STR7: 'Toro Rosso',
+  'MP4-27': 'McLaren', C31: 'Sauber', CT01: 'Caterham',
   W08: 'Mercedes', SF70H: 'Ferrari', RB13: 'Red Bull', VJM10: 'Force India',
   FW40: 'Williams', RS17: 'Renault', STR12: 'Toro Rosso', 'VF-17': 'Haas',
   MCL32: 'McLaren', C36: 'Sauber',
@@ -380,6 +421,31 @@ const DRIVERS = {
   // 2013 only: Webber's last season, Di Resta at Force India, Van der Garde
   // and Pic at Caterham, Bottas's debut at Williams.
   webber: 'Mark Webber', 'di-resta': 'Paul di Resta', 'van-der-garde': 'Giedo van der Garde',
+  /**
+   * BRUNO SENNA, keyed on the full name and never on the surname.
+   *
+   * He drove the 2012 Williams FW34. A bare `senna` key would take Ayrton's
+   * 50 cars with it, which is the same collision as Graham and Damon Hill
+   * forty years apart. There is deliberately no `senna` entry in this map:
+   * Ayrton is imported by build-driver-csv, which keys on the cache file
+   * rather than the slug and cannot confuse the two.
+   */
+  'bruno-senna': 'Bruno Senna',
+  /**
+   * MICHAEL SCHUMACHER, for the same reason and caught the same way.
+   *
+   * `schumacher` maps to Mick, who raced for Haas in 2021-22 and was thirteen
+   * in 2012. Without this key his father's Mercedes W03 imports under his
+   * son's name. Found by reading the --review driver tally and seeing "Mick
+   * Schumacher 2" in a 2012 season.
+   *
+   * SURNAMES is sorted longest-first, so a full-name key always beats the
+   * bare surname. That is what makes these two entries sufficient rather than
+   * needing the surname removed. The same trap is waiting for Rosberg (Keke),
+   * Verstappen (Jos), Magnussen (Jan) and Piquet if those fathers are ever
+   * imported.
+   */
+  'michael-schumacher': 'Michael Schumacher',
   'charles-pic': 'Charles Pic', kovalainen: 'Heikki Kovalainen',
   sutil: 'Adrian Sutil', vergne: 'Jean-Eric Vergne', lotterer: 'Andre Lotterer',
   haryanto: 'Rio Haryanto', 'jenson-button': 'Jenson Button',
