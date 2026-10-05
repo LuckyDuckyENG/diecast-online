@@ -120,6 +120,10 @@ function Row({ r }: { r: SavingRow }) {
             // Every row on this page IS the cheapest found for its model --
             // that is the page's whole premise.
             wasCheapest: true,
+            // Without this, a click here is indistinguishable from one on the
+            // car's own page: both write that car's slug. This is the field
+            // that will say whether /savings earns its place.
+            source: 'savings',
           })}
           target="_blank"
           rel={r.kind === 'ebay' ? 'sponsored noopener noreferrer' : 'noopener noreferrer'}

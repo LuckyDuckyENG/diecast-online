@@ -14,6 +14,11 @@ import { isOwnerVisit } from './ownerVisit';
 
 export interface OutboundClick {
   modelId?: string | null;
+  /**
+   * The car the click was ABOUT. Not the page it happened on — /savings
+   * writes the same value as that car's own page, which is why `source`
+   * exists below.
+   */
   carSlug?: string | null;
   retailer?: string | null;
   /** eBay links carry affiliate tracking; shop links do not. */
@@ -21,6 +26,19 @@ export interface OutboundClick {
   priceAud?: number | null;
   /** Was this the cheapest option shown for the model? The interesting one. */
   wasCheapest?: boolean | null;
+  /**
+   * WHICH PAGE THE LINK WAS RENDERED ON.
+   *
+   * Required to answer the one open question about /savings: it was
+   * unreachable on mobile until 2026-10-04, so its single visitor says
+   * nothing about whether the page is wanted. Whether clicks come from it
+   * does — and until this field existed, a click from /savings and a click
+   * from a car page were the same row.
+   *
+   * The component knows this for certain; a referrer would answer a
+   * different question.
+   */
+  source?: 'car' | 'savings';
 }
 
 export function logClick(c: OutboundClick): void {

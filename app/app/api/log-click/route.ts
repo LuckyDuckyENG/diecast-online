@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       request.headers.get('cf-ipcountry') ||
       null;
 
-    const { error } = await supabase.from('outbound_clicks').insert({
+    const row = {
       // Validated rather than trusted: this arrives from the browser, and a
       // malformed uuid would fail the insert and lose the whole row.
       model_id: typeof b.modelId === 'string' && UUID.test(b.modelId) ? b.modelId : null,
@@ -58,7 +58,29 @@ export async function POST(request: NextRequest) {
       was_cheapest: typeof b.wasCheapest === 'boolean' ? b.wasCheapest : null,
       country,
       is_bot: BOT.test(ua),
-    });
+    };
+    // Which page the link was on. Whitelisted rather than passed through: this
+    // arrives from the browser, and free text would make the column
+    // unqueryable the first time something sent a typo.
+    const source = b.source === 'savings' || b.source === 'car' ? b.source : null;
+
+    let { error } = await supabase.from('outbound_clicks').insert({ ...row, source });
+
+    /**
+     * Migration 024 may not have been applied yet.
+     *
+     * PostgREST rejects the ENTIRE insert on one unknown column, so deploying
+     * this before running the migration would silently stop recording clicks
+     * altogether — and this route always returns 204, so nothing would show
+     * it. That exact shape already broke every live eBay search once, when an
+     * internal field leaked into an ebay_links insert.
+     *
+     * Losing the source of a click is a small loss. Losing the click is not.
+     */
+    if (error && /source/i.test(error.message)) {
+      console.warn('outbound_clicks.source missing — migration 024 not applied; logging without it');
+      ({ error } = await supabase.from('outbound_clicks').insert(row));
+    }
     if (error) console.warn('click log insert failed:', error.message);
 
     // Always 204. This observes the site; a logging fault must never reach

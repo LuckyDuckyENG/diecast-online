@@ -342,6 +342,10 @@ export default function CarDetail({
                                   const mine = retailer.priceAUD ?? retailer.price;
                                   return mine > 0 && mine === Math.min(...usable);
                                 })(),
+                                // The counterpart to /savings sending
+                                // 'savings'. Both pages write this car's slug,
+                                // so without this they are the same row.
+                                source: 'car',
                               })}
                               target="_blank"
                               /* eBay links carry affiliate tracking, so they must be
