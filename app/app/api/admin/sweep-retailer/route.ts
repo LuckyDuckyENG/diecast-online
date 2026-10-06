@@ -230,6 +230,36 @@ export async function POST(request: NextRequest) {
     for (const row of here.values()) {
       if (row.currency) currencyVotes.set(row.currency, (currencyVotes.get(row.currency) || 0) + 1);
     }
+
+    /**
+     * NO MINIMUM VOTE COUNT, and that is deliberate -- a floor was tried here
+     * on 2026-10-06 and was wrong.
+     *
+     * The reasoning for one looked sound: DrivenBy held a single price_history
+     * row saying AUD while its storefront JSON and `retailers.currency` both
+     * said HKD, and one row outvoting two signals is not an establishment. A
+     * five-vote floor (matching MIN_SAMPLES on the outlier guard) would have
+     * fallen back to the declared HKD.
+     *
+     * Checking against what other shops charge killed it. Six of the 69
+     * models DrivenBy would link are sold elsewhere, and its raw numbers sit
+     * just under those AUD prices every time -- 377 against 369 and 389, 323
+     * against 374 and 409, 147 against 158.99 and 159. Read as HKD they would
+     * become AUD 29-74, five times cheaper than every competitor. The feed is
+     * already in AUD.
+     *
+     * So "declared" is exactly the trap the paragraph above describes: HKD is
+     * DrivenBy's BASE currency, not the currency it served us. The fallback
+     * would have understated 69 prices 5x -- and an understated price wins
+     * "cheapest", which is the one claim this site cannot afford to get wrong.
+     * The overstatement the floor was meant to prevent would at least have
+     * been self-announcing.
+     *
+     * The real lesson is that neither meta.json nor a vote count is evidence.
+     * The only reliable test is the one run by hand here: compare the shop's
+     * numbers against what other shops charge for the SAME model. Worth
+     * automating as a currency sanity check; a vote threshold is not it.
+     */
     const establishedCurrency =
       [...currencyVotes.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 
