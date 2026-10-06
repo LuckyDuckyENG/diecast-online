@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-10-05
+# Status Summary — last updated 2026-10-07
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -3386,6 +3386,73 @@ the 131 cars outside both (1,550 - 1,419) are not a linking problem but a
 coverage one — a single retailer link moves a car into a hub and the sitemap
 together. See the retailer-sweep case below.
 
+## The SKU hidden behind a barcode — 2026-10-07
+
+Some slugs end with the EAN rather than the part number, and the fetcher only
+ever tested the LAST token, so the whole product was discarded:
+
+```
+...-nico-rosberg-spark-s4601-9580006946010              SKU is s4601
+...-sebastian-vettel-looksmart-ls18f101-9580006150035   SKU is ls18f101
+```
+
+Fixed in `skuFromSlug`. Worth **18 models**: 2015 went 83 -> 93 rows and 2016
+124 -> 132. Verified over all 35,767 cached slugs -- 300 newly accepted, ZERO
+existing picks changed, every other season byte-identical.
+
+### The number I reported first was 434, and it was wrong
+
+Measured with a broad rule -- step back whenever the last token fails okSku --
+this looked like 434 recoverable models, 136 of them in 2022-2026. That rule
+silently breaks a different slug shape. Bburago writes the DRIVER'S CAR NUMBER
+last:
+
+```
+...-guanyu-zhou-f1-2023-bburago-bu38085-24
+...-valtteri-bottas-f1-2023-bburago-bu38085-77
+```
+
+Both then get the SKU "bu38085", so two different models collide on one part
+number and one model's prices would land on another model's page. 2023 gained
+30 rows that way and every one was wrong. Caught by diffing the generator's
+output before and against after -- NOT by reading the code, which looked fine.
+
+**393 models are still blocked by that shape**, 163 of them in seasons from
+2010 on. The route to them is that those pages DECLARE their SKU in JSON-LD,
+which the fetcher already records as `pageRef`. So the fix is to stop
+inferring from the URL and read the stated part number. Untested, and worth
+proving on one season before believing any figure for it.
+
+## Where the source actually stops — counted, not asserted — 2026-10-07
+
+`scripts/source-floor.mjs` counts the cached sitemap offline.
+
+```
+1950-1959   365 F1 products   unheld
+1960-1969   674               unheld
+1970-1979  1149               held from 1971
+1980-1989   951               held
+1990-1999   762               held to 1994 only
+2000-2009   231               unheld, THINNEST DECADE IN THE SITEMAP
+```
+
+2009 is six importable cars and every one is the Brawn BGP001. The collapse is
+2002 onward rather than the whole decade: 1995-2001 holds 365 F1 products,
+2002-2009 holds 121. Those mid-2000s cars are in a dead zone -- too recent to
+be reissued as classics, too old to still be stocked new.
+
+`scripts/season-coverage.mjs` exists because the dangerous direction is a
+product that IS from a season and never got fetched: invisible at every later
+step, and indistinguishable from a thin season.
+
+**2002 is parsed and NOT imported** -- 8 rows, 0 review, chassis map committed
+(F2002, PS02, TF102). It becomes 12 rows if the car-number SKU shape is ever
+read, so importing now means re-running later.
+
+Also worth knowing: "2002" appears in this sitemap as a MODEL NAME -- the BMW
+2002 touring car, raced 1968-1971. Four carry a 2002 year token and are not
+2002 cars.
+
 ## The eBay photo, shown without being stored — 2026-10-06
 
 53 cars had no picture and showed the team-coloured panel. All of them sell
@@ -3631,7 +3698,13 @@ Re-cut 2026-09-28 after the catalogue source ran out, revised the same day
 once the eBay pass had run, and again on 2026-09-29. Items 1 and 7 below are
 DONE as of 2026-10-04 and left in place only so the reasoning survives.
 
-**0. THE RETAILER SWEEP, `gaps only`, OFFSETS FROM 0.** The eBay pass for
+**0. THE RETAILER SWEEP. Tooling now exists: `node scripts/sweep-gaps.mjs
+--apply` (needs a dev server; the admin proxy is open in dev). The dry run has
+been reproduced exactly twice: 226 new links, 623 for review, 98 images, and
+76 of 78 models in 2010-2012 getting their FIRST retailer link. STILL NOT
+APPLIED.**
+
+Original note follows. The eBay pass for
 2010-2012 is DONE (58% coverage, better than 2013-2020's 35%, the secondary
 market behaving exactly as it should for older cars). The retailer side has
 never run against these seasons — nor has any sweep, since all 24 swept shops
