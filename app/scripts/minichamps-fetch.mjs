@@ -95,6 +95,43 @@ const WRONG = /formule-[23]|formula-[23]|\bf[23]\b|indycar|nascar|motogp|le-mans
 const SET = /2-car-set|two-car-set|teamset|team-set|coffret/;
 const okSku = t => /^[0-9a-z]{4,20}$/i.test(t) && /\d/.test(t) && !/^\d{4}$/.test(t) && !/^\d{13}$/.test(t);
 
+/**
+ * The part number, which is USUALLY the last slug token but not always.
+ *
+ * Plenty of slugs end with the EAN barcode instead:
+ *
+ *   ...-nico-rosberg-spark-s4601-9580006946010            SKU is s4601
+ *   ...-sebastian-vettel-looksmart-ls18f101-9580006150035 SKU is ls18f101
+ *
+ * okSku rightly refuses a 13-digit number, but this only ever tested the LAST
+ * token, so the whole product was discarded rather than stepping back one.
+ *
+ * ONLY A 13-DIGIT TAIL IS STEPPED OVER, and that precision is the whole point.
+ * A first attempt stepped back whenever the last token failed okSku, which
+ * silently broke a different slug shape -- Bburago writes the DRIVER'S CAR
+ * NUMBER last:
+ *
+ *   ...-guanyu-zhou-f1-2023-bburago-bu38085-24
+ *   ...-valtteri-bottas-f1-2023-bburago-bu38085-77
+ *
+ * Stepping back there drops the discriminator and hands both products the SKU
+ * "bu38085", so two different models collide on one part number. Rejecting
+ * them, as before, is wrong but harmless; accepting them under a shared SKU
+ * would put one model's prices on another model's page. Those stay rejected
+ * until something can read "bu38085-24" as the part number it is.
+ *
+ * Returns null when neither token qualifies, which is the old reject.
+ */
+const EAN = /^\d{13}$/;
+const skuFromSlug = slug => {
+  const t = slug.split('-');
+  const last = t[t.length - 1];
+  if (okSku(last)) return last;
+  // Step back for a barcode and nothing else.
+  if (EAN.test(last) && t.length > 1 && okSku(t[t.length - 2])) return t[t.length - 2];
+  return null;
+};
+
 const locs = xml =>
   [...xml.matchAll(/<loc>\s*(?:<!\[CDATA\[)?([^\]<]+?)(?:\]\]>)?\s*<\/loc>/g)].map(m => m[1].trim());
 
@@ -109,8 +146,7 @@ const targets = urls.filter(u => {
   if (!slug.includes(term.toLowerCase())) return false;
   if (!(/\bf1\b|formula-1|formule-1/.test(slug) || /^f1-/.test(cat))) return false;
   if (NOT_A_CAR(slug) || WRONG.test(slug) || SET.test(slug)) return false;
-  const t = slug.split('-');
-  return okSku(t[t.length - 1]);
+  return !!skuFromSlug(slug);
 }).slice(0, limit);
 
 console.log(`"${term}": ${targets.length} product pages to read (delay ${DELAY_MS}ms)\n`);
@@ -189,7 +225,7 @@ for (const [i, u] of targets.entries()) {
   const ld = readJsonLd(html);
   out.push({
     slug,
-    urlSku: t[t.length - 1],
+    urlSku: skuFromSlug(slug),
     pageRef: ld?.sku || null,
     scale: readScale(html),
     inStock: ld?.inStock ?? null,
