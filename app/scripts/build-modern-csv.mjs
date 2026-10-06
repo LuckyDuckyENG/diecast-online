@@ -198,6 +198,19 @@ const EVENTS = [
  */
 const CHASSIS = {
   /**
+   * 2002. Thin, and Ferrari-shaped: 12 of the shop's F1 products for this
+   * season are the F2002, mostly Schumacher's.
+   *
+   * F2002 must be read before any bare F1 pattern and is matched as a whole
+   * token, because "2002" appears in this sitemap as a MODEL NAME -- the BMW
+   * 2002 touring car, raced 1968-1971. Four of those sit in the year's slugs
+   * and are not 2002 cars at all. A chassis map that only knows F2002, PS02
+   * and TF102 refuses them by construction, which is why they land in review
+   * rather than under Ferrari.
+   */
+  2002: [[/(?:^|-)f2002(?:-|$)/, 'F2002'], [/(?:^|-)ps02(?:-|$)/, 'PS02'],
+         [/(?:^|-)tf102(?:-|$)/, 'TF102']],
+  /**
    * 2013. The last of the V8 era, and the last season this shop covers before
    * the historic block picks up.
    *
@@ -381,6 +394,9 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 2002. Minardi and Toyota are new team rows; Ferrari resolves to the
+  // existing "Scuderia Ferrari" through teamMappings.
+  F2002: 'Ferrari', PS02: 'Minardi', TF102: 'Toyota',
   // 2010-2011. T127 is Lotus RACING, the Malaysian team that became Caterham,
   // and is deliberately not "Lotus" — see the chassis note above. Named for
   // the season it raced in rather than its successor, which is what every
@@ -519,6 +535,9 @@ const DRIVERS = {
   'de-la-rosa': 'Pedro de la Rosa', barrichello: 'Rubens Barrichello',
   trulli: 'Jarno Trulli', yamamoto: 'Sakon Yamamoto',
   glock: 'Timo Glock', buemi: 'Sebastien Buemi',
+  // 2002. The slug spells McNish "alan-mcnish"; the driver is Allan McNish,
+  // and the catalogue stores real names rather than slug spellings.
+  'alex-yoong': 'Alex Yoong', 'alan-mcnish': 'Allan McNish',
   'charles-pic': 'Charles Pic', kovalainen: 'Heikki Kovalainen',
   sutil: 'Adrian Sutil', vergne: 'Jean-Eric Vergne', lotterer: 'Andre Lotterer',
   haryanto: 'Rio Haryanto', 'jenson-button': 'Jenson Button',
