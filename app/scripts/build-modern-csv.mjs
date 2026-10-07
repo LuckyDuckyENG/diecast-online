@@ -170,6 +170,27 @@ const kept = all.filter(o => {
   if (hit) { dropped.push([o.urlSku, hit[1]]); return false; }
   if (!yearsIn(o.slug).includes(year)) { dropped.push([o.urlSku, `not a ${year} car`]); return false; }
   if (!o.scale) { dropped.push([o.urlSku, 'no scale on the page']); return false; }
+  /**
+   * TWO SCALES ONLY, because the CSV has exactly two SKU columns.
+   *
+   * A row's part number goes into sku_1_18 or sku_1_43 and nowhere else, so a
+   * 1:12 or 1:64 product emits a row with BOTH columns empty. sync-csv creates
+   * the car before the models, so an empty row produces a car with no models
+   * at all -- invisible by construction, and the reason 37 such cars already
+   * exist.
+   *
+   * build-driver-csv gained this guard when a Prost 1:64 did exactly that.
+   * The same guard was never carried across to here, and the barcode fix in
+   * minichamps-fetch then pulled three more in: a 1:12 RB12 and two 1:64s,
+   * which the pre-import check caught as rows with no SKU.
+   *
+   * Dropped with a reason rather than sent to review: there is nothing a human
+   * could decide. The catalogue holds two scales.
+   */
+  if (o.scale !== '1:18' && o.scale !== '1:43') {
+    dropped.push([o.urlSku, `${o.scale} — the CSV holds 1:18 and 1:43 only`]);
+    return false;
+  }
   return true;
 });
 
