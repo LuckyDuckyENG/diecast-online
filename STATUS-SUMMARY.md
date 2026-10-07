@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-10-07
+# Status Summary — last updated 2026-10-08
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -36,9 +36,9 @@
 ## Where things stand
 
 ```
-cars 1554  |  models 3459  |  retailer links 6850  |  eBay links 5501  |  retailers 47  |  drivers 86
-slugs 1554/1554   |   images 3313/3459   |   teams 34   |   cars sellable 1443/1554
-seasons 41: 1971-1994 and 2010-2026
+cars 1615  |  models 3540  |  retailer links 6850  |  eBay links 5501  |  retailers 47  |  drivers 86
+slugs 1615/1615   |   images 3313/3459   |   teams 34   |   cars sellable 1443/1554
+seasons 49: 1971-1994 and 2002-2026
 ```
 
 The per-year visible table below is from 2026-09-29 and does NOT include the
@@ -3468,6 +3468,47 @@ which the fetcher already records as `pageRef`. So the fix is to stop
 inferring from the URL and read the stated part number. Untested, and worth
 proving on one season before believing any figure for it.
 
+## The 2000s imported, 1995-2001 is the last hole — 2026-10-08
+
+```
+2002  6 cars   2003  5   2004  8   2005 14
+2006 15        2007  2   2008  7   2009  4      = 61 cars, 81 models
+seasons now 1971-1994, 2002-2026
+```
+
+74 rows across 2003-2009, against the ~40 estimated. The estimate counted
+F1-looking sitemap entries; the caches held more.
+
+**Reading the slugs before writing the chassis maps caught four things** that
+no amount of recalling the seasons would have:
+
+- a **Dallara F302 at MACAU** -- Formula 3, with Rosberg in 2003 and Hamilton
+  in 2004, years before either reached F1
+- a Sauber slug that **typos C22 as "c2"**, which would have lost Frentzen
+- McLaren's 2008 chassis spelled both **"mp4-23" and "mp423"**
+- a **MICHEL VAILLANT** car, which is a comic-book character
+
+### Three naming hazards, handled rather than discovered
+
+- **JACQUES Villeneuve** tested the 2006 BMW Sauber C24B, and this catalogue
+  holds GILLES Villeneuve's whole career. SURNAMES sorts longest-first so the
+  full-name key wins, the same mechanism keeping Michael and Mick Schumacher
+  apart. A bare "villeneuve" files a 2006 test car under a driver who died in
+  1982.
+- **BMW Sauber's F1.08** resolves onto the Sauber lineage by era, so it needed
+  no team row and could not collide the way Lotus Racing did.
+- **RA106 is Honda, not BAR.** The team was renamed before 2006; the
+  "bar-ra106-honda" slugs are the shop using a dead name.
+
+BAR's 2005 chassis is literally **007** and Ferrari's 2006 car is the **248**,
+both far too loose to match bare, so both are anchored to the marque.
+
+New rows: seasons 2003-2009, teams Jaguar, Jordan, BAR, Honda, Brawn GP (all
+collision-checked both directions), eleven drivers, and CMR as a manufacturer.
+
+**2007 really is two cars** -- a Raikkonen F2007 and an Alonso MP4-22. The
+thin-decade finding holds.
+
 ## Where the source actually stops — counted, not asserted — 2026-10-07
 
 `scripts/source-floor.mjs` counts the cached sitemap offline.
@@ -3743,7 +3784,17 @@ Re-cut 2026-09-28 after the catalogue source ran out, revised the same day
 once the eBay pass had run, and again on 2026-09-29. Items 1 and 7 below are
 DONE as of 2026-10-04 and left in place only so the reasoning survives.
 
-**0. ~~THE RETAILER SWEEP~~ — FINISHED 2026-10-08.** Second pass applied the
+**0. THE `pageRef` SKU ROUTE — 96 models in 2021-2026 that attach to cars
+which ALREADY EXIST.** No season rows, no team rows, no chassis maps. Proven
+on six real pages 2026-10-08: each declares its SKU in JSON-LD and it is
+exactly the last two slug tokens joined, which the splitter was cutting in
+half at the hyphen (`R143-CH`, `R272-27`). Also fixes the Bburago collision
+properly, since the page declares bu38085-24 and bu38085-77 as distinct.
+Touches the fetch filter AND switches build-modern-csv from urlSku to
+pageRef, so it needs the full per-season regression pass. 353 models in
+total, 215 of them pre-1995.
+
+**0b. ~~THE RETAILER SWEEP~~ — FINISHED 2026-10-08.** Second pass applied the
 remaining 112 links, DrivenBy's 69 included. Retailer links 6,620 -> 6,850
 across both passes. The currency question is settled by evidence: DrivenBy
 lands at 147 against peers 159/240/173/159 and 324 against 409/375 -- just
