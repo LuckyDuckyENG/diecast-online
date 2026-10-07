@@ -122,7 +122,7 @@ for (const t of targets) {
   }
 
   for (const k of ['new', 'refresh', 'review', 'images']) totals[k] += sum[k];
-  if ([...notes].some(n => /ERROR|FAILED|TRUNCATED|STOPPED/.test(n))) problems.push([t.name, [...notes].join('; ')]);
+  if ([...notes].some(n => /ERROR|FAILED|TRUNCATED|STOPPED|RESPONSE LOST/.test(n))) problems.push([t.name, [...notes].join('; ')]);
 
   console.log(
     `${t.name.slice(0, 28).padEnd(28)} ${String(passes).padStart(6)} ${String(scanned).padStart(8)}` +

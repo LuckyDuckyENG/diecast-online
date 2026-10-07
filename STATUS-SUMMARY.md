@@ -36,7 +36,7 @@
 ## Where things stand
 
 ```
-cars 1554  |  models 3459  |  retailer links 6738  |  eBay links 5501  |  retailers 47  |  drivers 86
+cars 1554  |  models 3459  |  retailer links 6850  |  eBay links 5501  |  retailers 47  |  drivers 86
 slugs 1554/1554   |   images 3313/3459   |   teams 34   |   cars sellable 1443/1554
 seasons 41: 1971-1994 and 2010-2026
 ```
@@ -3743,7 +3743,23 @@ Re-cut 2026-09-28 after the catalogue source ran out, revised the same day
 once the eBay pass had run, and again on 2026-09-29. Items 1 and 7 below are
 DONE as of 2026-10-04 and left in place only so the reasoning survives.
 
-**0. ~~THE RETAILER SWEEP~~ — DONE 2026-10-07.** It landed: 2010-2012 went
+**0. ~~THE RETAILER SWEEP~~ — FINISHED 2026-10-08.** Second pass applied the
+remaining 112 links, DrivenBy's 69 included. Retailer links 6,620 -> 6,850
+across both passes. The currency question is settled by evidence: DrivenBy
+lands at 147 against peers 159/240/173/159 and 324 against 409/375 -- just
+under peer AUD every time, never a fifth, which is what the reverted "fix"
+would have produced. Orphans held at 37 and duplicate part numbers at 28.
+
+**A LOST RESPONSE IS NOT A FAILED WRITE.** Miniatures Minichamps reported
+"FAILED fetch failed" with 0 passes and had written all 14 of its links. The
+totals caught it -- links rose 112 against 98 reported, and 112-98 is exactly
+its 14 -- and a dry re-check returned 0 new. sweep-gaps.mjs now says so
+instead of reading as nothing-happened, which would invite a pointless
+re-run.
+
+Earlier note from the first pass follows.
+
+**0a. ~~THE RETAILER SWEEP~~ — DONE 2026-10-07.** It landed: 2010-2012 went
 from 0 to 73 of 78 models with a retailer link, 64 of 65 cars sellable, and
 cars sellable catalogue-wide moved 1,419 -> 1,443. 44 cars swapped their eBay
 snapshot for a real product shot BY THEMSELVES, which is the render-time
