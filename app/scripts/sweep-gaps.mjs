@@ -103,7 +103,22 @@ for (const t of targets) {
       if (passes >= MAX_PASSES) { notes.add(`STOPPED at ${MAX_PASSES} passes`); break; }
     }
   } catch (e) {
-    notes.add(`FAILED ${e.message.slice(0, 44)}`);
+    /**
+     * A LOST RESPONSE IS NOT A FAILED WRITE.
+     *
+     * Miniatures Minichamps reported "FAILED fetch failed" with 0 passes on
+     * the 2026-10-08 apply, and had in fact written all 14 of its links --
+     * the server finished the work and the response never came back. The
+     * totals gave it away: links rose by 112 against 98 reported, and 112-98
+     * is exactly its 14. A dry re-check then showed 0 new.
+     *
+     * So this must never read as "nothing happened" during an apply, or the
+     * obvious reaction is to re-run the shop. Worded to say what is actually
+     * known: the client lost the answer, the server may have completed.
+     */
+    notes.add(APPLY
+      ? `RESPONSE LOST (${e.message.slice(0, 30)}) — may have written; re-check before re-running`
+      : `FAILED ${e.message.slice(0, 44)}`);
   }
 
   for (const k of ['new', 'refresh', 'review', 'images']) totals[k] += sum[k];
