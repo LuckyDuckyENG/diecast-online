@@ -142,6 +142,13 @@ const EXCLUDE = [
    */
   [/team-champion/, "constructors' championship piece, no driver"],
   /**
+   * Michel Vaillant is a COMIC BOOK character, and "vaillantef1-with-figures-
+   * 0-michel-vaillant-f1-2003" is his fictional car sold as a collectible.
+   * No driver, no team, no race. The existing Dallara/Macau rule above already
+   * catches the F3 cars that reach here the same way.
+   */
+  [/vaillant/, 'fictional car from a comic'],
+  /**
    * Trulli's 2010 T127, left out for a naming reason rather than a factual one.
    *
    * The 2010 entrant was "Lotus Racing" (Malaysia), which is NOT the Enstone
@@ -253,6 +260,30 @@ const CHASSIS = {
    * and took the Lotus name in 2012. Filing the T127 under "Lotus" would put
    * Trulli's backmarker on the same hub as Raikkonen's E20 and Senna's 97T.
    */
+  /**
+   * 2003-2009. Three naming traps, all found by reading the slugs.
+   *
+   * One 2003 Sauber is written "sauber-c2-petronas" -- the shop dropped a
+   * digit from C22 -- so the pattern has to accept both or Frentzen's car is
+   * lost. McLaren's 2008 car appears as both "mp4-23" and "mp423". And BAR's
+   * 2005 chassis is literally called 007, which is far too loose a token to
+   * match bare, so it is anchored to the marque.
+   *
+   * Ferrari's 2006 car is the 248 F1, whose bare number would collide with any
+   * part number containing 248; anchored to the marque for the same reason.
+   */
+  2003: [[/(?:^|-)c22(?:-|$)|sauber-c2-petronas/, 'C22'], [/mp4-?18/, 'MP4-18'],
+         [/jaguar-r4(?:-|$)/, 'R4']],
+  2004: [[/(?:^|-)f2004(?:-|$)/, 'F2004'], [/mp4-?19/, 'MP4-19'],
+         [/(?:^|-)r24(?:-|$)/, 'R24'], [/fw26/, 'FW26'], [/ej14/, 'EJ14']],
+  2005: [[/mp4-?20/, 'MP4-20'], [/(?:^|-)r25(?:-|$)/, 'R25'],
+         [/bar-007(?:-|$)/, '007']],
+  2006: [[/c24b/, 'C24B'], [/(?:^|-)r26(?:-|$)/, 'R26'], [/mp4-?21/, 'MP4-21'],
+         [/ra106/, 'RA106'], [/ferrari-248(?:-|$)/, '248 F1']],
+  2007: [[/(?:^|-)f2007(?:-|$)/, 'F2007'], [/mp4-?22/, 'MP4-22']],
+  2008: [[/(?:^|-)r28(?:-|$)/, 'R28'], [/mp4-?23|mp423/, 'MP4-23'],
+         [/(?:^|-)str3(?:-|$)/, 'STR3'], [/(?:^|-)f1-?08(?:-|$)|(?:^|-)f108(?:-|$)/, 'F1.08']],
+  2009: [[/bgp-?001/, 'BGP001']],
   2010: [[/(?:^|-)rb6(?![0-9])/, 'RB6'], [/(?:^|-)c29(?:-|$)/, 'C29'],
          [/str5(?![0-9])/, 'STR5'], [/hrt-f1-?10|(?:^|-)f110(?:-|$)/, 'F110'],
          [/(?:^|-)f10(?:-|$)/, 'F10'], [/fw32/, 'FW32'], [/vr-?01/, 'VR-01']],
@@ -415,6 +446,19 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 2003-2009. RA106 is filed under Honda, not BAR: the team was Honda Racing
+  // by 2006 and the "bar-ra106-honda" slugs are the shop being loose with a
+  // name that had already changed. BAR keeps the 2005 chassis, the 007.
+  // F1.08 is BMW Sauber, which findTeam resolves to the Sauber lineage by era
+  // rather than needing a row of its own -- the same treatment Alfa Romeo and
+  // Kick Sauber get, and the reason it does not collide the way Lotus did.
+  C22: 'Sauber', 'MP4-18': 'McLaren', R4: 'Jaguar',
+  F2004: 'Ferrari', 'MP4-19': 'McLaren', R24: 'Renault', FW26: 'Williams', EJ14: 'Jordan',
+  'MP4-20': 'McLaren', R25: 'Renault', '007': 'BAR',
+  C24B: 'Sauber', R26: 'Renault', 'MP4-21': 'McLaren', RA106: 'Honda', '248 F1': 'Ferrari',
+  F2007: 'Ferrari', 'MP4-22': 'McLaren',
+  R28: 'Renault', 'MP4-23': 'McLaren', STR3: 'Toro Rosso', 'F1.08': 'Sauber',
+  BGP001: 'Brawn GP',
   // 2002. Minardi and Toyota are new team rows; Ferrari resolves to the
   // existing "Scuderia Ferrari" through teamMappings.
   F2002: 'Ferrari', PS02: 'Minardi', TF102: 'Toyota',
@@ -543,6 +587,20 @@ const DRIVERS = {
    * imported.
    */
   'michael-schumacher': 'Michael Schumacher',
+  /**
+   * 2003-2009. One of these carries the same father-and-son trap as
+   * Schumacher: JACQUES Villeneuve tested the BMW Sauber C24B in 2006, and
+   * the catalogue already holds GILLES Villeneuve's whole career. SURNAMES is
+   * sorted longest-first so the full-name key wins, exactly as it does for
+   * Michael against Mick -- a bare "villeneuve" here would have filed the
+   * 2006 test car under a driver who died in 1982.
+   */
+  'jacques-villeneuve': 'Jacques Villeneuve',
+  coulthard: 'David Coulthard', frentzen: 'Heinz-Harald Frentzen',
+  pizzonia: 'Antonio Pizzonia', montoya: 'Juan Pablo Montoya',
+  wurz: 'Alexander Wurz', sato: 'Takuma Sato',
+  fisichella: 'Giancarlo Fisichella', zanardi: 'Alessandro Zanardi',
+  bourdais: 'Sebastien Bourdais',
   /**
    * 2010-2011. Three teams at the back of the 2010 grid that existed for only
    * a season or two, and the midfield that preceded the names this catalogue
