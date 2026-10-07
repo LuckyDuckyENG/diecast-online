@@ -36,8 +36,8 @@
 ## Where things stand
 
 ```
-cars 1550  |  models 3441  |  retailer links 6620  |  eBay links 5501  |  retailers 47  |  drivers 86
-slugs 1550/1550   |   images 3214/3441   |   teams 34
+cars 1554  |  models 3459  |  retailer links 6738  |  eBay links 5501  |  retailers 47  |  drivers 86
+slugs 1554/1554   |   images 3313/3459   |   teams 34   |   cars sellable 1443/1554
 seasons 41: 1971-1994 and 2010-2026
 ```
 
@@ -3386,6 +3386,51 @@ the 131 cars outside both (1,550 - 1,419) are not a linking problem but a
 coverage one — a single retailer link moves a car into a hub and the sitemap
 together. See the retailer-sweep case below.
 
+## Two scales, 82 rows, and 37 cars that cannot be seen — 2026-10-07
+
+A row's part number goes into `sku_1_18` or `sku_1_43` and nowhere else, so a
+1:12, 1:24 or 1:64 product emitted a row with BOTH columns empty. sync-csv
+creates the car before its models, so an empty row produces **a car with no
+models at all**.
+
+`build-driver-csv` gained this guard when a Prost 1:64 did it. It was never
+carried across to `build-modern-csv`. The barcode fix then pulled three more
+in, caught by the pre-import check as rows with no SKU -- not by reading the
+code, which looked fine.
+
+**82 such rows had already passed through imports that ran and were
+reconciled:**
+
+```
+2023  40x1:64 + 11x1:12          = 51   (417 -> 366 rows)
+2022  14x1:64 + 7x1:12 + 2x1:24  = 23   (327 -> 304)
+2021  4x1:12 + 1x1:64            =  5   (258 -> 253)
+2020  2x1:12                     =  2   (198 -> 196)
+2016  2x1:64 + 1x1:12            =  3   (132 -> 129)
+2014  1x1:12                     =  1   (56 -> 55)
+```
+
+**So the regression table used all week was never a clean baseline** -- it
+counted rows that could not become models. Those are the corrected figures.
+
+The database holds **37 cars with no models**, concentrated in exactly those
+seasons: 2023:16, 2021:7, 2020:7, 2022:6, 1980:1. The guard prevents more; it
+does not clean these up. Note not every orphan comes from this -- sync-csv
+also leaves one when a car's every SKU already exists.
+
+**Whether the catalogue SHOULD hold 1:64 is a real and separate question.**
+40 such products exist for 2023 alone, 14 for 2022. Adding a third scale
+column is a schema change plus a pass over every generator; dropping them is
+what happens today. Worth deciding rather than defaulting.
+
+### 2015 and 2016 imported — +18 models
+
+The barcode fix made real: 2015 83 -> 93 rows, 2016 124 -> 129. Imported
+clean as 4 cars and 18 models, taking the catalogue to **1,554 / 3,459**.
+Orphans stayed at 37, no model lacks a SKU, and none of the 28 catalogue-wide
+duplicate part numbers involves a new row -- those are pre-existing, as the
+comment in sync-csv already notes.
+
 ## The SKU hidden behind a barcode — 2026-10-07
 
 Some slugs end with the EAN rather than the part number, and the fetcher only
@@ -3698,7 +3743,21 @@ Re-cut 2026-09-28 after the catalogue source ran out, revised the same day
 once the eBay pass had run, and again on 2026-09-29. Items 1 and 7 below are
 DONE as of 2026-10-04 and left in place only so the reasoning survives.
 
-**0. THE RETAILER SWEEP. Tooling now exists: `node scripts/sweep-gaps.mjs
+**0. ~~THE RETAILER SWEEP~~ — DONE 2026-10-07.** It landed: 2010-2012 went
+from 0 to 73 of 78 models with a retailer link, 64 of 65 cars sellable, and
+cars sellable catalogue-wide moved 1,419 -> 1,443. 44 cars swapped their eBay
+snapshot for a real product shot BY THEMSELVES, which is the render-time
+fallback working as designed -- had those photos been written to image_url,
+the permanent first-write guard would have refused every clean shot the sweep
+produced. eBay fallback is down to 9 cars from 53.
+
+Not finished though: links rose 118 against the 226 predicted, and DrivenBy
+still holds ONE link, so its 69 were never written. Roughly 108 new links
+remain available from a second pass.
+
+Original note follows.
+
+**0b. THE RETAILER SWEEP, original note. Tooling exists: `node scripts/sweep-gaps.mjs
 --apply` (needs a dev server; the admin proxy is open in dev). The dry run has
 been reproduced exactly twice: 226 new links, 623 for review, 98 images, and
 76 of 78 models in 2010-2012 getting their FIRST retailer link. STILL NOT
