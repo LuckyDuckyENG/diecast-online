@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-10-08
+# Status Summary — last updated 2026-10-09
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -36,8 +36,8 @@
 ## Where things stand
 
 ```
-cars 1615  |  models 3540  |  retailer links 6850  |  eBay links 5501  |  retailers 47  |  drivers 86
-slugs 1615/1615   |   images 3313/3459   |   teams 34   |   cars sellable 1443/1554
+cars 1625  |  models 3615  |  retailer links 6850  |  eBay links 5501  |  retailers 47  |  drivers 86
+slugs 1625/1625   |   images 3313/3459   |   teams 34   |   cars sellable 1443/1554
 seasons 49: 1971-1994 and 2002-2026
 ```
 
@@ -3467,6 +3467,84 @@ output before and against after -- NOT by reading the code, which looked fine.
 which the fetcher already records as `pageRef`. So the fix is to stop
 inferring from the URL and read the stated part number. Untested, and worth
 proving on one season before believing any figure for it.
+
+## The SKU that spans a hyphen — 2026-10-09
+
+Some part numbers straddle the last hyphen, so splitting on it cut them in
+half and the product was discarded entirely:
+
+```
+...-rene-arnoux-brumm-r143-ch          SKU is R143-CH
+...-guanyu-zhou-bburago-bu38085-24     SKU is BU38085-24
+```
+
+**78 rows recovered, imported as 10 cars and 75 models.** Catalogue 1,540 ->
+1,625 cars and 3,459 -> 3,615 models over the two passes. 2022 and 2023
+created NO cars at all -- 39 models attached to cars that already existed,
+which is why this ran ahead of another season import.
+
+```
+2002  8->12  2004 15->17  2005 14->15  2006 22->23  2009 5->6
+2022 304->326  2023 366->387
+lauda 87->89  prost 70->71  villeneuve 76->100  mansell 64->64
+```
+
+### The page is the authority, not the join
+
+The join is right for R143-CH and BU38085-24, but the same slug shape catches
+`...-spark-s4601-upd`, where "upd" means updated and the part number is s4601.
+A 'joined' slug takes the SKU the page declares in JSON-LD and is dropped when
+the page states nothing.
+
+### Additive only, because measuring killed the obvious version
+
+The plan was to prefer the page-declared SKU everywhere. Across all 27 caches
+it differs from the URL one on **109 of 2,762 records** -- the page prepends a
+line code, "coll061" against "edicola-coll061". Switching wholesale would have
+rewritten 109 part numbers on models ALREADY IMPORTED and duplicated every one
+on the next run. So the page is consulted only where the URL yields nothing:
+verified across 35,767 slugs, **0 existing picks changed**.
+
+It also fixes the Bburago collision properly instead of dodging it. Zhou and
+Bottas hold BU38085-24 and BU38085-77 rather than both claiming bu38085, which
+would have put one car's prices on the other's page.
+
+### Four cars the review queue found
+
+Toyota's **TF104B** and Ferrari's **F2005** were missing from the chassis maps
+entirely. Ferrari's 248 is written "f248" as well as "ferrari-248". And the
+F1-75 "launch version" names no driver, so it joins the presentation rule.
+CMR added as a maker, in the generator and the table -- it was holding back a
+Brawn BGP001.
+
+### THE THIRD SCALE IS NOW TWO SCALES, AND A REAL DECISION
+
+The recovery surfaced a line the catalogue cannot hold. Mansell gained
+NOTHING from this fix, and the reason is not parsing:
+
+```
+villeneuve  122 products, kept 110, excluded 12   all 1:12
+mansell      79 products, kept  65, excluded 14   all 1:12
+```
+
+Those SKUs -- GP12-20C, GP12-19A, GP12-22B -- are exactly the joined-shape
+part numbers this fix recovered. It found them and the two-scale guard then
+refused them, correctly, because there is no column. So the open question is
+no longer just 1:64 for modern seasons (40 products in 2023 alone) but a
+GP Replicas 1:12 line across the historic Ferraris as well.
+
+### 140 models for drivers not yet held
+
+Of 203 recoverable pre-1995 models, 121 are in seasons already held but only
+63 belong to drivers already imported, and Senna's 7 need a config block --
+he predates the generalised build-driver-csv.
+
+The other **140 are almost entirely Brumm Ferraris**: 312B for Ickx and
+Giunti, 158 for Surtees, 312 for Amon, 126C4 for Arnoux and Alboreto. One
+maker, one marque, 1964 to 1984. That is arguably a single coherent project
+rather than seven driver imports, and it would open the 1960s, where the
+catalogue holds nothing. Invisible until today, because the SKU shape hid
+them -- the same shape of lesson as the source floor being 2010 and not 2013.
 
 ## The 2000s imported, 1995-2001 is the last hole — 2026-10-08
 
