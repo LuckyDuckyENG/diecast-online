@@ -112,8 +112,14 @@ const EXCLUDE = [
    * car and would be imported as one by a 2010 run, under Renault.
    */
   [/(?:^|-)r30(?:-|$)[a-z0-9-]*test/, 'old car at a test session'],
-  /** Not race cars: a launch presentation and a concept study. */
-  [/(?:^|-)presentation(?:-|$)|concept-study|(?:^|-)concept(?:-|$)/, 'presentation or concept'],
+  /**
+   * A launch car names no driver, because at a launch there is not one yet.
+   * "ferrari-f1-75-launch-version-f1-2022-looksmart-lsf1040" is the car as
+   * shown in February, in launch livery. Same class as a presentation: a real
+   * product with nobody to attribute it to, and every car here belongs to a
+   * driver.
+   */
+  [/(?:^|-)presentation(?:-|$)|concept-study|(?:^|-)concept(?:-|$)|launch-version/, 'presentation, concept or launch car'],
   /**
    * Road cars again, this time as team merchandise: a Ferrari 488 Pista in
    * "piloti" colours, a McLaren 600LT "f1-team-tribute". Both carry F1 wording
@@ -275,11 +281,12 @@ const CHASSIS = {
   2003: [[/(?:^|-)c22(?:-|$)|sauber-c2-petronas/, 'C22'], [/mp4-?18/, 'MP4-18'],
          [/jaguar-r4(?:-|$)/, 'R4']],
   2004: [[/(?:^|-)f2004(?:-|$)/, 'F2004'], [/mp4-?19/, 'MP4-19'],
-         [/(?:^|-)r24(?:-|$)/, 'R24'], [/fw26/, 'FW26'], [/ej14/, 'EJ14']],
+         [/(?:^|-)r24(?:-|$)/, 'R24'], [/fw26/, 'FW26'], [/ej14/, 'EJ14'],
+         [/tf104b?/, 'TF104B']],
   2005: [[/mp4-?20/, 'MP4-20'], [/(?:^|-)r25(?:-|$)/, 'R25'],
-         [/bar-007(?:-|$)/, '007']],
+         [/bar-007(?:-|$)/, '007'], [/(?:^|-)f2005(?:-|$)/, 'F2005']],
   2006: [[/c24b/, 'C24B'], [/(?:^|-)r26(?:-|$)/, 'R26'], [/mp4-?21/, 'MP4-21'],
-         [/ra106/, 'RA106'], [/ferrari-248(?:-|$)/, '248 F1']],
+         [/ra106/, 'RA106'], [/ferrari-f?248(?:-|$)/, '248 F1']],
   2007: [[/(?:^|-)f2007(?:-|$)/, 'F2007'], [/mp4-?22/, 'MP4-22']],
   2008: [[/(?:^|-)r28(?:-|$)/, 'R28'], [/mp4-?23|mp423/, 'MP4-23'],
          [/(?:^|-)str3(?:-|$)/, 'STR3'], [/(?:^|-)f1-?08(?:-|$)|(?:^|-)f108(?:-|$)/, 'F1.08']],
@@ -454,6 +461,7 @@ const CHASSIS_TEAM = {
   // Kick Sauber get, and the reason it does not collide the way Lotus did.
   C22: 'Sauber', 'MP4-18': 'McLaren', R4: 'Jaguar',
   F2004: 'Ferrari', 'MP4-19': 'McLaren', R24: 'Renault', FW26: 'Williams', EJ14: 'Jordan',
+  TF104B: 'Toyota', F2005: 'Ferrari',
   'MP4-20': 'McLaren', R25: 'Renault', '007': 'BAR',
   C24B: 'Sauber', R26: 'Renault', 'MP4-21': 'McLaren', RA106: 'Honda', '248 F1': 'Ferrari',
   F2007: 'Ferrari', 'MP4-22': 'McLaren',
@@ -638,6 +646,10 @@ const MAKERS = {
   // Makers that first appear in the older seasons.
   autoart: 'AutoArt', exoto: 'Exoto', '-spar-': 'Spark', quartzo: 'Quartzo', vitesse: 'Vitesse',
   matrix: 'Matrix', brumm: 'Brumm', amalgam: 'Amalgam',
+  // CMR is Classic Model Replicars. Added 2026-10-09 with the matching
+  // manufacturers row -- it was holding back a Brawn BGP001, the only one of
+  // the six 2009 products this maker carries.
+  cmr: 'CMR',
 };
 
 const chassisFor = CHASSIS[year];

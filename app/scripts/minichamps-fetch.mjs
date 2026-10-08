@@ -98,38 +98,44 @@ const okSku = t => /^[0-9a-z]{4,20}$/i.test(t) && /\d/.test(t) && !/^\d{4}$/.tes
 /**
  * The part number, which is USUALLY the last slug token but not always.
  *
- * Plenty of slugs end with the EAN barcode instead:
+ * Returns { sku, shape } so the caller knows how much to trust it:
  *
- *   ...-nico-rosberg-spark-s4601-9580006946010            SKU is s4601
- *   ...-sebastian-vettel-looksmart-ls18f101-9580006150035 SKU is ls18f101
+ *   'tail'   the last token is the SKU. The overwhelming majority.
+ *   'ean'    the last token is a 13-digit barcode; the SKU is the one before.
+ *              ...-nico-rosberg-spark-s4601-9580006946010   -> s4601
+ *   'joined' the last token is a short suffix and the SKU SPANS THE HYPHEN.
+ *              ...-rene-arnoux-brumm-r143-ch                -> R143-CH
+ *              ...-guanyu-zhou-bburago-bu38085-24           -> bu38085-24
  *
- * okSku rightly refuses a 13-digit number, but this only ever tested the LAST
- * token, so the whole product was discarded rather than stepping back one.
+ * 'joined' is a GUESS and must be confirmed by the page, which is why the
+ * shape is returned rather than just a string. Probed against six live pages
+ * on 2026-10-08 the join matched the declared SKU exactly every time -- but
+ * the shape also captures things it should not, like "...-spark-s4601-upd",
+ * where "upd" means updated and the real part number is s4601. Only the page
+ * can tell those apart, so the caller prefers the declared value and drops the
+ * product when the page states nothing.
  *
- * ONLY A 13-DIGIT TAIL IS STEPPED OVER, and that precision is the whole point.
- * A first attempt stepped back whenever the last token failed okSku, which
- * silently broke a different slug shape -- Bburago writes the DRIVER'S CAR
- * NUMBER last:
- *
- *   ...-guanyu-zhou-f1-2023-bburago-bu38085-24
- *   ...-valtteri-bottas-f1-2023-bburago-bu38085-77
- *
- * Stepping back there drops the discriminator and hands both products the SKU
- * "bu38085", so two different models collide on one part number. Rejecting
- * them, as before, is wrong but harmless; accepting them under a shared SKU
- * would put one model's prices on another model's page. Those stay rejected
- * until something can read "bu38085-24" as the part number it is.
- *
- * Returns null when neither token qualifies, which is the old reject.
+ * NOT USED FOR THE OTHER SHAPES. Measured across all 27 caches, the declared
+ * SKU differs from the URL one on 109 of 2,762 records -- the page prepends a
+ * line code, "coll061" against "edicola-coll061". Preferring the page value
+ * everywhere would rewrite 109 part numbers on models already imported and
+ * duplicate every one of them on the next run. So this stays additive: the
+ * page is consulted only where the URL yields nothing.
  */
 const EAN = /^\d{13}$/;
 const skuFromSlug = slug => {
   const t = slug.split('-');
   const last = t[t.length - 1];
-  if (okSku(last)) return last;
-  // Step back for a barcode and nothing else.
-  if (EAN.test(last) && t.length > 1 && okSku(t[t.length - 2])) return t[t.length - 2];
-  return null;
+  const prev = t.length > 1 ? t[t.length - 2] : null;
+  if (okSku(last)) return { sku: last, shape: 'tail' };
+  if (EAN.test(last) && prev && okSku(prev)) return { sku: prev, shape: 'ean' };
+  // A short alphanumeric suffix after something already part-number shaped.
+  // Requiring okSku(prev) is what keeps "monaco-2005" out: "monaco" has no
+  // digit, so it never qualifies as the first half of a part number.
+  if (prev && okSku(prev) && /^[0-9a-z]{1,3}$/i.test(last)) {
+    return { sku: `${prev}-${last}`, shape: 'joined' };
+  }
+  return { sku: null, shape: null };
 };
 
 const locs = xml =>
@@ -146,7 +152,7 @@ const targets = urls.filter(u => {
   if (!slug.includes(term.toLowerCase())) return false;
   if (!(/\bf1\b|formula-1|formule-1/.test(slug) || /^f1-/.test(cat))) return false;
   if (NOT_A_CAR(slug) || WRONG.test(slug) || SET.test(slug)) return false;
-  return !!skuFromSlug(slug);
+  return !!skuFromSlug(slug).sku;
 }).slice(0, limit);
 
 console.log(`"${term}": ${targets.length} product pages to read (delay ${DELAY_MS}ms)\n`);
@@ -225,7 +231,17 @@ for (const [i, u] of targets.entries()) {
   const ld = readJsonLd(html);
   out.push({
     slug,
-    urlSku: skuFromSlug(slug),
+    /**
+     * For a 'joined' slug the URL guess is unreliable, so the page's own
+     * declaration wins and the product is dropped when the page is silent.
+     * Every other shape keeps the URL value untouched -- see skuFromSlug.
+     */
+    urlSku: (() => {
+      const { sku, shape } = skuFromSlug(slug);
+      if (shape !== 'joined') return sku;
+      const declared = String(ld?.sku || '').trim();
+      return declared || null;
+    })(),
     pageRef: ld?.sku || null,
     scale: readScale(html),
     inStock: ld?.inStock ?? null,
