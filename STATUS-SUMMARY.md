@@ -3517,10 +3517,16 @@ F1-75 "launch version" names no driver, so it joins the presentation rule.
 CMR added as a maker, in the generator and the table -- it was holding back a
 Brawn BGP001.
 
-### THE THIRD SCALE IS NOW TWO SCALES, AND A REAL DECISION
+### DECIDED 2026-10-09: 1:18 AND 1:43 ONLY
 
-The recovery surfaced a line the catalogue cannot hold. Mansell gained
-NOTHING from this fix, and the reason is not parsing:
+1:12 and 1:64 stay out. Not an oversight to revisit -- a decision, so the
+drop reason in build-modern-csv and build-driver-csv is the final word and
+nobody needs to re-measure this.
+
+What it costs, stated so the cost is known rather than discovered later: 40
+products in 2023 alone, 14 in 2022, and a GP Replicas 1:12 line across the
+historic Ferraris. Mansell gained NOTHING from the hyphen fix for this reason,
+and it is not parsing:
 
 ```
 villeneuve  122 products, kept 110, excluded 12   all 1:12
@@ -3529,9 +3535,7 @@ mansell      79 products, kept  65, excluded 14   all 1:12
 
 Those SKUs -- GP12-20C, GP12-19A, GP12-22B -- are exactly the joined-shape
 part numbers this fix recovered. It found them and the two-scale guard then
-refused them, correctly, because there is no column. So the open question is
-no longer just 1:64 for modern seasons (40 products in 2023 alone) but a
-GP Replicas 1:12 line across the historic Ferraris as well.
+refused them, which is now the intended behaviour rather than a gap.
 
 ### 140 models for drivers not yet held
 
