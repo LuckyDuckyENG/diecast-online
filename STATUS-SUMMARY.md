@@ -36,9 +36,9 @@
 ## Where things stand
 
 ```
-cars 1625  |  models 3615  |  retailer links 6850  |  eBay links 5501  |  retailers 47  |  drivers 86
-slugs 1625/1625   |   images 3313/3459   |   teams 34   |   cars sellable 1443/1554
-seasons 49: 1971-1994 and 2002-2026
+cars 1745  |  models 3835  |  retailer links 6850  |  eBay links 5501  |  retailers 47  |  drivers 86
+slugs 1745/1745   |   images 3313/3459   |   teams 34   |   cars sellable 1443/1554
+seasons 56: 1971-2026, UNBROKEN
 ```
 
 The per-year visible table below is from 2026-09-29 and does NOT include the
@@ -3467,6 +3467,81 @@ output before and against after -- NOT by reading the code, which looked fine.
 which the fetcher already records as `pageRef`. So the fix is to stop
 inferring from the URL and read the stated part number. Untested, and worth
 proving on one season before believing any figure for it.
+
+## 1995-2001 imported — the run is unbroken, 1971-2026 — 2026-10-09
+
+```
+1995 28 cars  1996 28  1997 13  1998 15  1999 9  2000 10  2001 17
+= 120 cars, 220 models. Catalogue 1,745 / 3,835. 56 consecutive seasons.
+```
+
+The 15-year hole between 1994 and 2002 is closed.
+
+### The largest contaminant in any season, and it is not close
+
+**54 products across 1995-1998 are the McLaren F1 GTR** -- a GT endurance
+racer that won Le Mans in 1995, not a Formula 1 car. It clears every F1 filter
+because the road car it is built from is LITERALLY NAMED "McLaren F1", so the
+slug says f1 and means something else:
+
+```
+mclaren-f1-gtr-...     ×16 1995 · ×22 1996 · ×8 1997 · ×5 1998
+mclaren-f1-59          the Le Mans winner's race number
+```
+
+About a fifth of the whole block. Safe to match on the marque-plus-f1 prefix,
+because McLaren's real cars are never written that way -- they are
+"mclaren-mercedes-mp4-11" or "mclarenmercedes-mp4-12".
+
+Also a **TRUCK**: "iveco-stralis-koffer-sz-scuderia-ferrari-f1-team-2000" is
+the team transporter, and it carries "f1-team".
+
+### This era hyphenates inconsistently
+
+`ferrari-412-t2`, `ferrari-412t2` and `ferrari412-t2` are one car.
+`williamsrenault-fw18` sits beside `williams-renault-fw18`. F310B is tested
+BEFORE F310 or the 1997 car reads as the 1996 one.
+
+Tyrrell's 023/024, Jordan's 196/198/199, Jaguar's R2 and BAR's 002 are all
+anchored to the marque. A free-floating "023" or "r2" matches part numbers
+catalogue-wide.
+
+### Two father-and-son keys, exactly as this file predicted
+
+The DRIVERS note had already named the trap waiting on Rosberg, Verstappen,
+Magnussen and Piquet. Two of them arrived:
+
+- **JOS Verstappen** drove the Ligier JS41 at a 1996 tyre test, and Max is
+  already here with 109 cars.
+- **DAMON Hill** is the 1996 champion, and **Graham Hill is still to be
+  imported** -- 16 reference rows and the way into the 1960s. A bare "hill"
+  would misfile a whole career the day he lands.
+
+Verified after import: Max still holds 109 cars across 2015-2026, and Damon
+holds 6 across 1996-1998 -- Williams, Arrows, Jordan, his actual path after
+the title.
+
+The JS41 is a 1995 car carrying 1995 as its native year, so a 1995 run still
+imports the real race cars. Same shape as the STR7 and the R30.
+
+Burti's slug reads "luciano-pucci-burti"; Pucci is a middle name.
+
+### Reference rows
+
+Seasons 1995-2001. **Eight teams that no longer exist in any form**: Benetton,
+Ligier, Tyrrell, Arrows, Prost, Stewart, Simtek, Forti. Eighteen drivers.
+Fujimi as a maker. All eight team names collision-checked both directions.
+
+**"Prost" is a team here AND a driver surname already held.** Separate tables
+so no lookup collision, but the generator reads both from the same slug, which
+is why this was imported and verified per season rather than in bulk.
+
+### Also right: the Coulthard taxi
+
+`mclaren-mercedes-mp4-16-with-mika-hakkinen-riding-4-david-coulthard` parsed
+as COULTHARD at the Spanish GP, which is correct -- Hakkinen was the
+passenger after his car failed. Two driver names in one slug and it picked
+the one who was driving.
 
 ## The SKU that spans a hyphen — 2026-10-09
 
