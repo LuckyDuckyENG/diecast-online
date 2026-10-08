@@ -105,6 +105,13 @@ const EXCLUDE = [
    */
   [/(?:^|-)str7(?:-|$)/, 'old car at a test session', 2012],
   /**
+   * Ligier's JS41 is a 1995 car. It appears dated 1996 because Jos Verstappen
+   * ran it at a Suzuka tyre test that year. Same shape as the STR7 and the
+   * R30, and carrying 1995 as its native year means a 1995 run still imports
+   * the real race cars.
+   */
+  [/ligier[a-z-]*-js41/, 'old car at a tyre test', 1995],
+  /**
    * Lotus ran the 2010 Renault R30 for private testing in 2012, which is how
    * Raikkonen prepared for his return. Same shape as the STR7 and the SF71H:
    * a two-year-old chassis at a later test, so the slug's year belongs to the
@@ -146,6 +153,26 @@ const EXCLUDE = [
    * so there is nowhere to put it — and inventing one would attribute a
    * constructors' title to whichever name got picked.
    */
+  /**
+   * THE McLAREN F1 GTR IS NOT A FORMULA 1 CAR.
+   *
+   * It is a GT endurance racer built from the McLaren F1 road car, and it won
+   * Le Mans in 1995. It sails through every F1 filter because the road car is
+   * LITERALLY NAMED "McLaren F1", so the slug says f1 and means something
+   * else: "mclaren-f1-gtr-...", and "mclaren-f1-59" is the Le Mans winner's
+   * race number.
+   *
+   * 54 products across 1995-1998, about a fifth of that whole block, and the
+   * single largest contaminant found in any season. Safe to match on the
+   * marque-plus-f1 prefix because McLaren's actual F1 cars are never written
+   * that way -- they are "mclaren-mercedes-mp4-11" or "mclarenmercedes-mp4-12".
+   */
+  [/mclaren-f1-/, 'McLaren F1 GTR, a GT car not an F1 car'],
+  /**
+   * A TRUCK. "iveco-stralis-koffer-sz-scuderia-ferrari-f1-team-2000" is the
+   * team's race transporter, which carries "f1-team" and so reaches here.
+   */
+  [/iveco|stralis/, 'team transporter truck'],
   [/team-champion/, "constructors' championship piece, no driver"],
   /**
    * Michel Vaillant is a COMIC BOOK character, and "vaillantef1-with-figures-
@@ -266,6 +293,35 @@ const CHASSIS = {
    * and took the Lotus name in 2012. Filing the T127 under "Lotus" would put
    * Trulli's backmarker on the same hub as Raikkonen's E20 and Senna's 97T.
    */
+  /**
+   * 1995-2001. This era hyphenates inconsistently, so the chassis token has to
+   * tolerate it: "ferrari-412-t2", "ferrari-412t2" and "ferrari412-t2" are one
+   * car, and "williamsrenault-fw18" sits beside "williams-renault-fw18".
+   *
+   * F310B is tested BEFORE F310 or the 1997 car reads as the 1996 one.
+   *
+   * Three tokens are far too loose to match bare and are anchored to the
+   * marque: Tyrrell's 023 and 024, Jordan's 196/198/199, Jaguar's R2, and
+   * BAR's 002. A free-floating "023" or "r2" would match part numbers all
+   * over the catalogue.
+   *
+   * Ferrari's 2000 car is literally called the F1-2000, which is the one
+   * chassis name in this file that contains both "f1" and a year.
+   */
+  1995: [[/412-?t2/, '412T2'], [/(?:^|-)b195(?:-|$)/, 'B195'], [/js41/, 'JS41'],
+         [/tyrrell[a-z-]*-023/, '023'], [/s951/, 'S951']],
+  1996: [[/f310b/, 'F310B'], [/f310/, 'F310'], [/fw18/, 'FW18'], [/mp4-?11/, 'MP4-11'],
+         [/b196/, 'B196'], [/js43/, 'JS43'], [/jordan[a-z-]*-196(?:-|$)/, '196'],
+         [/tyrrell[a-z-]*-024/, '024'], [/fg01/, 'FG01']],
+  1997: [[/f310b/, 'F310B'], [/fw19/, 'FW19'], [/(?:^|-)c16(?:-|$)/, 'C16'],
+         [/mp4-?12/, 'MP4-12'], [/(?:^|-)a18(?:-|$)/, 'A18']],
+  1998: [[/mp4-?13/, 'MP4-13'], [/jordan[a-z-]*-198(?:-|$)|198-mugen/, '198'],
+         [/f300/, 'F300'], [/ap01/, 'AP01']],
+  1999: [[/mp4-?14/, 'MP4-14'], [/f399/, 'F399'],
+         [/jordan[a-z-]*-199(?:-|$)|199-mugen/, '199'], [/(?:^|-)sf3(?:-|$)/, 'SF3']],
+  2000: [[/f1-2000/, 'F1-2000'], [/mp4-?15/, 'MP4-15'], [/bar[a-z-]*-002|002-honda/, '002']],
+  2001: [[/ps01/, 'PS01'], [/mp4-?16/, 'MP4-16'], [/f2001/, 'F2001'],
+         [/(?:^|-)c20(?:-|$)/, 'C20'], [/fw23/, 'FW23'], [/jaguar[a-z-]*-r2(?:-|$)/, 'R2']],
   /**
    * 2003-2009. Three naming traps, all found by reading the slugs.
    *
@@ -453,6 +509,16 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 1995-2001. Eight teams that no longer exist in any form.
+  '412T2': 'Ferrari', B195: 'Benetton', JS41: 'Ligier', '023': 'Tyrrell', S951: 'Simtek',
+  F310: 'Ferrari', FW18: 'Williams', 'MP4-11': 'McLaren', B196: 'Benetton',
+  JS43: 'Ligier', '196': 'Jordan', '024': 'Tyrrell', FG01: 'Forti',
+  F310B: 'Ferrari', FW19: 'Williams', C16: 'Sauber', 'MP4-12': 'McLaren', A18: 'Arrows',
+  'MP4-13': 'McLaren', '198': 'Jordan', F300: 'Ferrari', AP01: 'Prost',
+  'MP4-14': 'McLaren', F399: 'Ferrari', '199': 'Jordan', SF3: 'Stewart',
+  'F1-2000': 'Ferrari', 'MP4-15': 'McLaren', '002': 'BAR',
+  PS01: 'Minardi', 'MP4-16': 'McLaren', F2001: 'Ferrari', C20: 'Sauber',
+  FW23: 'Williams', R2: 'Jaguar',
   // 2003-2009. RA106 is filed under Honda, not BAR: the team was Honda Racing
   // by 2006 and the "bar-ra106-honda" slugs are the shop being loose with a
   // name that had already changed. BAR keeps the 2005 chassis, the 007.
@@ -604,6 +670,26 @@ const DRIVERS = {
    * 2006 test car under a driver who died in 1982.
    */
   'jacques-villeneuve': 'Jacques Villeneuve',
+  /**
+   * 1995-2001. Two FULL-NAME keys here, both for the father-and-son trap the
+   * note above predicts.
+   *
+   * JOS Verstappen drove the Ligier JS41 at a 1996 tyre test, and Max is
+   * already in the catalogue. DAMON Hill is the 1996 champion, and Graham Hill
+   * is still to be imported -- 16 reference rows and the way into the 1960s --
+   * so a bare "hill" would quietly misfile a whole career the day he lands.
+   * SURNAMES sorts longest-first, so the full-name keys win.
+   *
+   * Burti's slug reads "luciano-pucci-burti": Pucci is a middle name, so the
+   * surname key is burti.
+   */
+  'jos-verstappen': 'Jos Verstappen', 'damon-hill': 'Damon Hill',
+  hakkinen: 'Mika Hakkinen', irvine: 'Eddie Irvine', alesi: 'Jean Alesi',
+  berger: 'Gerhard Berger', herbert: 'Johnny Herbert', panis: 'Olivier Panis',
+  salo: 'Mika Salo', katayama: 'Ukyo Katayama', brundle: 'Martin Brundle',
+  diniz: 'Pedro Diniz', larini: 'Nicola Larini', zonta: 'Ricardo Zonta',
+  tarquini: 'Gabriele Tarquini', schiattarella: 'Domenico Schiattarella',
+  montermini: 'Andrea Montermini', burti: 'Luciano Burti', marques: 'Tarso Marques',
   coulthard: 'David Coulthard', frentzen: 'Heinz-Harald Frentzen',
   pizzonia: 'Antonio Pizzonia', montoya: 'Juan Pablo Montoya',
   wurz: 'Alexander Wurz', sato: 'Takuma Sato',
@@ -650,6 +736,8 @@ const MAKERS = {
   // manufacturers row -- it was holding back a Brawn BGP001, the only one of
   // the six 2009 products this maker carries.
   cmr: 'CMR',
+  // One product: a 1995 Ferrari 412T2 test car.
+  fujimi: 'Fujimi',
 };
 
 const chassisFor = CHASSIS[year];
