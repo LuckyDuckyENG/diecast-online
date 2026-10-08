@@ -36,8 +36,8 @@
 ## Where things stand
 
 ```
-cars 1745  |  models 3835  |  retailer links 6850  |  eBay links 5501  |  retailers 47  |  drivers 86
-slugs 1745/1745   |   images 3313/3459   |   teams 34   |   cars sellable 1443/1554
+cars 1853  |  models 4004  |  retailer links 6850  |  eBay links 5501  |  retailers 47  |  drivers 86
+slugs 1853/1853   |   images 3313/3459   |   teams 34   |   cars sellable 1443/1554
 seasons 56: 1971-2026, UNBROKEN
 ```
 
@@ -3467,6 +3467,94 @@ output before and against after -- NOT by reading the code, which looked fine.
 which the fetcher already records as `pageRef`. So the fix is to stop
 inferring from the URL and read the stated part number. Untested, and worth
 proving on one season before believing any figure for it.
+
+## 1979-1980 imported, and three bugs the verification caught — 2026-10-09
+
+```
+1979  13 -> 82 cars · 143 models      1980  10 -> 49 cars · 75 models
+108 cars, 169 models. Catalogue 1,853 / 4,004.
+```
+
+These seasons were IN RANGE and looked done. They held 13 and 10 cars because
+the driver imports only ever brought in the five drivers covered -- the rest
+of the grid, fourteen constructors a season, had never been imported.
+
+### 1. THE SAUBER ERA-MAPPING HAD NO FLOOR
+
+`y <= 2017` is true of 1979 as well as 2017, so the **1979-1985 Alfa Romeo
+works team mapped onto Sauber**. Eight cars landed with slugs reading
+`1979-sauber-alfa-177-bruno-giacomelli-belgian-gp`.
+
+Unrelated outfits sharing a name four decades apart, exactly like Lotus Racing
+and the Enstone Lotus. Autodelta ran Alfa's own cars in the late seventies;
+"Alfa Romeo" from 2018 to 2023 was Sauber under a sponsor's name.
+
+**Floored at 1993**, when Sauber entered F1. Pre-1993 falls through to the
+plain lookup and resolves to the Alfa Romeo row, which is the marque either
+way. A separate "Alfa Romeo (works)" row would collide on `includes` and is
+the one thing that must not be done. The eight cars were RE-POINTED, not
+deleted, keeping all 17 models. Sauber-named cars now span 1997-2017 only.
+
+### 2. IMOLA HAS HOSTED THREE DIFFERENTLY NAMED RACES
+
+```
+1980        ITALIAN GP      the only year Imola held it
+1981-2006   SAN MARINO GP
+2020-       EMILIA ROMAGNA GP
+```
+
+The mapper knew one and sent every Imola slug to "Emilia Romagna GP",
+stamping a 2020 name on a 1980 car. The shop compounds it by calling the 1980
+Imola race "saint-marin", a year before that name existed. EVENTS entries may
+now be a function of the year.
+
+**1981-2006 deliberately returns nothing** rather than "San Marino GP", even
+though that is the correct name. Five cars across 2002, 2005 and 2006 are
+already imported as "Season" with live slugs encoding it, so naming them
+properly would make the generator disagree with the database and create a
+second car for each on any re-run -- the fault that produced 17 such pairs
+across 2017, 2019 and 2020.
+
+**OPEN:** correcting it means renaming five cars AND their indexed slugs, which
+needs redirects thought through. A deliberate job, not a side effect.
+
+### 3. One duplicate car did slip through
+
+Prost's M29 came in as "Season" while his driver import already held it as
+"Argentine GP", so the model was skipped as already-held and the car left
+empty. Deleted, 0 models. Villeneuve's 23 products correctly mapped onto his 7
+existing cars, so the pipelines mostly agree -- Prost was the exception, and
+this is the class of fault to keep checking for whenever a season import meets
+a driver import.
+
+### The deepest grids in the file
+
+Nearly every chassis name in this era is a bare number or a letter and a digit
+-- 009, 177, A1, D2, F6, M28 -- far too loose to match alone, so EVERY ONE is
+anchored to its marque. That also absorbs the hyphenation: "alfa-romeo-177"
+and "alfa-romeo177", "ferrari-312-t4" and "ferrari312t4".
+
+Found by reading the slugs: a **Ford Mustang pace car**, a **Berliet TR350
+transporter**, and **GIACOMO AGOSTINI** -- the fifteen-time MOTORCYCLE world
+champion -- in a Williams FW06 at the 1979 **Race of Champions**. Never a
+World Championship round, so it has no season and no points, and importing it
+would add a bike racer to the F1 driver list.
+
+Four more full-name driver keys, three of them predicted by the DRIVERS note
+years ago: KEKE Rosberg (Nico has 21 cars), NELSON Piquet, MARIO Andretti, and
+EMERSON Fittipaldi -- the last because "Fittipaldi" is also the 1980 team
+name, so one slug holds the word twice.
+
+**The five driver-pipeline names were invisible to the season generator.**
+Gilles Villeneuve, Lauda, Prost, Mansell and Senna live in build-driver-csv's
+own config, so build-modern-csv never knew them: 1979 put nineteen Villeneuve
+products into review while his career was already imported.
+
+Three shop typos kept as aliases, since the slug is the only key available:
+"schekter" drops a C, "jarrier" adds an R, "laffitte" doubles a T.
+
+The RS01 raced 1977-1979 AND was demonstrated at Monaco in 2018, so its
+exclusion now carries 1979 as its native year. The STR7 lesson, third time.
 
 ## SCOPE: 1950 ONWARDS. DECIDED 2026-10-09
 
