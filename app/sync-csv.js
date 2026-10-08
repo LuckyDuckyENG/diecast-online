@@ -105,7 +105,24 @@ async function syncCSV(dryRun = false, csvArg = null) {
 
     // The Sauber lineage, by era. Falls through to the table when no year
     // is given, so nothing that relied on the old behaviour changes shape.
-    if (/^(sauber|alfa romeo|kick sauber)$/i.test(name) && year) {
+    /**
+     * FLOORED AT 1993, when Sauber entered Formula 1.
+     *
+     * Without the floor this mapped the 1979-1985 ALFA ROMEO WORKS TEAM onto
+     * Sauber, because "y <= 2017" was true of 1979 as well as 2017. Eight cars
+     * imported that way on 2026-10-09 -- Giacomelli, Brambilla and Depailler's
+     * Alfa 177s and 179s -- landed under Sauber with slugs reading
+     * "1979-sauber-alfa-177-...".
+     *
+     * They are unrelated outfits that share a name four decades apart, exactly
+     * like Lotus Racing and the Enstone Lotus. Autodelta ran Alfa Romeo's own
+     * cars in the late seventies; "Alfa Romeo" from 2018 to 2023 was Sauber
+     * under a sponsor's name. Pre-1993 therefore falls through to the plain
+     * lookup and resolves to the Alfa Romeo row, which is the marque either
+     * way -- a separate "Alfa Romeo (works)" row would collide on `includes`
+     * and is the one thing that must not be done here.
+     */
+    if (/^(sauber|alfa romeo|kick sauber)$/i.test(name) && year && parseInt(year, 10) >= 1993) {
       const y = parseInt(year, 10);
       const era = y <= 2017 ? 'Sauber' : y <= 2023 ? 'Alfa Romeo' : 'Kick Sauber';
       const hit = teams?.find(t => t.name.toLowerCase() === era.toLowerCase());

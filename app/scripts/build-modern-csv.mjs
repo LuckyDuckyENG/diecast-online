@@ -75,7 +75,13 @@ const EXCLUDE = [
    * under the slug's year would file a 1977 car as a 2018 one. Same class as
    * the Mick Schumacher Benetton demo runs.
    */
-  [/(?:^|-)rs01(?:-|$)/, 'historic car at a modern event'],
+  /**
+   * The RS01 raced 1977-1979 AND was demonstrated at Monaco in 2018, so the
+   * rule needs a native year or a 1979 run would drop the real race cars --
+   * the STR7 mistake exactly. 1979 is the year this catalogue imports it for;
+   * a future 1977 or 1978 run will need the same treatment.
+   */
+  [/(?:^|-)rs01(?:-|$)/, 'historic car at a modern event', 1979],
   /**
    * A McLaren MP4/x from the turbo era at a modern event. Alonso drove Senna's
    * MP4/4 at Catalunya in 2015 and the MP4/6 at Honda Thanks Day the same
@@ -173,6 +179,24 @@ const EXCLUDE = [
    * team's race transporter, which carries "f1-team" and so reaches here.
    */
   [/iveco|stralis/, 'team transporter truck'],
+  /**
+   * Pace and course cars. "ford-mustang-pace-car" led the grid; it is not a
+   * competitor and has no driver in the F1 sense.
+   */
+  [/mustang|pace-car/, 'pace car'],
+  /** Another transporter. "berliet-tr350-renault-f1" is the Renault team lorry. */
+  [/berliet/, 'team transporter truck'],
+  /**
+   * NON-CHAMPIONSHIP RACES. The Race of Champions at Brands Hatch was run to
+   * F1 rules but was never a World Championship round, so it has no season
+   * and no points -- and this catalogue is organised by season.
+   *
+   * It also brought in GIACOMO AGOSTINI, the fifteen-time MOTORCYCLE world
+   * champion, who drove a Williams FW06 there in 1979. Importing it would add
+   * a bike racer to the F1 driver list, which is the same reason the Rossi
+   * ride-swap is excluded.
+   */
+  [/race-of-champions/, 'non-championship race'],
   [/team-champion/, "constructors' championship piece, no driver"],
   /**
    * Michel Vaillant is a COMIC BOOK character, and "vaillantef1-with-figures-
@@ -249,7 +273,36 @@ const EVENTS = [
   [/allemagne|hockenheim/, 'German GP'], [/(?:^|-)france(?:-|$)|castellet/, 'French GP'],
   [/pays-bas|zandvoort/, 'Dutch GP'], [/portugal|portimao/, 'Portuguese GP'],
   [/toscane|mugello/, 'Tuscan GP'], [/eifel/, 'Eifel GP'], [/sakhir/, 'Sakhir GP'],
-  [/styrie/, 'Styrian GP'], [/emilie-romagne|imola/, 'Emilia Romagna GP'],
+  [/styrie/, 'Styrian GP'],
+  /**
+   * IMOLA HAS HOSTED THREE DIFFERENTLY NAMED RACES, so this entry carries a
+   * function instead of a fixed string:
+   *
+   *   1980        the ITALIAN GP -- the only year Imola held it, Monza's race
+   *   1981-2006   the SAN MARINO GP
+   *   2020-       the EMILIA ROMAGNA GP
+   *
+   * A flat mapping to Emilia Romagna stamped a 2020 name on a 1980 car, and
+   * the shop makes it worse by calling the 1980 Imola race "saint-marin" a
+   * year before that name existed. Both routes now resolve by season.
+   */
+  [/emilie-romagne|imola|saint-marin|san-marino/, y =>
+    y <= 1980 ? 'Italian GP' : y >= 2020 ? 'Emilia Romagna GP' : null],
+  /**
+   * 1981-2006 RETURNS NULL ON PURPOSE, so it falls through to "Season".
+   *
+   * Imola's race in those years was the SAN MARINO GP and naming it so would
+   * be more correct -- but five cars across 2002, 2005 and 2006 are ALREADY
+   * IMPORTED as "Season", with live slugs that encode it
+   * ("2002-ferrari-f2002-michael-schumacher-season"). Returning the right name
+   * here would make the generator disagree with the database, and re-running
+   * those seasons would create a SECOND car for each and split its models --
+   * the fault that produced 17 such pairs across 2017, 2019 and 2020.
+   *
+   * Correcting it means renaming five cars AND their slugs, which are indexed.
+   * That is a deliberate job with a redirect to think about, not a side effect
+   * of importing 1980. Recorded in STATUS-SUMMARY as open.
+   */
   [/turquie/, 'Turkish GP'], [/qatar/, 'Qatar GP'], [/arabie-saoudite/, 'Saudi Arabian GP'],
 ];
 
@@ -293,6 +346,53 @@ const CHASSIS = {
    * and took the Lotus name in 2012. Filing the T127 under "Lotus" would put
    * Trulli's backmarker on the same hub as Raikkonen's E20 and Senna's 97T.
    */
+  /**
+   * 1979-1980. The deepest grids in this file: fourteen constructors a season,
+   * several of them gone within two years.
+   *
+   * Nearly every chassis name in this era is a bare number or a letter and a
+   * digit -- 009, 177, A1, D2, F6, M28 -- which is far too loose to match on
+   * its own. A free "009" or "a1" would hit part numbers all over the
+   * catalogue. EVERY ONE IS ANCHORED TO ITS MARQUE, which is also how the
+   * hyphenation variants get absorbed: "alfa-romeo-177" and "alfa-romeo177",
+   * "ferrari-312-t4" and "ferrari312t4", "renault-rs10" and "renaultrs10".
+   *
+   * Order matters twice. FW07B and FW07C are tested before FW07, and 312T5
+   * before 312T4 would be wrong the other way, so each is anchored exactly.
+   * Arrows A1B is tested before A1.
+   */
+  1979: [[/f[ae]rrari-?312-?t4/, '312T4'],
+         [/lotus-?(?:ford-?)?(?:type-?)?80(?:-|$)/, 'Lotus 80'],
+         [/lotus-?(?:ford-?)?79(?:-|$)/, 'Lotus 79'],
+         [/mclaren-?(?:ford-?)?m29/, 'M29'], [/mclaren-?(?:ford-?)?m28/, 'M28'],
+         [/shadow-?dn9/, 'DN9'],
+         [/ensign-?n179/, 'N179'], [/ensign-?n177/, 'N177'],
+         [/brabham-?(?:alfa-?romeo-?)?bt49/, 'BT49'],
+         [/brabham-?(?:alfa-?romeo-?)?bt48/, 'BT48'],
+         [/brabham-alfa-romeo/, 'BT48'],
+         [/williams-?(?:ford-?|cosworth-?)?fw07/, 'FW07'],
+         [/williams-?(?:ford-?|cosworth-?)?fw06/, 'FW06'],
+         [/arrows-?(?:ford-?)?a1b/, 'A1B'], [/arrows-?(?:ford-?)?a2/, 'A2'],
+         [/arrows-?(?:ford-?)?a1(?:-|$)/, 'A1'],
+         [/alfa-?romeo-?179/, 'Alfa 179'], [/alfa-?romeo-?177/, 'Alfa 177'],
+         [/tyrrell-?009/, '009'], [/tyrrell-?008/, '008'],
+         [/ligier-?(?:ford-?)?js11/, 'JS11'],
+         [/renault-?rs12/, 'RS12'], [/renault-?rs11/, 'RS11'],
+         [/renault-?rs10/, 'RS10'], [/renault-?rs01/, 'RS01'],
+         [/rebaque-?hr100/, 'HR100'], [/copersucar-?f6/, 'F6'],
+         [/ats-?d2/, 'D2']],
+  1980: [[/f[ae]rrari-?312-?t5/, '312T5'], [/f[ae]rrari-?126-?c(?:-|$|[0-9])/, '126C'],
+         [/alfa-?romeo-?179/, 'Alfa 179'],
+         [/williams-?(?:ford-?)?fw07c/, 'FW07C'],
+         [/williams-?(?:ford-?)?fw07b/, 'FW07B'],
+         [/williams-?(?:ford-?)?fw07(?:-|$)/, 'FW07'],
+         [/ensign-?n180/, 'N180'],
+         [/mclaren-?m30/, 'M30'], [/mclaren-?m29/, 'M29'],
+         [/ats-?d4/, 'D4'], [/brabham-?bt49/, 'BT49'],
+         [/renault-?re20/, 'RE20'], [/ligier-?(?:ford-?)?js11/, 'JS11'],
+         [/lotus-?81/, 'Lotus 81'], [/osella-?fa1/, 'FA1'],
+         [/fittipaldi-?f8/, 'F8'], [/fittipaldi-?f7/, 'F7'],
+         [/arrows-?a3/, 'A3'], [/tyrrell-?010/, '010']],
   /**
    * 1995-2001. This era hyphenates inconsistently, so the chassis token has to
    * tolerate it: "ferrari-412-t2", "ferrari-412t2" and "ferrari412-t2" are one
@@ -509,6 +609,25 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  /**
+   * 1979-1980. Copersucar and Fittipaldi are the SAME outfit -- Fittipaldi
+   * Automotive, entered as Copersucar-Fittipaldi through 1979 and as
+   * Fittipaldi after. Kept as two rows under the names each season raced
+   * under, which is what this catalogue does for HRT, Virgin and the Sauber
+   * lineage, and the chassis differ too (F6 against F7 and F8).
+   */
+  '312T4': 'Ferrari', 'Lotus 79': 'Lotus', 'Lotus 80': 'Lotus',
+  M28: 'McLaren', M29: 'McLaren', DN9: 'Shadow', N179: 'Ensign', N177: 'Ensign',
+  BT48: 'Brabham', BT49: 'Brabham', FW06: 'Williams', FW07: 'Williams',
+  A1: 'Arrows', A1B: 'Arrows', A2: 'Arrows',
+  'Alfa 177': 'Alfa Romeo', 'Alfa 179': 'Alfa Romeo',
+  '009': 'Tyrrell', '008': 'Tyrrell', JS11: 'Ligier',
+  RS01: 'Renault', RS10: 'Renault', RS11: 'Renault', RS12: 'Renault',
+  HR100: 'Rebaque', F6: 'Copersucar', D2: 'ATS',
+  '312T5': 'Ferrari', '126C': 'Ferrari', FW07B: 'Williams', FW07C: 'Williams',
+  N180: 'Ensign', M30: 'McLaren', D4: 'ATS', RE20: 'Renault',
+  'Lotus 81': 'Lotus', FA1: 'Osella', F7: 'Fittipaldi', F8: 'Fittipaldi',
+  A3: 'Arrows', '010': 'Tyrrell',
   // 1995-2001. Eight teams that no longer exist in any form.
   '412T2': 'Ferrari', B195: 'Benetton', JS41: 'Ligier', '023': 'Tyrrell', S951: 'Simtek',
   F310: 'Ferrari', FW18: 'Williams', 'MP4-11': 'McLaren', B196: 'Benetton',
@@ -683,6 +802,59 @@ const DRIVERS = {
    * Burti's slug reads "luciano-pucci-burti": Pucci is a middle name, so the
    * surname key is burti.
    */
+  /**
+   * 1979-1984. FOUR MORE FULL-NAME KEYS, and the note above called three of
+   * them years ago: Rosberg, Piquet and Verstappen were all listed as traps
+   * waiting on the fathers.
+   *
+   * KEKE Rosberg is the 1982 champion and Nico is already here. NELSON Piquet
+   * raced against him, and Nelson Piquet Jr drove in 2008-09. MARIO Andretti
+   * is the 1978 champion and Michael raced in 1993. EMERSON Fittipaldi needs
+   * one for a different reason: "Fittipaldi" is also the TEAM name in 1980,
+   * so "fittipaldi-f8-20-emerson-fittipaldi" holds the word twice.
+   *
+   * Laffite is spelled BOTH WAYS by the shop -- "jacques-laffitte" with two
+   * Ts is wrong but appears in the slugs, so both map to the correct name.
+   */
+  /**
+   * The five drivers imported through build-driver-csv, which keeps its own
+   * config and so never taught this file their names. They are in the
+   * database; they were simply invisible to the season generator, which is
+   * why 1979 put nineteen Villeneuve products into review while his career
+   * was already imported.
+   *
+   * GILLES, not a bare "villeneuve" -- Jacques is here too, and the pair are
+   * the same trap as Michael and Mick Schumacher.
+   */
+  'gilles-villeneuve': 'Gilles Villeneuve', 'niki-lauda': 'Niki Lauda',
+  'alain-prost': 'Alain Prost', 'nigel-mansell': 'Nigel Mansell',
+  'ayrton-senna': 'Ayrton Senna',
+  'keke-rosberg': 'Keke Rosberg', 'nelson-piquet': 'Nelson Piquet',
+  'mario-andretti': 'Mario Andretti', 'emerson-fittipaldi': 'Emerson Fittipaldi',
+  'jacques-laffitte': 'Jacques Laffite', laffite: 'Jacques Laffite',
+  /**
+   * THREE SHOP TYPOS, kept as aliases rather than corrected upstream, because
+   * the slug is the only key available: "schekter" drops a C from Scheckter
+   * and "jarrier" adds an R to Jarier. Both appear alongside the correct
+   * spellings, so both must map.
+   *
+   * Stuck gets a full-name key: Hans-Joachim raced here, and his father Hans
+   * Stuck was a pre-war Grand Prix driver -- out of scope under the 1950 floor
+   * today, but the collision would be waiting if that ever changed.
+   */
+  schekter: 'Jody Scheckter', jarier: 'Jean-Pierre Jarier',
+  jarrier: 'Jean-Pierre Jarier', 'hans-stuck': 'Hans-Joachim Stuck',
+  scheckter: 'Jody Scheckter', giacomelli: 'Bruno Giacomelli',
+  'alan-jones': 'Alan Jones', lammers: 'Jan Lammers', tambay: 'Patrick Tambay',
+  watson: 'John Watson', regazzoni: 'Clay Regazzoni',
+  'de-angelis': 'Elio de Angelis', lees: 'Geoff Lees', patrese: 'Riccardo Patrese',
+  rebaque: 'Hector Rebaque', jabouille: 'Jean-Pierre Jabouille',
+  daly: 'Derek Daly', surer: 'Marc Surer', brambilla: 'Vittorio Brambilla',
+  mass: 'Jochen Mass', depailler: 'Patrick Depailler',
+  gaillard: 'Patrick Gaillard', arnoux: 'Rene Arnoux', zunino: 'Ricardo Zunino',
+  cheever: 'Eddie Cheever', keegan: 'Rupert Keegan',
+  reutemann: 'Carlos Reutemann', needell: 'Tiff Needell',
+  pironi: 'Didier Pironi', alboreto: 'Michele Alboreto',
   'jos-verstappen': 'Jos Verstappen', 'damon-hill': 'Damon Hill',
   hakkinen: 'Mika Hakkinen', irvine: 'Eddie Irvine', alesi: 'Jean Alesi',
   berger: 'Gerhard Berger', herbert: 'Johnny Herbert', panis: 'Olivier Panis',
@@ -784,7 +956,12 @@ for (const o of kept) {
    */
   const fromChassis = isShowcar ? null : CHASSIS_TEAM[chassis];
   const team = ERA_NAME(fromChassis || teamIn(s), year);
-  const event = (EVENTS.find(([re]) => re.test(s)) || [])[1] || 'Season';
+  /**
+   * An EVENTS value may be a function of the year, because a circuit's race
+   * can be renamed -- see Imola. Resolved here so every caller gets a string.
+   */
+  const eventRaw = (EVENTS.find(([re]) => re.test(s)) || [])[1];
+  const event = (typeof eventRaw === 'function' ? eventRaw(year) : eventRaw) || 'Season';
   const driver = driverIn(s);
   const maker = Object.entries(MAKERS).find(([k]) => s.includes(k))?.[1] || null;
 
