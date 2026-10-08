@@ -3468,6 +3468,65 @@ which the fetcher already records as `pageRef`. So the fix is to stop
 inferring from the URL and read the stated part number. Untested, and worth
 proving on one season before believing any figure for it.
 
+## SCOPE: 1950 ONWARDS. DECIDED 2026-10-09
+
+**Formula 1 began in 1950.** Anything earlier is Grand Prix racing, not F1, and
+this catalogue does not hold it. The 1923 Fiat, the 1934-38 Mercedes and Auto
+Union Silver Arrows, the 1947 cars: all out. 11 products in the Brumm range
+alone.
+
+Where this will actually bite is NOT the year-based generator -- a 1934
+product cannot match a 1950 run, because the year is read as a delimited
+token. It is driver configs. A future Fangio or Moss would pull in their
+1930s and 1940s cars automatically, because build-driver-csv scopes by driver
+and not by era. Any pre-1950 driver needs a floor.
+
+### A 1950s trap worth knowing before anyone opens that decade
+
+`ferrari-750-monza-spyder-33-grand-prix-de-spa-francorchamps-1955` is a
+SPORTS CAR entered in a race called a Grand Prix. In that era the name did not
+imply Formula 1, so the usual filter waves it through -- it says "grand-prix"
+and means a sportscar event. There are more like it, and they have to be found
+by eye rather than by rule.
+
+## The Brumm range, measured — 2026-10-09
+
+240 Brumm F1 products in the sitemap, spanning 1923 to 1984, and 171 of them
+Ferrari. One maker, mostly one marque, six decades.
+
+```
+1950-1969  ~110 products   needs ~20 season rows that do not exist
+1970-1984  ~108            1971+ exist, 1970 does not
+1923-1947    11            OUT OF SCOPE, see above
+```
+
+Also in there: a "camion-fiat-iveco-190-scuderia-ferrari-f1-1981", which is
+another team transporter TRUCK, and "farrari" -- a typo in the shop's own
+slug.
+
+### The slice being imported: 1979-1984
+
+```
+100 products · every season row already exists · Ferrari already exists
+by driver   gilles-villeneuve 67 (held) · pironi 13 · scheckter 9
+            andretti 3 · arnoux 2 · alboreto 2 · tambay 2
+by chassis  126CK · 126C2 · 126C · 126C4 · 312T4 · 312T5
+by year     1979:18 · 1980:13 · 1981:36 · 1982:29 · 1984:4
+```
+
+Done through the YEAR-BASED pipeline rather than a Brumm-specific one: those
+seasons exist, build-modern-csv already handles years, and fetching by year
+picks up every maker for 1979-1984 rather than Brumm alone.
+
+### 1950-1969 is a decade-opening project, not a follow-on
+
+Around 110 products, but roughly 20 season rows, teams including Vanwall,
+Maserati, Cooper and BRM, and a roster of Fangio, Moss, Hawthorn, Collins,
+von Trips, Surtees, Clark and Brabham. It also opens the 1960s, where the
+catalogue holds nothing. Graham Hill at 16 reference rows is the natural way
+in, and the DAMON Hill full-name key added 2026-10-09 is already waiting for
+him.
+
 ## 1995-2001 imported — the run is unbroken, 1971-2026 — 2026-10-09
 
 ```
