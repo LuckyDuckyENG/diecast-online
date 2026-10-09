@@ -196,8 +196,12 @@ const EXCLUDE = [
    * competitor and has no driver in the F1 sense.
    */
   [/mustang|pace-car/, 'pace car'],
-  /** Another transporter. "berliet-tr350-renault-f1" is the Renault team lorry. */
-  [/berliet/, 'team transporter truck'],
+  /**
+   * Team lorries. "berliet-tr350-renault-f1" is Renault's and
+   * "transporteur-honda-f1-1965" is Honda's -- real products, no driver, not
+   * race cars.
+   */
+  [/berliet|transporteur/, 'team transporter truck'],
   /**
    * NON-CHAMPIONSHIP RACES. The Race of Champions at Brands Hatch was run to
    * F1 rules but was never a World Championship round, so it has no season
@@ -208,7 +212,7 @@ const EXCLUDE = [
    * a bike racer to the F1 driver list, which is the same reason the Rossi
    * ride-swap is excluded.
    */
-  [/race-of-champions|gold-cup|oulton-park|riverside/, 'non-championship race'],
+  [/race-of-champions|gold-cup|oulton-park|riverside|trophee|auvergne/, 'non-championship race'],
   /**
    * THE INDIANAPOLIS 500, which is not Formula 1 -- in 1970. "colt-indy-500-
    * 1970-al-unser" is an IndyCar, and the existing filter has "indycar" but
@@ -369,6 +373,22 @@ const CHASSIS = {
    * and took the Lotus name in 2012. Filing the T127 under "Lotus" would put
    * Trulli's backmarker on the same hub as Raikkonen's E20 and Senna's 97T.
    */
+  /**
+   * 1965. Clark's second title and the last year of the 1.5-litre formula.
+   *
+   * FERRARI'S FLAT-12 IS THE 1512 AND THE SHOP WRITES IT BOTH WAYS --
+   * Looksmart says "ferrari-1512", Brumm and Tecnomodel say "ferrari-512".
+   * One pattern takes both, or Surtees' Italian GP would split across two
+   * chassis. Note this is NOT the 512S sports car of 1970; here it is the F1
+   * car, which is why it is anchored to the marque.
+   *
+   * Brabham's BT7 appears as "bt7" and "bt07" with a leading zero.
+   */
+  1965: [[/brm-?p261/, 'P261'], [/brm-?p57/, 'P57'],
+         [/lotus-?33/, '33'], [/lotus-?25/, '25'],
+         [/f[ae]rrari-?1?512/, '1512'], [/f[ae]rrari-?158/, '158'],
+         [/brab+ham-?bt11/, 'BT11'], [/brab+ham-?bt0?7(?![0-9])/, 'BT7'],
+         [/cooper-?t60/, 'T60'], [/honda-?ra272/, 'RA272']],
   /**
    * 1966. The first year of the 3-litre formula, which is why the grid is
    * scrappy: teams ran interim cars while the new engines were built, so
@@ -760,6 +780,8 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 1965.
+  P57: 'BRM', '158': 'Ferrari', '1512': 'Ferrari', T60: 'Cooper', RA272: 'Honda',
   // 1966.
   '246': 'Ferrari', BT22: 'Brabham', BT7: 'Brabham', MS5: 'Matra',
   // 1967.
@@ -1004,6 +1026,16 @@ const DRIVERS = {
   'jack-brabham': 'Jack Brabham', 'bruce-mclaren': 'Bruce McLaren',
   'john-surtees': 'John Surtees', 'graham-hill': 'Graham Hill',
   'chris-amon': 'Chris Amon', 'christopher-amon': 'Chris Amon',
+  /**
+   * 1965. Giacomo Russo raced under the name GEKI and the slug carries both,
+   * so the key is his full name and the stored name is what F1 records him
+   * as. Vaccarella and Bondurant were one-off entries at Monza and Watkins
+   * Glen.
+   */
+  'giacomo-russo': 'Geki', 'masten-gregory': 'Masten Gregory',
+  'frank-gardner': 'Frank Gardner', rhodes: 'John Rhodes',
+  mitter: 'Gerhard Mitter', bondurant: 'Bob Bondurant',
+  vaccarella: 'Nino Vaccarella',
   /**
    * 1966. GUY LIGIER drove a Cooper-Maserati at Monaco, and "Ligier" is
    * already a TEAM row in this catalogue from the 1995-2001 import. Fifth
