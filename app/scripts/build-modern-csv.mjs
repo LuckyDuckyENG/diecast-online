@@ -132,7 +132,7 @@ const EXCLUDE = [
    * product with nobody to attribute it to, and every car here belongs to a
    * driver.
    */
-  [/(?:^|-)presentation(?:-|$)|concept-study|(?:^|-)concept(?:-|$)|launch-version/, 'presentation, concept or launch car'],
+  [/(?:^|-)presentation(?:-|$)|concept-study|(?:^|-)concept(?:-|$)|launch-version|press-version/, 'presentation, concept, launch or press car'],
   /**
    * Road cars again, this time as team merchandise: a Ferrari 488 Pista in
    * "piloti" colours, a McLaren 600LT "f1-team-tribute". Both carry F1 wording
@@ -369,6 +369,26 @@ const CHASSIS = {
    * and took the Lotus name in 2012. Filing the T127 under "Lotus" would put
    * Trulli's backmarker on the same hub as Raikkonen's E20 and Senna's 97T.
    */
+  /**
+   * 1966. The first year of the 3-litre formula, which is why the grid is
+   * scrappy: teams ran interim cars while the new engines were built, so
+   * Brabham alone fielded the BT19, BT20, BT22, BT11 and BT7, and Ferrari ran
+   * the 246 Dino V6 alongside the new 312.
+   *
+   * ENGINE NAMES APPEAR IN THE SLUG, and the marque comes first in all of
+   * them -- "lotus-brm-43", "cooper-maserati-t81", "lotus-43-brm" -- so the
+   * earliest-match team read lands on the constructor rather than the engine
+   * supplier. That is the trap that once put Prost's Williams under Renault,
+   * and it is why the team tally is checked rather than assumed.
+   */
+  1966: [[/cooper-?(?:maserati-?)?t81/, 'T81'],
+         [/brm-?p83/, 'P83'], [/brm-?p261/, 'P261'],
+         [/brab+ham-?bt22/, 'BT22'], [/brab+ham-?bt20/, 'BT20'],
+         [/brab+ham-?bt19/, 'BT19'], [/brab+ham-?bt11/, 'BT11'],
+         [/brab+ham-?bt7(?![0-9])/, 'BT7'],
+         [/lotus-?(?:brm-?)?43/, '43'], [/lotus-?33/, '33'],
+         [/f[ae]rrari-?312/, '312'], [/f[ae]rrari-?246/, '246'],
+         [/matra-?ms5/, 'MS5'], [/honda-?ra273/, 'RA273']],
   /**
    * 1967. Hulme's title, the Lotus 49 and the Cosworth DFV arriving at
    * Zandvoort, and Jim Clark's last full season.
@@ -740,6 +760,8 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 1966.
+  '246': 'Ferrari', BT22: 'Brabham', BT7: 'Brabham', MS5: 'Matra',
   // 1967.
   P115: 'BRM', P83: 'BRM', '25': 'Lotus', '43': 'Lotus', '33': 'Lotus',
   BT19: 'Brabham', T81: 'Cooper', T1G: 'Eagle', Mk1: 'Eagle',
@@ -982,6 +1004,20 @@ const DRIVERS = {
   'jack-brabham': 'Jack Brabham', 'bruce-mclaren': 'Bruce McLaren',
   'john-surtees': 'John Surtees', 'graham-hill': 'Graham Hill',
   'chris-amon': 'Chris Amon', 'christopher-amon': 'Chris Amon',
+  /**
+   * 1966. GUY LIGIER drove a Cooper-Maserati at Monaco, and "Ligier" is
+   * already a TEAM row in this catalogue from the 1995-2001 import. Fifth
+   * instance of a man who later put his name on a constructor, after Brabham,
+   * McLaren, Surtees and Prost -- so a full-name key, like all of them.
+   *
+   * Two shop typos: Bandini appears as "baldini" and Innes Ireland as
+   * "ines-ireland". Taylor takes a full-name key because the era had several.
+   */
+  'guy-ligier': 'Guy Ligier', parkes: 'Mike Parkes',
+  'innes-ireland': 'Innes Ireland', 'ines-ireland': 'Innes Ireland',
+  bucknum: 'Ronnie Bucknum', ginther: 'Richie Ginther',
+  arundell: 'Peter Arundell', 'john-taylor': 'John Taylor',
+  baldini: 'Lorenzo Bandini',
   /**
    * 1967. Hulme's own title year spells him THREE WAYS -- "denny-hulme",
    * "dennis-hulme" and "denis-hulme" -- and Hobbs appears as "davis-hobbs".
