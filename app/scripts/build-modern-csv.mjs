@@ -197,6 +197,17 @@ const EXCLUDE = [
    * ride-swap is excluded.
    */
   [/race-of-champions/, 'non-championship race'],
+  /**
+   * THE INDIANAPOLIS 500, which is not Formula 1 -- in 1970. "colt-indy-500-
+   * 1970-al-unser" is an IndyCar, and the existing filter has "indycar" but
+   * not "indy-500".
+   *
+   * CAREFUL IF THE 1950s ARE EVER OPENED: the Indy 500 WAS a round of the
+   * Formula 1 World Championship from 1950 to 1960. Excluding it is correct
+   * for 1970 and would be wrong for those eleven seasons, so this needs a
+   * native-year style exception before 1950-1960 is imported.
+   */
+  [/indy-500|indianapolis/, 'Indianapolis 500, not F1 in this era'],
   [/team-champion/, "constructors' championship piece, no driver"],
   /**
    * Michel Vaillant is a COMIC BOOK character, and "vaillantef1-with-figures-
@@ -346,6 +357,31 @@ const CHASSIS = {
    * and took the Lotus name in 2012. Filing the T127 under "Lotus" would put
    * Trulli's backmarker on the same hub as Raikkonen's E20 and Senna's 97T.
    */
+  /**
+   * 1970. The season before the catalogue used to begin, and the first of the
+   * pre-1971 block.
+   *
+   * Lotus ran THREE chassis: the 72C, the earlier 72, and the 49C that Graham
+   * Hill drove for Rob Walker. 72C is tested before 72 or the newer car reads
+   * as the older one. Lotus numbers are bare integers, so all three are
+   * anchored to the marque -- same reason as Tyrrell's 009.
+   *
+   * "ferrari-312b-t-car" is the SPARE: T for training, not a chassis variant,
+   * so it reads as a 312B. Ferrari's 312 family needs the B anchored exactly
+   * -- the bare 312 is 1967-69 and the 312T arrives in 1975.
+   *
+   * Two shop spellings absorbed: "brabbham" doubles a b, and Matra appears as
+   * "matra-simca-ms120", "matra-ms120" and "matra-simcams120".
+   */
+  1970: [[/f[ae]rrari-?312b/, '312B'],
+         [/matra-?(?:simca-?)?ms120/, 'MS120'],
+         [/lotus-?(?:ford-?)?72c/, '72C'], [/lotus-?(?:ford-?)?72(?![0-9c])/, '72'],
+         [/lotus-?(?:ford-?)?49c/, '49C'],
+         [/brm-?p153/, 'P153'], [/brm-?p139/, 'P139'],
+         [/mclaren-?m14a/, 'M14A'], [/mclaren-?m14d/, 'M14D'], [/mclaren-?m7d/, 'M7D'],
+         [/march-?701/, '701'],
+         [/brab+ham-?bt33/, 'BT33'], [/brab+ham-?bt26a/, 'BT26A'],
+         [/surtees-?ts7/, 'TS7'], [/de-tomaso/, '505']],
   /**
    * 1979-1980. The deepest grids in this file: fourteen constructors a season,
    * several of them gone within two years.
@@ -609,6 +645,10 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 1970.
+  '312B': 'Ferrari', MS120: 'Matra', '72C': 'Lotus', '72': 'Lotus', '49C': 'Lotus',
+  P153: 'BRM', P139: 'BRM', M14A: 'McLaren', M14D: 'McLaren', M7D: 'McLaren',
+  '701': 'March', BT33: 'Brabham', BT26A: 'Brabham', TS7: 'Surtees', '505': 'De Tomaso',
   /**
    * 1979-1980. Copersucar and Fittipaldi are the SAME outfit -- Fittipaldi
    * Automotive, entered as Copersucar-Fittipaldi through 1979 and as
@@ -817,6 +857,34 @@ const DRIVERS = {
    * Ts is wrong but appears in the slugs, so both map to the correct name.
    */
   /**
+   * 1970. THE WORST TEAM-AND-DRIVER OVERLAP IN THE FILE: Brabham, McLaren and
+   * Surtees are each a constructor AND a driver in this same season. Jack
+   * Brabham's last year, Bruce McLaren's last (he died testing at Goodwood in
+   * June), and John Surtees running his own TS7.
+   *
+   * All three get full-name keys, so "brabham-bt33-f1-monaco-1970-jack-
+   * brabham" cannot read the marque as the driver. SURNAMES sorts
+   * longest-first, which is what makes that work.
+   *
+   * GRAHAM Hill joins here, driving Rob Walker's Lotus 49C at Monaco and a 72
+   * in Mexico -- the full-name key added for DAMON on 2026-10-09 is exactly
+   * what keeps the two apart, and this is the season it starts mattering.
+   *
+   * Amon appears as both "chris-amon" and the formal "christopher-amon".
+   */
+  'jack-brabham': 'Jack Brabham', 'bruce-mclaren': 'Bruce McLaren',
+  'john-surtees': 'John Surtees', 'graham-hill': 'Graham Hill',
+  'chris-amon': 'Chris Amon', 'christopher-amon': 'Chris Amon',
+  eaton: 'George Eaton', 'de-klerk': 'Peter de Klerk',
+  ickx: 'Jacky Ickx', rindt: 'Jochen Rindt', giunti: 'Ignazio Giunti',
+  gurney: 'Dan Gurney', miles: 'John Miles', 'derek-bell': 'Derek Bell',
+  'pedro-rodriguez': 'Pedro Rodriguez', hulme: 'Denny Hulme',
+  'de-adamich': 'Andrea de Adamich', westbury: 'Peter Westbury',
+  gethin: 'Peter Gethin', beltoise: 'Jean-Pierre Beltoise',
+  stommelen: 'Rolf Stommelen', pescarolo: 'Henri Pescarolo',
+  siffert: 'Jo Siffert', oliver: 'Jackie Oliver', courage: 'Piers Courage',
+  'jackie-stewart': 'Jackie Stewart', peterson: 'Ronnie Peterson',
+  /**
    * The five drivers imported through build-driver-csv, which keeps its own
    * config and so never taught this file their names. They are in the
    * database; they were simply invisible to the season generator, which is
@@ -910,6 +978,7 @@ const MAKERS = {
   cmr: 'CMR',
   // One product: a 1995 Ferrari 412T2 test car.
   fujimi: 'Fujimi',
+  sunstar: 'Sunstar',
 };
 
 const chassisFor = CHASSIS[year];
