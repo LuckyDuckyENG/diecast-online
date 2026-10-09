@@ -196,7 +196,7 @@ const EXCLUDE = [
    * a bike racer to the F1 driver list, which is the same reason the Rossi
    * ride-swap is excluded.
    */
-  [/race-of-champions/, 'non-championship race'],
+  [/race-of-champions|gold-cup|oulton-park/, 'non-championship race'],
   /**
    * THE INDIANAPOLIS 500, which is not Formula 1 -- in 1970. "colt-indy-500-
    * 1970-al-unser" is an IndyCar, and the existing filter has "indycar" but
@@ -357,6 +357,33 @@ const CHASSIS = {
    * and took the Lotus name in 2012. Filing the T127 under "Lotus" would put
    * Trulli's backmarker on the same hub as Raikkonen's E20 and Senna's 97T.
    */
+  /**
+   * 1969. Stewart's title year with Matra, and the season of the FOUR-WHEEL
+   * DRIVE experiment -- the Lotus 63 appears five times.
+   *
+   * THREE ORDERING TRAPS, all the same shape: a suffix letter makes a
+   * different car. 49B before 49 (and 1970's 49C is a third), BT26A before
+   * BT26, and 312B before 312. Ferrari's bare 312 is the 1967-69 car; the
+   * 312B that Amon tested at Fiorano in late 1969 is the 1970 one, kept here
+   * because the test happened in the 1969 season -- the catalogue already
+   * holds "Paul Ricard Test" and "Canada Test" entries on the same reasoning.
+   *
+   * "lotus-63-1t" is the T-car, the spare, as with Ickx's 312B in 1970.
+   *
+   * LDS was a SOUTH AFRICAN constructor -- Louis Douglas Serrurier built them
+   * and they ran only at Kyalami. One product, Sam Tingle's Mk3.
+   */
+  1969: [[/matra-?(?:simca-?)?ms80/, 'MS80'], [/matra-?(?:simca-?)?ms11/, 'MS11'],
+         [/matra-?(?:simca-?)?ms10/, 'MS10'],
+         [/mclaren-?m7a/, 'M7A'],
+         [/f[ae]rrari-?(?:f1-?)?312b/, '312B'], [/f[ae]rrari-?(?:f1-?)?312(?![0-9b])/, '312'],
+         [/brab+ham-?bt26a/, 'BT26A'], [/brab+ham-?bt26(?![a0-9])/, 'BT26'],
+         [/brab+ham-?bt30/, 'BT30'], [/brab+ham-?bt24/, 'BT24'], [/brab+ham-?bt20/, 'BT20'],
+         [/lotus-?49b/, '49B'], [/lotus-?63/, '63'], [/lotus-?59/, '59'],
+         [/lotus-?49(?![bc0-9])/, '49'],
+         [/lds-?mk3/, 'Mk3'],
+         [/brm-?p139/, 'P139'], [/brm-?p138/, 'P138'], [/brm-?p133/, 'P133'],
+         [/cooper-?t86b/, 'T86B']],
   /**
    * 1970. The season before the catalogue used to begin, and the first of the
    * pre-1971 block.
@@ -645,6 +672,11 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 1969.
+  MS80: 'Matra', MS11: 'Matra', MS10: 'Matra', M7A: 'McLaren', '312': 'Ferrari',
+  BT26: 'Brabham', BT24: 'Brabham', BT20: 'Brabham', BT30: 'Brabham',
+  '49B': 'Lotus', '63': 'Lotus', '59': 'Lotus', '49': 'Lotus',
+  Mk3: 'LDS', P138: 'BRM', P133: 'BRM', T86B: 'Cooper',
   // 1970.
   '312B': 'Ferrari', MS120: 'Matra', '72C': 'Lotus', '72': 'Lotus', '49C': 'Lotus',
   P153: 'BRM', P139: 'BRM', M14A: 'McLaren', M14D: 'McLaren', M7D: 'McLaren',
@@ -875,6 +907,11 @@ const DRIVERS = {
   'jack-brabham': 'Jack Brabham', 'bruce-mclaren': 'Bruce McLaren',
   'john-surtees': 'John Surtees', 'graham-hill': 'Graham Hill',
   'chris-amon': 'Chris Amon', 'christopher-amon': 'Chris Amon',
+  // 1969. Eight more, including two South Africans who only ever raced at
+  // Kyalami, and Attwood, who shared Monaco with Graham Hill's win.
+  'john-love': 'John Love', tingle: 'Sam Tingle', moser: 'Silvio Moser',
+  bonnier: 'Jo Bonnier', brack: 'Bill Brack', ahrens: 'Kurt Ahrens',
+  elford: 'Vic Elford', attwood: 'Richard Attwood',
   eaton: 'George Eaton', 'de-klerk': 'Peter de Klerk',
   ickx: 'Jacky Ickx', rindt: 'Jochen Rindt', giunti: 'Ignazio Giunti',
   gurney: 'Dan Gurney', miles: 'John Miles', 'derek-bell': 'Derek Bell',
