@@ -374,6 +374,26 @@ const CHASSIS = {
    * Trulli's backmarker on the same hub as Raikkonen's E20 and Senna's 97T.
    */
   /**
+   * 1964. Surtees' title, and the only man to win world championships on two
+   * wheels and four.
+   *
+   * Ferrari ran THREE chassis: the 156, the 158 that won the title, and the
+   * 1512 which the shop writes as "ferrari-512" here exactly as it does in
+   * 1965. The 158 appears three ways -- "ferrari-158", "ferrari158" and
+   * "ferrari-158-f1" with the car number after it.
+   *
+   * MIKE HAILWOOD belongs here and GIACOMO AGOSTINI does not, though both are
+   * motorcycle world champions. Hailwood started championship Grands Prix;
+   * Agostini only appeared at the non-championship Race of Champions. The test
+   * is the race, not the man.
+   */
+  1964: [[/brm-?p261/, 'P261'], [/brm-?p57/, 'P57'],
+         [/brab+ham-?bt11/, 'BT11'], [/brab+ham-?bt0?7(?![0-9])/, 'BT7'],
+         [/lotus-?(?:brm-?)?25/, '25'],
+         [/f[ae]rrari-?1?512/, '1512'], [/f[ae]rrari-?158/, '158'],
+         [/f[ae]rrari-?156/, '156'],
+         [/honda-?ra271/, 'RA271']],
+  /**
    * 1965. Clark's second title and the last year of the 1.5-litre formula.
    *
    * FERRARI'S FLAT-12 IS THE 1512 AND THE SHOP WRITES IT BOTH WAYS --
@@ -780,6 +800,8 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 1964.
+  '156': 'Ferrari', RA271: 'Honda',
   // 1965.
   P57: 'BRM', '158': 'Ferrari', '1512': 'Ferrari', T60: 'Cooper', RA272: 'Honda',
   // 1966.
@@ -1026,6 +1048,8 @@ const DRIVERS = {
   'jack-brabham': 'Jack Brabham', 'bruce-mclaren': 'Bruce McLaren',
   'john-surtees': 'John Surtees', 'graham-hill': 'Graham Hill',
   'chris-amon': 'Chris Amon', 'christopher-amon': 'Chris Amon',
+  // 1964.
+  hailwood: 'Mike Hailwood', maggs: 'Tony Maggs',
   /**
    * 1965. Giacomo Russo raced under the name GEKI and the slug carries both,
    * so the key is his full name and the stored name is what F1 records him
