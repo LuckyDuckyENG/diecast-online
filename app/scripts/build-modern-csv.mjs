@@ -173,7 +173,19 @@ const EXCLUDE = [
    * marque-plus-f1 prefix because McLaren's actual F1 cars are never written
    * that way -- they are "mclaren-mercedes-mp4-11" or "mclarenmercedes-mp4-12".
    */
-  [/mclaren-f1-/, 'McLaren F1 GTR, a GT car not an F1 car'],
+  /**
+   * The lookbehind is load-bearing. /mclaren-f1-/ alone also matched
+   * "eagle-mki-8-bruce-mclaren-f1-1967" and
+   * "cooper-t53-with-driver-2-bruce-mclaren-f1-angleterre-1960" -- BRUCE
+   * McLAREN DRIVING SOMEONE ELSE'S CAR. It silently dropped a real 1967 Eagle
+   * and would have dropped a 1960 Cooper when that season arrives.
+   *
+   * The marque sits at the START of the slug, after the shop's numeric id, so
+   * "mclaren-f1" preceded by a letter and a hyphen is a PERSON and never the
+   * car. Checked across every cache: 60 slugs are the GTR or the Le Mans
+   * winner and 2 were drivers.
+   */
+  [/(?<![a-z]-)mclaren-f1-/, 'McLaren F1 GTR, a GT car not an F1 car'],
   /**
    * A TRUCK. "iveco-stralis-koffer-sz-scuderia-ferrari-f1-team-2000" is the
    * team's race transporter, which carries "f1-team" and so reaches here.
@@ -357,6 +369,34 @@ const CHASSIS = {
    * and took the Lotus name in 2012. Filing the T127 under "Lotus" would put
    * Trulli's backmarker on the same hub as Raikkonen's E20 and Senna's 97T.
    */
+  /**
+   * 1967. Hulme's title, the Lotus 49 and the Cosworth DFV arriving at
+   * Zandvoort, and Jim Clark's last full season.
+   *
+   * FORMULA 2 CARS RAN IN F1 RACES THIS YEAR. The German GP at the
+   * Nurburgring fielded an F2 class alongside the F1 field, so the Matra MS7,
+   * Lola T100 and Protos 16 started World Championship Grands Prix without
+   * being eligible for points. They are kept, because they appear in the
+   * results of races this catalogue holds.
+   *
+   * Eagle's car is written both "t1g" and "mki" -- Mk1 in Roman numerals --
+   * and BRUCE McLAREN DROVE ONE, which is why his full-name key matters: the
+   * slug "eagle-mki-8-bruce-mclaren-f1-1967" has a marque that is also a
+   * driver, and neither is the team here.
+   *
+   * Honda appears as "honda-ra273", "hondara273" and "honda-ra300n".
+   */
+  1967: [[/brm-?p261/, 'P261'], [/brm-?p115/, 'P115'], [/brm-?p83/, 'P83'],
+         [/matra-?ms7/, 'MS7'],
+         [/lotus-?49/, '49'], [/lotus-?43/, '43'], [/lotus-?33/, '33'],
+         [/lotus-?25/, '25'],
+         [/f[ae]rrari-?312/, '312'],
+         [/brab+ham-?(?:repco-?)?bt24/, 'BT24'], [/brab+ham-?(?:repco-?)?bt20/, 'BT20'],
+         [/brab+ham-?(?:repco-?)?bt19/, 'BT19'], [/brab+ham-?(?:repco-?)?bt11/, 'BT11'],
+         [/cooper-?t86/, 'T86'], [/cooper-?t81/, 'T81'],
+         [/eagle-?t1g/, 'T1G'], [/eagle-?mki(?:-|$)/, 'Mk1'],
+         [/lds-?mk3/, 'Mk3'], [/lola-?t100/, 'T100'], [/protos-?16/, 'Protos 16'],
+         [/honda-?ra300/, 'RA300'], [/honda-?ra273/, 'RA273']],
   /**
    * 1968. Graham Hill's second title, Jim Clark's last win, and the year
    * sponsorship arrived with the Gold Leaf Lotus.
@@ -700,6 +740,10 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 1967.
+  P115: 'BRM', P83: 'BRM', '25': 'Lotus', '43': 'Lotus', '33': 'Lotus',
+  BT19: 'Brabham', T81: 'Cooper', T1G: 'Eagle', Mk1: 'Eagle',
+  T100: 'Lola', 'Protos 16': 'Protos', RA273: 'Honda', RA300: 'Honda',
   // 1968.
   MS9: 'Matra', MS7: 'Matra', BT11: 'Brabham', P126: 'BRM', P261: 'BRM',
   T86: 'Cooper', T81B: 'Cooper', RA301: 'Honda', RA302: 'Honda',
@@ -938,6 +982,16 @@ const DRIVERS = {
   'jack-brabham': 'Jack Brabham', 'bruce-mclaren': 'Bruce McLaren',
   'john-surtees': 'John Surtees', 'graham-hill': 'Graham Hill',
   'chris-amon': 'Chris Amon', 'christopher-amon': 'Chris Amon',
+  /**
+   * 1967. Hulme's own title year spells him THREE WAYS -- "denny-hulme",
+   * "dennis-hulme" and "denis-hulme" -- and Hobbs appears as "davis-hobbs".
+   * All four are absorbed by the existing surname keys, so nothing new is
+   * needed for them; noted because the next person will see the variants and
+   * wonder.
+   */
+  irwin: 'Chris Irwin', wietzes: 'Eppie Wietzes', baghetti: 'Giancarlo Baghetti',
+  'bob-anderson': 'Bob Anderson', rees: 'Alan Rees', fisher: 'Mike Fisher',
+  pretorius: 'Jackie Pretorius', hahne: 'Hubert Hahne', bandini: 'Lorenzo Bandini',
   /**
    * 1968. Scarfiotti is spelled BOTH WAYS by the shop -- "lodovico" and
    * "ludovico" -- so both map. Jim Clark appears once: his win in South
