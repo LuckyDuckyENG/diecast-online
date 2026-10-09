@@ -212,7 +212,25 @@ const EXCLUDE = [
    * a bike racer to the F1 driver list, which is the same reason the Rossi
    * ride-swap is excluded.
    */
-  [/race-of-champions|gold-cup|oulton-park|riverside|trophee|auvergne/, 'non-championship race'],
+  /**
+   * NON-CHAMPIONSHIP RACES. Run to F1 rules, never World Championship rounds,
+   * so they have no season and no points -- and this catalogue is organised by
+   * season.
+   *
+   * 1962 is thick with them, and one hurts: "lotus-18-21-7-stirling-moss-
+   * glover-trophy-1962" is MOSS'S LAST RACE, the Goodwood crash in April that
+   * ended his career. Historically it matters more than most championship
+   * entries. It still has no season, so it goes with the rest -- consistency
+   * is the only defensible line here, and the alternative is deciding which
+   * non-championship races are famous enough to keep.
+   *
+   * MATCHED ON THE RACE, NEVER THE CIRCUIT. "aintree" was in this list for
+   * about a minute and is wrong: Aintree hosted the BRITISH GRAND PRIX in
+   * 1955, 1957, 1959, 1961 and 1962, all championship rounds. Only the BARC
+   * 200 there was not, so the pattern names the race. Same trap as the
+   * over-broad GTR rule -- a string that looks specific and is not.
+   */
+  [/race-of-champions|gold-cup|oulton-park|riverside|trophee|auvergne|lombank|mallory-park|glover|kanonloppet|barc-200/, 'non-championship race'],
   /**
    * THE INDIANAPOLIS 500, which is not Formula 1 -- in 1970. "colt-indy-500-
    * 1970-al-unser" is an IndyCar, and the existing filter has "indycar" but
@@ -373,6 +391,24 @@ const CHASSIS = {
    * and took the Lotus name in 2012. Filing the T127 under "Lotus" would put
    * Trulli's backmarker on the same hub as Raikkonen's E20 and Senna's 97T.
    */
+  /**
+   * 1962. Graham Hill's first title in the BRM P57, and PORSCHE'S ONLY GRAND
+   * PRIX WIN -- Gurney in the 804 at Rouen.
+   *
+   * THE LOTUS 18/21 IS ONE CHASSIS, not two numbers: a 1961 18 rebodied with
+   * 21 panels. "lotus-18-21-12" must be read before the plain 21 or the
+   * hybrid would split. Three Porsches and three Coopers in one season too.
+   *
+   * The shop also writes BRM without its hyphen -- "brmp57".
+   */
+  1962: [[/porsche-?804/, '804'], [/porsche-?787/, '787'], [/porsche-?718/, '718'],
+         [/cooper-?t60/, 'T60'], [/cooper-?t55/, 'T55'], [/cooper-?t53/, 'T53'],
+         [/lotus-?18-?21/, '18/21'],
+         [/lotus-?25/, '25'], [/lotus-?24/, '24'], [/lotus-?21/, '21'],
+         [/brm-?p57/, 'P57'],
+         [/brab+ham-?bt3(?![0-9])/, 'BT3'],
+         [/f[ae]rrari-?156/, '156'],
+         [/lola-?mk4/, 'Mk4']],
   /**
    * 1963. Clark's first title, won in the Lotus 25.
    *
@@ -819,6 +855,9 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 1962.
+  '804': 'Porsche', '787': 'Porsche', T53: 'Cooper', T55: 'Cooper',
+  '18/21': 'Lotus', '21': 'Lotus',
   // 1963.
   '718': 'Porsche', Mk4: 'Lola', '24': 'Lotus', P61: 'BRM', BT3: 'Brabham',
   RA270: 'Honda',
@@ -1070,6 +1109,15 @@ const DRIVERS = {
   'jack-brabham': 'Jack Brabham', 'bruce-mclaren': 'Bruce McLaren',
   'john-surtees': 'John Surtees', 'graham-hill': 'Graham Hill',
   'chris-amon': 'Chris Amon', 'christopher-amon': 'Chris Amon',
+  /**
+   * 1962. Pieterse appears as "emie-pieterse"; he is Ernie. Moss gets a key
+   * even though his only 1962 product is the non-championship Glover Trophy
+   * and is excluded -- he will be needed for 1961 and earlier.
+   */
+  moss: 'Stirling Moss', 'heini-walter': 'Heini Walter',
+  schroeder: 'Rob Schroeder', 'tim-mayer': 'Tim Mayer',
+  mairesse: 'Willy Mairesse', 'ben-pon': 'Ben Pon', shelly: 'Tony Shelly',
+  pieterse: 'Ernie Pieterse', lederle: 'Neville Lederle',
   /**
    * 1963. PHIL HILL IS THE THIRD HILL -- the 1961 champion, driving a Lotus 24
    * in France. Graham and Damon already hold full-name keys, so a bare "hill"
