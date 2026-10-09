@@ -196,7 +196,7 @@ const EXCLUDE = [
    * a bike racer to the F1 driver list, which is the same reason the Rossi
    * ride-swap is excluded.
    */
-  [/race-of-champions|gold-cup|oulton-park/, 'non-championship race'],
+  [/race-of-champions|gold-cup|oulton-park|riverside/, 'non-championship race'],
   /**
    * THE INDIANAPOLIS 500, which is not Formula 1 -- in 1970. "colt-indy-500-
    * 1970-al-unser" is an IndyCar, and the existing filter has "indycar" but
@@ -357,6 +357,34 @@ const CHASSIS = {
    * and took the Lotus name in 2012. Filing the T127 under "Lotus" would put
    * Trulli's backmarker on the same hub as Raikkonen's E20 and Senna's 97T.
    */
+  /**
+   * 1968. Graham Hill's second title, Jim Clark's last win, and the year
+   * sponsorship arrived with the Gold Leaf Lotus.
+   *
+   * A FACTUAL TRAP THAT WOULD HAVE MISFILED FOUR CARS. Tecnomodel labels the
+   * 1968 Ferrari "312b", but the 312B is the 1970 car -- B for Boxer, the
+   * flat-12 -- and 1968 ran the V12 312. The same car appears both ways from
+   * the same maker:
+   *
+   *   ferrari-312b-26-jacky-ickx-f1-winner-france-1968
+   *   ferrari-312-with-driver-26-jacky-ickx-f1-winner-france-1968
+   *
+   * So in THIS season both spellings resolve to 312. The 1969 and 1970 maps
+   * keep them apart, which is exactly what a per-year map is for.
+   *
+   * Cooper ran three cars: T86B, T86 and T81B. T86B before T86, same shape as
+   * 49B before 49.
+   */
+  1968: [[/matra-?(?:simca-?)?ms11/, 'MS11'], [/matra-?(?:simca-?)?ms10/, 'MS10'],
+         [/matra-?(?:simca-?)?ms9/, 'MS9'], [/matra-?(?:simca-?)?ms7/, 'MS7'],
+         [/mclaren-?m7a/, 'M7A'],
+         [/f[ae]rrari-?(?:f1-?)?312b?/, '312'],
+         [/brab+ham-?bt26/, 'BT26'], [/brab+ham-?bt24/, 'BT24'], [/brab+ham-?bt11/, 'BT11'],
+         [/lotus-?49b/, '49B'], [/lotus-?49(?![bc0-9])/, '49'],
+         [/brm-?p138/, 'P138'], [/brm-?p133/, 'P133'], [/brm-?p126/, 'P126'],
+         [/brm-?p261/, 'P261'],
+         [/cooper-?t86b/, 'T86B'], [/cooper-?t86(?!b)/, 'T86'], [/cooper-?t81b/, 'T81B'],
+         [/honda-?ra301/, 'RA301'], [/honda-?ra302/, 'RA302']],
   /**
    * 1969. Stewart's title year with Matra, and the season of the FOUR-WHEEL
    * DRIVE experiment -- the Lotus 63 appears five times.
@@ -672,6 +700,9 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 1968.
+  MS9: 'Matra', MS7: 'Matra', BT11: 'Brabham', P126: 'BRM', P261: 'BRM',
+  T86: 'Cooper', T81B: 'Cooper', RA301: 'Honda', RA302: 'Honda',
   // 1969.
   MS80: 'Matra', MS11: 'Matra', MS10: 'Matra', M7A: 'McLaren', '312': 'Ferrari',
   BT26: 'Brabham', BT24: 'Brabham', BT20: 'Brabham', BT30: 'Brabham',
@@ -907,6 +938,17 @@ const DRIVERS = {
   'jack-brabham': 'Jack Brabham', 'bruce-mclaren': 'Bruce McLaren',
   'john-surtees': 'John Surtees', 'graham-hill': 'Graham Hill',
   'chris-amon': 'Chris Amon', 'christopher-amon': 'Chris Amon',
+  /**
+   * 1968. Scarfiotti is spelled BOTH WAYS by the shop -- "lodovico" and
+   * "ludovico" -- so both map. Jim Clark appears once: his win in South
+   * Africa in January was his last, and he died at Hockenheim in April.
+   */
+  'servoz-gavin': 'Johnny Servoz-Gavin', spence: 'Mike Spence',
+  charlton: 'Dave Charlton', bianchi: 'Lucien Bianchi',
+  lodovico: 'Lodovico Scarfiotti', ludovico: 'Lodovico Scarfiotti',
+  scarfiotti: 'Lodovico Scarfiotti', widdows: 'Robin Widdows',
+  schlesser: 'Jo Schlesser', hobbs: 'David Hobbs',
+  'bobby-unser': 'Bobby Unser', 'jim-clark': 'Jim Clark', redman: 'Brian Redman',
   // 1969. Eight more, including two South Africans who only ever raced at
   // Kyalami, and Attwood, who shared Monaco with Graham Hill's win.
   'john-love': 'John Love', tingle: 'Sam Tingle', moser: 'Silvio Moser',
