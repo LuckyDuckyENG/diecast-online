@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-10-09
+# Status Summary — last updated 2026-10-10
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -36,9 +36,9 @@
 ## Where things stand
 
 ```
-cars 1853  |  models 4004  |  retailer links 6850  |  eBay links 5501  |  retailers 47  |  drivers 86
-slugs 1853/1853   |   images 3313/3459   |   teams 34   |   cars sellable 1443/1554
-seasons 56: 1971-2026, UNBROKEN
+cars 2118  |  models 4361  |  retailer links 6850  |  eBay links 5501  |  retailers 47  |  drivers 86
+slugs 2118/2118   |   images 3313/3459   |   teams 34   |   cars sellable 1443/1554
+seasons 61: 1966-2026, UNBROKEN
 ```
 
 The per-year visible table below is from 2026-09-29 and does NOT include the
@@ -3555,6 +3555,125 @@ Three shop typos kept as aliases, since the slug is the only key available:
 
 The RS01 raced 1977-1979 AND was demonstrated at Monaco in 2018, so its
 exclusion now carries 1979 as its native year. The STR7 lesson, third time.
+
+## The sixties, one season at a time — 1966-1970 — 2026-10-10
+
+```
+1970  53 cars ·  91 models      1968  61 cars · 77 models
+1969  57 cars ·  69 models      1967  51 cars · 65 models
+1966  44 cars ·  55 models
+= 266 cars, 357 models. Catalogue 2,118 / 4,361. Seasons 1966-2026 unbroken.
+```
+
+Taken one season at a time deliberately. 1950-1970 is 1,112 products across 21
+seasons -- three times the 1995-2001 block -- so it is a project, and every
+season here produced at least one finding that would have been buried in a
+bulk run.
+
+### The man-becomes-marque collision, five times over
+
+A driver whose surname later became a constructor. Each needs a FULL-NAME key,
+and SURNAMES sorting longest-first is what makes that work:
+
+```
+Jack Brabham    1970   Brabham is a team row
+Bruce McLaren   1967, 1970   McLaren is a team row AND a marque
+John Surtees    1970   ran his own TS7
+Guy Ligier      1966   Ligier is a team row from 1995-2001
+Alain Prost     1980-84   Prost is a team row from 1997-2001
+```
+
+Bruce McLaren is the clearest proof it works: he holds 2 cars across 1967 and
+1970 -- an EAGLE and his own M14A.
+
+### Father and son, holding across 27 years
+
+```
+Graham Hill  15 cars · 1966-1970      Damon Hill  6 cars · 1996-1998
+```
+
+The DAMON key was added on the 1995-2001 import for exactly this, and 1970 is
+where it started mattering. Keke/Nico Rosberg, Jos/Max Verstappen and
+Mario/Michael Andretti are the same shape.
+
+### Factual traps that no amount of pattern care would catch
+
+- **The 1968 Ferrari is a 312, not a 312B.** Tecnomodel labels it "312b", but
+  B is for Boxer and that is the 1970 car. The SAME CAR appears both ways from
+  the same maker. Per-year chassis maps are the only reason this was fixable:
+  312B now appears in 1969-1970 only, 312 in 1966-1969.
+- **The Indianapolis 500 is excluded -- and that must be REVERSED below 1961.**
+  It was a round of the F1 World Championship from 1950 to 1960. The rule says
+  so in place.
+- **The Race of Champions, the Gold Cup and the Riverside GP** were never
+  championship rounds, so they have no season and no points.
+- **Formula 2 cars ran in F1 races in 1966-1967.** The German GP fielded an F2
+  class, so the Matra MS5/MS7, Lola T100 and Protos 16 started World
+  Championship Grands Prix. Kept.
+- **LDS was a South African constructor** that only ever ran at Kyalami. One
+  product, and it reads as a typo without knowing that.
+
+### Ordering traps: a suffix letter is a different car
+
+```
+49B before 49, and 49C is a third      BT26A before BT26
+312B before 312                        T86B before T86
+FW07B/FW07C before FW07
+```
+
+### Shop spellings absorbed
+
+```
+brabbham · farrari · hondara273 · matra-simcams120 · williamsrenault
+schekter · jarrier · laffitte · baldini (Bandini) · ines-ireland (Innes)
+denny/dennis/denis-hulme · davis-hobbs · lodovico/ludovico-scarfiotti
+chris/christopher-amon · eagle-mki (Mk1 in Roman numerals)
+```
+
+### Engine names in the slug, and why it did not bite
+
+"lotus-brm-43" and "cooper-maserati-t81" name the engine supplier after the
+marque. The team read takes the EARLIEST match, so it lands on the
+constructor -- which is the trap that once put Prost's Williams under Renault.
+Checked rather than assumed: every Lotus 43 under Lotus, every Cooper T81
+under Cooper.
+
+### Two bugs of my own, both found by verifying rather than reading
+
+- **The McLaren F1 GTR rule was over-broad** and had been since 1995-2001.
+  `/mclaren-f1-/` matched "eagle-mki-8-bruce-mclaren-f1-1967" and a 1960
+  Cooper -- BRUCE McLAREN DRIVING SOMEONE ELSE'S CAR. Fixed with a lookbehind
+  requiring the marque position. 60 slugs are the GTR, 2 were drivers.
+- **The Sauber era-mapping had no floor**, so 1979-85 Alfa Romeo mapped onto
+  Sauber. Floored at 1993. See the 1979-1980 section.
+
+### PART NUMBERS ARE TRUNCATED. MEASURED, AND LEFT ALONE.
+
+328 cache records store "018a" where the real SKU is "TEC43-018A", because the
+maker's part number contains a hyphen and skuFromSlug takes the last token:
+
+```
+tm18 119 · tmd18 83 · gp43 61 · gp12 46 · tec43 12 · ls18 6 · gp167 1
+```
+
+Only THREE suffixes collide across 4,700 records -- 013a, 013b, 43awd -- and
+the UNIQUE CONSTRAINT on models.manufacturer_sku caught the one that mattered,
+costing a single 1967 model rather than letting a 1967 Ferrari and a 1981
+Ferrari share a part number. That constraint is also why 28 "duplicate" part
+numbers exist: it is case-sensitive, so 018A and 018a coexist.
+
+**NOT FIXED ON PURPOSE.** Correcting it means rewriting 121 already-imported
+SKUs, which would make every re-import create a second model per row -- the
+same hazard that stopped the pageRef switch. A deliberate migration, with
+eBay and retailer matching in view.
+
+### The check that now earns its place: already-held SKUs
+
+A season never imported before must have ZERO already-held part numbers. 1968
+reported "78 rows, 77 NEW" and I read past it; the one already-held SKU was
+Spark S4830, which the shop lists as both a 1968 Lotus 49 and a 1969 49B.
+1969 had imported first and taken it, so 1968 built a car, found the SKU used,
+and left it empty. **Treat a non-zero count as a hard stop.**
 
 ## SCOPE: 1950 ONWARDS. DECIDED 2026-10-09
 
