@@ -230,7 +230,7 @@ const EXCLUDE = [
    * 200 there was not, so the pattern names the race. Same trap as the
    * over-broad GTR rule -- a string that looks specific and is not.
    */
-  [/race-of-champions|gold-cup|oulton-park|riverside|trophee|auvergne|lombank|mallory-park|glover|kanonloppet|barc-200/, 'non-championship race'],
+  [/race-of-champions|gold-cup|oulton-park|riverside|trophee|auvergne|lombank|mallory-park|glover|kanonloppet|barc-200|solitude/, 'non-championship race'],
   /**
    * THE INDIANAPOLIS 500, which is not Formula 1 -- in 1970. "colt-indy-500-
    * 1970-al-unser" is an IndyCar, and the existing filter has "indycar" but
@@ -391,6 +391,25 @@ const CHASSIS = {
    * and took the Lotus name in 2012. Filing the T127 under "Lotus" would put
    * Trulli's backmarker on the same hub as Raikkonen's E20 and Senna's 97T.
    */
+  /**
+   * 1961. Phil Hill's title, and the Monza crash that killed von Trips and
+   * fifteen spectators while he led the championship.
+   *
+   * FERRARI'S 156 IS WRITTEN FIVE WAYS: "ferrari-156", "ferrari156",
+   * "ferrari-156-f1-sharknose", "ferrari-f1-156-sharknose",
+   * "ferrari-f1-dino-156-sharknose" and "ferraridino-156". One pattern takes
+   * all of them, with the optional "f1-" and "dino-" segments doing the work;
+   * without it the season's dominant car would scatter across five chassis.
+   *
+   * Cooper fielded four cars -- T53, T55, T56, T58 -- and the shop also writes
+   * "coopert53" without its hyphen. The Lotus 18/21 hybrid is read before the
+   * plain 21 and 18, as in 1962.
+   */
+  1961: [[/lotus-?18-?21/, '18/21'], [/lotus-?21/, '21'], [/lotus-?18/, '18'],
+         [/cooper-?t58/, 'T58'], [/cooper-?t56/, 'T56'],
+         [/cooper-?t55/, 'T55'], [/cooper-?t53/, 'T53'],
+         [/f[ae]rrari-?(?:f1-?)?(?:dino-?)?156/, '156'],
+         [/porsche-?787/, '787']],
   /**
    * 1962. Graham Hill's first title in the BRM P57, and PORSCHE'S ONLY GRAND
    * PRIX WIN -- Gurney in the 804 at Rouen.
@@ -855,6 +874,8 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 1961.
+  '18': 'Lotus', T56: 'Cooper', T58: 'Cooper',
   // 1962.
   '804': 'Porsche', '787': 'Porsche', T53: 'Cooper', T55: 'Cooper',
   '18/21': 'Lotus', '21': 'Lotus',
@@ -1109,6 +1130,28 @@ const DRIVERS = {
   'jack-brabham': 'Jack Brabham', 'bruce-mclaren': 'Bruce McLaren',
   'john-surtees': 'John Surtees', 'graham-hill': 'Graham Hill',
   'chris-amon': 'Chris Amon', 'christopher-amon': 'Chris Amon',
+  /**
+   * 1961. THREE MORE NAMESAKE SPLITS.
+   *
+   * WOLFGANG VON TRIPS needs the particle: the key is "von-trips", because a
+   * bare "trips" is a word and the slug reads "wolfgang-von-trips".
+   *
+   * RICARDO RODRIGUEZ is PEDRO's younger brother, and Pedro is already here
+   * with 1963-1970 cars -- so both take full-name keys. Ricardo was killed at
+   * Mexico City in 1962, aged twenty.
+   *
+   * HENRY TAYLOR is the THIRD Taylor after John (1966) and Trevor (1962-63),
+   * which is why none of them may hold a bare surname.
+   *
+   * Roger Penske raced here, and Penske entered F1 as a CONSTRUCTOR in
+   * 1974-76 -- not in this catalogue yet, so the full-name key is insurance
+   * against the Brabham/McLaren/Surtees/Ligier pattern arriving again.
+   */
+  'von-trips': 'Wolfgang von Trips', 'ricardo-rodriguez': 'Ricardo Rodriguez',
+  'henry-taylor': 'Henry Taylor', 'roger-penske': 'Roger Penske',
+  'michael-may': 'Michael May', burgess: 'Ian Burgess',
+  allison: 'Cliff Allison', gendebien: 'Olivier Gendebien',
+  salvadori: 'Roy Salvadori', 'pete-ryan': 'Pete Ryan',
   /**
    * 1962. Pieterse appears as "emie-pieterse"; he is Ernie. Moss gets a key
    * even though his only 1962 product is the non-championship Glover Trophy
