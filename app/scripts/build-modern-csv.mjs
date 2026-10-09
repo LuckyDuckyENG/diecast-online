@@ -374,6 +374,25 @@ const CHASSIS = {
    * Trulli's backmarker on the same hub as Raikkonen's E20 and Senna's 97T.
    */
   /**
+   * 1963. Clark's first title, won in the Lotus 25.
+   *
+   * PORSCHE appears as a works team here -- the 718 at the Nurburgring -- and
+   * the marque also turns up in this catalogue as a ROAD CAR, the 953 that ran
+   * Dakar. Anchoring the chassis to the marque keeps them apart.
+   *
+   * Honda's RA270 is the PROTOTYPE Brabham tested in 1963, a year before Honda
+   * raced. Kept as a 1963 test car, the same way the catalogue holds Paul
+   * Ricard and Fiorano test entries.
+   */
+  1963: [[/porsche-?718/, '718'],
+         [/lola-?mk4/, 'Mk4'],
+         [/lotus-?25/, '25'], [/lotus-?24/, '24'],
+         [/cooper-?t60/, 'T60'],
+         [/brab+ham-?bt7(?![0-9])/, 'BT7'], [/brab+ham-?bt3(?![0-9])/, 'BT3'],
+         [/brm-?p61/, 'P61'], [/brm-?p57/, 'P57'],
+         [/f[ae]rrari-?156/, '156'],
+         [/honda-?ra270/, 'RA270']],
+  /**
    * 1964. Surtees' title, and the only man to win world championships on two
    * wheels and four.
    *
@@ -800,6 +819,9 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 1963.
+  '718': 'Porsche', Mk4: 'Lola', '24': 'Lotus', P61: 'BRM', BT3: 'Brabham',
+  RA270: 'Honda',
   // 1964.
   '156': 'Ferrari', RA271: 'Honda',
   // 1965.
@@ -1048,6 +1070,16 @@ const DRIVERS = {
   'jack-brabham': 'Jack Brabham', 'bruce-mclaren': 'Bruce McLaren',
   'john-surtees': 'John Surtees', 'graham-hill': 'Graham Hill',
   'chris-amon': 'Chris Amon', 'christopher-amon': 'Chris Amon',
+  /**
+   * 1963. PHIL HILL IS THE THIRD HILL -- the 1961 champion, driving a Lotus 24
+   * in France. Graham and Damon already hold full-name keys, so a bare "hill"
+   * would now be ambiguous three ways. Trevor Taylor is the second Taylor,
+   * which is why John got a full-name key back in 1966 rather than a surname.
+   */
+  'phil-hill': 'Phil Hill', 'trevor-taylor': 'Trevor Taylor',
+  trintignant: 'Maurice Trintignant', 'jim-hall': 'Jim Hall',
+  'hap-sharp': 'Hap Sharp', 'campbell-jones': 'John Campbell-Jones',
+  cabral: 'Mario de Araujo Cabral', collomb: 'Bernard Collomb',
   // 1964.
   hailwood: 'Mike Hailwood', maggs: 'Tony Maggs',
   /**
