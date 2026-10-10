@@ -220,6 +220,22 @@ const EXCLUDE = [
    */
   [/f[ae]rrari-?375|thin-?wall/, 'Ferrari 375; by 1954 only the non-championship Thinwall Special', 1951],
   /**
+   * THE BRM V16, found at 1953. Fangio won the ALBI GRAND PRIX in it, which
+   * is not a championship round, and the 1.5-litre supercharged car was not
+   * even eligible for one: 1952 and 1953 were run to FORMULA 2 RULES because
+   * there were too few F1 cars to fill a grid.
+   *
+   * Excluded on the CAR, not on "albi". A bounded "albi" matches two slugs in
+   * the whole cache and the other is a 1969 Matra TEST at the circuit, which
+   * is a legitimate test car this catalogue keeps -- the same mistake as
+   * putting Aintree in the non-championship list. Name the car or the race,
+   * never the circuit.
+   *
+   * 1951 is the one year the V16 started championship races, the British and
+   * Italian Grands Prix, so that is its native year here.
+   */
+  [/brm-?v16/, 'BRM V16; it started championship races in 1951 only', 1951],
+  /**
    * Team lorries. "berliet-tr350-renault-f1" is Renault's and
    * "transporteur-honda-f1-1965" is Honda's -- real products, no driver, not
    * race cars.
@@ -478,6 +494,18 @@ const CHASSIS = {
    * them 6 and 46, so without the fold Behra would hold two Italian GP cars
    * for what is one model.
    */
+  /**
+   * 1953. THE THINNEST SEASON IN THE FILE: four products, and one of them is
+   * the BRM V16 at Albi, which EXCLUDE takes. Three Connaught A Types remain.
+   *
+   * 1952 and 1953 were run to FORMULA 2 RULES -- 2 litres, unsupercharged --
+   * because the Alfa Romeo withdrawal left too few F1 cars to fill a grid, so
+   * the eligible field is small and the shop reflects that.
+   *
+   * Connaught was a Send, Surrey outfit financed by Kenneth McAlpine, the only
+   * British constructor to score championship points before Vanwall.
+   */
+  1953: [[/connaught-?a(?:-|$)/, 'A Type']],
   /**
    * 1954. The 2.5-litre formula opens, Mercedes return in July, and Fangio
    * wins the title in two cars for two teams -- Maserati for the first two
@@ -1097,6 +1125,8 @@ const CHASSIS_TEAM_YEAR = {
 };
 
 const CHASSIS_TEAM = {
+  // 1953.
+  'A Type': 'Connaught',
   // 1954.
   '553 Squalo': 'Ferrari',
   // 1955.
@@ -1400,6 +1430,8 @@ const DRIVERS = {
    */
   gonzales: 'Jose Froilan Gonzalez', 'prince-bira': 'Prince Bira',
   kling: 'Karl Kling',
+  // 1953. Johnny Claes, a Belgian who also led the band he was named for.
+  claes: 'Johnny Claes',
   /**
    * 1955. THE SHOP MISSPELLS THREE OF THE SEVEN NAMES IT USES THIS SEASON,
    * and each wrong spelling sits beside the right one on another SKU:
