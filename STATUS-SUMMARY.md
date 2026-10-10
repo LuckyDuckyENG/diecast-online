@@ -1,4 +1,4 @@
-# Status Summary - last updated 2026-10-11
+# Status Summary - last updated 2026-10-10
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -3600,7 +3600,7 @@ Three shop typos kept as aliases, since the slug is the only key available:
 The RS01 raced 1977-1979 AND was demonstrated at Monaco in 2018, so its
 exclusion now carries 1979 as its native year. The STR7 lesson, third time.
 
-## The fifties, one season at a time - 1950-1959 - 2026-10-11
+## The fifties, one season at a time - 1950-1959 - 2026-10-10
 
 ```
 1959  20 cars - 27 models      1954  15 cars - 25 models
