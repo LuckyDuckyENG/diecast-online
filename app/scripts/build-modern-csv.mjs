@@ -452,6 +452,27 @@ const CHASSIS = {
    * them 6 and 46, so without the fold Behra would hold two Italian GP cars
    * for what is one model.
    */
+  /**
+   * 1956. Fangio's fourth title in a car he did not want: the LANCIA D50,
+   * handed to Ferrari complete when Lancia ran out of money, which is why the
+   * shop spells it SIX ways and one of them says Lancia out loud:
+   *
+   *   ferrari-d50 · ferrari-f1-d50 · ferrarid50
+   *   ferrari-f1-d50-long-nose · ferrarid50-long-nose · ferrari-lancia-d50
+   *
+   * LONG NOSE IS NOT A SEPARATE CHASSIS. It is the Monza bodywork, and all
+   * three Monza SKUs are Fangio's car 26 -- one names the circuit rather than
+   * the country, which EVENTS already handles. Folded, they are one car.
+   *
+   * The thin end of the field needs two new marques: Gordini's T32 across
+   * four rounds, and the BUGATTI T251, which started once, at Reims, with
+   * Trintignant. Bugatti never entered another Grand Prix.
+   */
+  1956: [[/f[ae]rrari-?(?:f1-?)?(?:lancia-?)?d50/, 'D50'],
+         [/bugatti-?t251/, 'T251'],
+         [/gordini-?t32/, 'T32'],
+         [/vanwall-?vw-?2/, 'VW2'],
+         [/brm-?p25/, 'P25']],
   1957: [[/maserati-?250f(?:-12-cylindres)?/, '250F'],
          [/vanwall-?(?:f1-?)?vw5/, 'VW5'],
          [/f[ae]rrari-?801/, '801'],
@@ -990,6 +1011,8 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 1956.
+  D50: 'Ferrari', T251: 'Bugatti', T32: 'Gordini', VW2: 'Vanwall',
   // 1957.
   '801': 'Ferrari',
   // 1958.
@@ -1278,6 +1301,27 @@ const DRIVERS = {
    * keys, or his Belgian and Italian GP cars file under a driver who does not
    * exist.
    */
+  /**
+   * 1956. SHARED DRIVES ARE A 1950S FACT and this is the first season where
+   * one lands: "ferrari-d50-4-peter-collins-de-portago" names both men, who
+   * really did share car 4 at Silverstone -- de Portago started, Collins took
+   * over and finished second.
+   *
+   * THERE IS DELIBERATELY NO "de-portago" KEY. driverIn takes the LONGEST
+   * matching key regardless of where it sits in the slug, so adding one would
+   * make this SKU the only de Portago car and split it off from the four
+   * other SKUs of the same car, all of which attribute it to Collins alone.
+   * One car, filed the way the shop files it four times out of five.
+   *
+   * Anyone adding de Portago later must know that it silently splits this car.
+   *
+   * ANDRE PILETTE takes a full-name key, not "pilette": his son TEDDY raced
+   * in 1974-77, the same father-and-son trap as Schumacher and Hill, and both
+   * slugs spell it out anyway.
+   */
+  bayol: 'Elie Bayol', 'andre-pilette': 'Andre Pilette',
+  manzon: 'Robert Manzon', 'da-silva-ramos': 'Hermano da Silva Ramos',
+  milhoux: 'Andre Milhoux', gonzalez: 'Jose Froilan Gonzalez',
   /**
    * 1957. Fangio's fifth title, and his first car in this catalogue -- he
    * retired in July 1958, so 1958 held none of him at all.
