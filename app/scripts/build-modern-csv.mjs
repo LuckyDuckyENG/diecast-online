@@ -315,7 +315,14 @@ const EVENTS = [
   [/singapour/, 'Singapore GP'], [/malaisie/, 'Malaysian GP'],
   [/(?:^|-)japon(?:-|$)|suzuka/, 'Japanese GP'], [/mexique/, 'Mexican GP'],
   [/(?:^|-)bresil(?:-|$)|interlagos/, 'Brazilian GP'], [/(?:^|-)usa(?:-|$)|austin|etats-unis/, 'United States GP'],
-  [/allemagne|hockenheim/, 'German GP'], [/(?:^|-)france(?:-|$)|castellet/, 'French GP'],
+  /**
+   * NURBURGRING ALONE, found at 1957. One Tecnomodel Ferrari 801 names the
+   * circuit and not the country, where the shop's other German GP slugs all
+   * read "allemagne" -- including one that reads both. Without the circuit
+   * here, Hawthorn's Nurburgring car split from his Nurburgring car.
+   */
+  [/allemagne|hockenheim|nurburgring/, 'German GP'],
+  [/(?:^|-)france(?:-|$)|castellet/, 'French GP'],
   [/pays-bas|zandvoort/, 'Dutch GP'], [/portugal|portimao/, 'Portuguese GP'],
   [/toscane|mugello/, 'Tuscan GP'], [/eifel/, 'Eifel GP'], [/sakhir/, 'Sakhir GP'],
   [/styrie/, 'Styrian GP'],
@@ -373,6 +380,13 @@ const EVENTS = [
   [/argentine|buenos-aires/, 'Argentine GP'],
   [/(?:^|-)maroc(?:-|$)|ain-diab/, 'Moroccan GP'],
   [/suisse|bremgarten/, 'Swiss GP'],
+  /**
+   * PESCARA, 1957 only. Sixteen miles of public road along the Adriatic, the
+   * longest circuit ever to hold a championship Grand Prix, run once because
+   * Monza's organisers fell out with the Italian federation and a replacement
+   * round was needed. Moss won it in the Vanwall.
+   */
+  [/pescara/, 'Pescara GP'],
 ];
 
 /**
@@ -427,6 +441,21 @@ const CHASSIS = {
    * a World Championship round, so it is kept on the same reasoning as the
    * 1966-67 Formula 2 entries.
    */
+  /**
+   * 1957. FANGIO'S FIFTH AND LAST TITLE, and the Maserati 250F is 16 of the 31
+   * kept products -- the single most modelled car of the decade here.
+   *
+   * THE 250F V12 IS NOT A SEPARATE CHASSIS. Brumm's "250f-12-cylindres" is
+   * Behra's Monza car with the V12 engine in the same tub, and the optional
+   * segment folds it into the 250F. The two Brumm SKUs that carry it, R223B
+   * and R223-UPD, are one tooling and its later re-release; the shop numbers
+   * them 6 and 46, so without the fold Behra would hold two Italian GP cars
+   * for what is one model.
+   */
+  1957: [[/maserati-?250f(?:-12-cylindres)?/, '250F'],
+         [/vanwall-?(?:f1-?)?vw5/, 'VW5'],
+         [/f[ae]rrari-?801/, '801'],
+         [/brm-?p25/, 'P25']],
   /**
    * 1958. The Dino 246 is 30 of the 40 kept products, and it arrives in FIVE
    * spellings -- the 156's problem from 1961, one season earlier:
@@ -961,6 +990,8 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 1957.
+  '801': 'Ferrari',
   // 1958.
   VW5: 'Vanwall', '12': 'Lotus', '250F': 'Maserati',
   // 1959.
@@ -1247,6 +1278,15 @@ const DRIVERS = {
    * keys, or his Belgian and Italian GP cars file under a driver who does not
    * exist.
    */
+  /**
+   * 1957. Fangio's fifth title, and his first car in this catalogue -- he
+   * retired in July 1958, so 1958 held none of him at all.
+   *
+   * MACKAY-FRASER needs the hyphenated pair. He died at Reims a fortnight
+   * after this, his only championship start.
+   */
+  fangio: 'Juan Manuel Fangio', 'mackay-fraser': 'Herbert Mackay-Fraser',
+  fairman: 'Jack Fairman', leston: 'Les Leston',
   hawthorn: 'Mike Hawthorn', collins: 'Peter Collins', musso: 'Luigi Musso',
   'lewis-evans': 'Stuart Lewis-Evans', brookes: 'Tony Brooks',
   behra: 'Jean Behra', schell: 'Harry Schell', barth: 'Edgar Barth',
@@ -1454,6 +1494,10 @@ const MAKERS = {
   // manufacturers row -- it was holding back a Brawn BGP001, the only one of
   // the six 2009 products this maker carries.
   cmr: 'CMR',
+  // CMC is Classic Model Cars, which is NOT CMR above -- one letter apart,
+  // different German makers. Added 2026-10-12 for the 1:18 Maserati 250F,
+  // Fangio's title car and the only CMC product in the file.
+  cmc: 'CMC',
   // One product: a 1995 Ferrari 412T2 test car.
   fujimi: 'Fujimi',
   sunstar: 'Sunstar',
