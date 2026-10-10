@@ -349,6 +349,30 @@ const EVENTS = [
    * of importing 1980. Recorded in STATUS-SUMMARY as open.
    */
   [/turquie/, 'Turkish GP'], [/qatar/, 'Qatar GP'], [/arabie-saoudite/, 'Saudi Arabian GP'],
+  /**
+   * FOUR RACES THAT WERE NEVER NAMED HERE, found at 1958.
+   *
+   * This list grew out of the modern calendar and the gaps only show up when
+   * a season needs them. An unmatched round does not fail loudly -- it falls
+   * through to "Season", and because a car's identity is
+   * team+driver+chassis+event, every unnamed round in a season COLLAPSES INTO
+   * ONE CAR. Hawthorn's Argentine Ferrari and his three Moroccan models came
+   * out as a single 1958 car on four models.
+   *
+   *   South African  1962-1984, the big one -- 53 products already imported
+   *   Argentine      1958, 1960, 1979-81, 1996
+   *   Moroccan       1958 only, the one championship running, at Ain-Diab
+   *   Swiss          1951 and 1982 (held at Dijon, in France)
+   *
+   * Adding them makes the generator disagree with cars already imported as
+   * "Season" -- the Imola hazard above. The difference is that Imola is a
+   * naming question and this is a merging one, so the repair is worth the
+   * redirect. Recorded in STATUS-SUMMARY.
+   */
+  [/afrique-du-sud|kyalami/, 'South African GP'],
+  [/argentine|buenos-aires/, 'Argentine GP'],
+  [/(?:^|-)maroc(?:-|$)|ain-diab/, 'Moroccan GP'],
+  [/suisse|bremgarten/, 'Swiss GP'],
 ];
 
 /**
@@ -403,6 +427,27 @@ const CHASSIS = {
    * a World Championship round, so it is kept on the same reasoning as the
    * 1966-67 Formula 2 entries.
    */
+  /**
+   * 1958. The Dino 246 is 30 of the 40 kept products, and it arrives in FIVE
+   * spellings -- the 156's problem from 1961, one season earlier:
+   *
+   *   ferrari-d246 · ferrari-dino-246 · ferrari-246-f1
+   *   ferraridino-246 · ferrari-f1-dino-246
+   *
+   * One pattern takes all five. The "dino-?|d" alternation must try the long
+   * form first or "dino-246" matches the bare "d" and then fails on "ino".
+   *
+   * VANWALL, likewise, is "vanwall-vw5", "vanwall-f1-vw5" and -- from Edicola
+   * -- plain "vanwall-57". All three are the one car: Vanwall ran a single
+   * design in 1957 and 1958 and took the first constructors' title with it.
+   * Edicola is naming the earlier year, not a different chassis.
+   */
+  1958: [[/vanwall-?(?:f1-?)?vw5/, 'VW5'], [/vanwall-?57/, 'VW5'],
+         [/lotus-?16/, '16'], [/lotus-?12/, '12'],
+         [/porsche-?rsk/, 'RSK'],
+         [/brm-?p25/, 'P25'],
+         [/maserati-?250f/, '250F'],
+         [/f[ae]rrari-?(?:f1-?)?(?:dino-?|d)?246/, '246']],
   1959: [[/lotus-?16/, '16'],
          [/porsche-?rsk/, 'RSK'],
          [/cooper-?t51/, 'T51'],
@@ -916,6 +961,8 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 1958.
+  VW5: 'Vanwall', '12': 'Lotus', '250F': 'Maserati',
   // 1959.
   RSK: 'Porsche',
   // 1960.
@@ -1189,6 +1236,20 @@ const DRIVERS = {
    */
   'daniel-sexton': 'Dan Gurney', blanchard: 'Harry Blanchard',
   herrmann: 'Hans Herrmann', shelby: 'Carroll Shelby',
+  /**
+   * 1958. Hawthorn's title year, and the one with the toll: Musso killed at
+   * Reims, Collins at the Nurburgring, Lewis-Evans at Casablanca, all within
+   * four months. Hawthorn retired that winter and died on the road in
+   * January. Every one of them is in this file.
+   *
+   * TONY BROOKS IS SPELLED TWO WAYS. Tecnomodel's four Vanwalls read
+   * "tony-brookes" on two of them and the Sparks read "tony-brooks". Both
+   * keys, or his Belgian and Italian GP cars file under a driver who does not
+   * exist.
+   */
+  hawthorn: 'Mike Hawthorn', collins: 'Peter Collins', musso: 'Luigi Musso',
+  'lewis-evans': 'Stuart Lewis-Evans', brookes: 'Tony Brooks',
+  behra: 'Jean Behra', schell: 'Harry Schell', barth: 'Edgar Barth',
   /**
    * 1960. Phil Hill appears formally as "philip-hill" as well, and SURNAMES
    * sorts longest-first so that key wins over "phil-hill". Bristow is typo'd
