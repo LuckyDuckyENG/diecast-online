@@ -36,36 +36,38 @@
 ## Where things stand
 
 ```
-cars 2464  |  models 4866  |  retailer links 7631  |  eBay links 5587  |  retailers 47  |  drivers 290
-slugs 2464/2464   |   images 4157/4866   |   teams 71   |   cars sellable 2013/2464
-models with an eBay listing 1627/4866   |   manufacturers 22
+cars 2472  |  models 4890  |  retailer links 8068  |  eBay links 5587  |  retailers 47  |  drivers 290
+slugs 2472/2472   |   images 4372/4890   |   teams 71   |   cars sellable 2178/2472
+models with an eBay listing 1627/4890   |   manufacturers 22
 seasons 77: 1950-2026, UNBROKEN — EVERY SEASON OF THE WORLD CHAMPIONSHIP
 ```
 
 **The catalogue is complete by season.** 1950 to 2026 with no gap anywhere.
 There is no earlier season to add: the championship began in 1950.
 
-The three link/image counts above are PRE-SWEEP for the 1950s — those 226
-models were imported minutes before this was written and have nothing on them
-yet. Coverage by era, measured the same moment:
+**Swept gaps-only straight after the imports, and the 1950s went from flat zero
+to parity with the sixties in one pass.** Coverage by era, after:
 
 ```
 era          cars  models   a retailer       an image         eBay
-1950-1959     147     226       0 (  0%)       0 (  0%)       0 (  0%)
-1960-1970     464     636     418 ( 66%)     465 ( 73%)       0 (  0%)
-1971-1994     326     642     463 ( 72%)     550 ( 86%)     119 ( 19%)
-1995-2026    1527    3362    3003 ( 89%)    3142 ( 93%)    1508 ( 45%)
+1950-1959     147     226     144 ( 64%)     160 ( 71%)       0 (  0%)
+1960-1970     464     636     466 ( 73%)     498 ( 78%)       0 (  0%)
+1971-1994     326     642     478 ( 74%)     551 ( 86%)     119 ( 19%)
+1995-2026    1535    3386    3019 ( 89%)    3163 ( 93%)    1508 ( 45%)
 ```
 
-**451 cars are now unsellable, up from 304**, and every one of the 147 new ones
-is in that number. A gaps-only retailer sweep is the fix for the first two
-columns and was running as this was written. The eBay column needs its own
-pass and is the single largest untouched surface in the catalogue: 862 models
-across 1950-1970 at flat zero, which is precisely the era where the secondary
-market IS the market.
+What the sweep moved: **retailer links 7,631 -> 8,068, images 4,157 -> 4,372,
+and cars sellable 2,013 -> 2,178.** The 1950s had 0 retailer links and 0 images
+before it and have 144 and 160 now; 1960-1970 also gained, 418 -> 466 links and
+465 -> 498 images. 294 cars remain unsellable, down from 451.
+
+**eBay is UNCHANGED at flat zero for everything before 1971** — 862 models, and
+the sweep cannot touch it because it is a separate pass that has never been
+run for those seasons. It is the single largest untouched surface in the
+catalogue, and precisely the era where the secondary market IS the market.
 
 The per-year visible table below is from 2026-09-29 and is now badly out of
-date: it covers 1,357 cars where there are 2,464, and includes NONE of the
+date: it covers 1,357 cars where there are 2,472, and includes NONE of the
 five historic drivers, 2010-2012, 1960-1970 or 1950-1959. Re-cut it after the
 eBay pass for the new seasons, not before — a car with no listing yet is not
 evidence of a gap, and 862 models across 1950-1970 have never been offered
@@ -98,8 +100,8 @@ cars for months, created as reference rows and never used. 2010 did not exist
 at all; the table jumped 1994 -> 2011.
 
 
-**Images: 4,157/4,866, with 709 models lacking one** — 226 of those are the
-1950s, imported minutes before this was written and not yet swept. Sweeps fill a
+**Images: 4,372/4,890, with 518 models lacking one** — down from 709 after the
+2026-10-10 sweep, which filled 215. Sweeps fill a
 missing image from the shop's own photo and never overwrite one already set —
 demonstrated: shop A writes, shop B is skipped, A's photo survives. The guard is
 `.is('image_url', null)` as a condition on the UPDATE, so concurrent sweeps
