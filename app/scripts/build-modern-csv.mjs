@@ -522,6 +522,27 @@ const CHASSIS = {
    * for what is one model.
    */
   /**
+   * 1951. Fangio's FIRST title, in the Alfetta 159, and the season Ferrari
+   * finally beat Alfa Romeo -- Gonzalez at Silverstone in July, the first
+   * championship win for a Ferrari. Both of those cars are here in quantity:
+   * 375s are 19 of the 28 kept rows.
+   *
+   * THE ALFETTA IS SPELLED FOUR WAYS and the model number moves around:
+   *
+   *   alfa-romeo-159 · alfa-romeo-159-alfetta
+   *   alfa-romeo-alfetta-159m · alfa-romeoalfetta-159
+   *
+   * One optional "alfetta" segment takes all four, including the run-together
+   * form with no hyphen after "romeo". The 159M is the late-season engine, not
+   * another chassis, so it folds in.
+   *
+   * THE 375 IS ALSO THE REASON 1952 EXISTS AS A PREDICATE. Here it is simply
+   * a championship car: EXCLUDE stands down for 1950-1952 and these come
+   * straight in.
+   */
+  1951: [[/alfa-?romeo-?(?:alfetta-?)?159/, '159'],
+         [/f[ae]rrari-?375/, '375']],
+  /**
    * 1952. ASCARI WON SIX ROUNDS FROM SIX STARTS in the Ferrari 500 and took
    * the title having skipped the opener -- because he was at INDIANAPOLIS.
    *
@@ -1168,6 +1189,8 @@ const CHASSIS_TEAM_YEAR = {
 };
 
 const CHASSIS_TEAM = {
+  // 1951.
+  '159': 'Alfa Romeo', '375': 'Ferrari',
   // 1952.
   '500': 'Ferrari', '375 Indy': 'Ferrari',
   // 1953.
@@ -1484,6 +1507,17 @@ const DRIVERS = {
    */
   thompson: 'Eric Thompson', poore: 'Dennis Poore',
   parsons: 'Johnnie Parsons',
+  /**
+   * 1951. Paul Pietsch, who drove the Alfetta at the Nurburgring and later
+   * founded Das Auto Motor und Sport.
+   *
+   * No new key was needed for the season's two worst spellings, which is the
+   * DRIVERS map earning its keep: "giuseppe-nino-farini" stacks a first name,
+   * a nickname and a misspelt surname in one slug and still resolves through
+   * the "farini" key added at 1955, and "froilein-gonzalez" misspells the
+   * middle name but leaves the surname intact.
+   */
+  pietsch: 'Paul Pietsch',
   /**
    * 1955. THE SHOP MISSPELLS THREE OF THE SEVEN NAMES IT USES THIS SEASON,
    * and each wrong spelling sits beside the right one on another SKU:
