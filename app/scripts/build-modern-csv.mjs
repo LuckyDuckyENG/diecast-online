@@ -392,6 +392,24 @@ const CHASSIS = {
    * Trulli's backmarker on the same hub as Raikkonen's E20 and Senna's 97T.
    */
   /**
+   * 1959. Brabham's first title, Vanwall's withdrawal, and Aston Martin's
+   * debut -- the DBR4, which lands on the same hub as the 2021 team.
+   *
+   * Ferrari is 183 of the decade's 355 products, so its spellings matter more
+   * here than anywhere: "ferraridino-246-256" is the combined Dino
+   * designation, and the optional "dino" segment carries it.
+   *
+   * Porsche's RSK was an F2-spec car Blanchard entered at Sebring; it started
+   * a World Championship round, so it is kept on the same reasoning as the
+   * 1966-67 Formula 2 entries.
+   */
+  1959: [[/lotus-?16/, '16'],
+         [/porsche-?rsk/, 'RSK'],
+         [/cooper-?t51/, 'T51'],
+         [/brm-?p25/, 'P25'],
+         [/f[ae]rrari(?:dino)?-?246-?256/, '246/256'],
+         [/aston-?martin-?dbr4/, 'DBR4']],
+  /**
    * 1960. Brabham's second title, the last year of the 2.5-litre formula, and
    * the LAST FRONT-ENGINED GRAND PRIX WIN -- Phil Hill's Ferrari at Monza,
    * the race the British teams boycotted.
@@ -898,6 +916,8 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 1959.
+  RSK: 'Porsche',
   // 1960.
   '16': 'Lotus', T51: 'Cooper', P25: 'BRM', '246P': 'Ferrari',
   '246/256': 'Ferrari', '256': 'Ferrari',
@@ -1158,6 +1178,17 @@ const DRIVERS = {
   'jack-brabham': 'Jack Brabham', 'bruce-mclaren': 'Bruce McLaren',
   'john-surtees': 'John Surtees', 'graham-hill': 'Graham Hill',
   'chris-amon': 'Chris Amon', 'christopher-amon': 'Chris Amon',
+  /**
+   * 1959. DAN GURNEY'S FULL NAME IS DANIEL SEXTON GURNEY, and one slug
+   * truncates it to "daniel-sexton" -- keeping the MIDDLE name and dropping
+   * the surname. The same car, number 6 at Avus, appears three times: twice
+   * as "daniel-gurney" and once as "daniel-sexton".
+   *
+   * The inverse of Burti, whose slug reads "luciano-pucci-burti" with the
+   * middle name in the middle and the surname intact.
+   */
+  'daniel-sexton': 'Dan Gurney', blanchard: 'Harry Blanchard',
+  herrmann: 'Hans Herrmann', shelby: 'Carroll Shelby',
   /**
    * 1960. Phil Hill appears formally as "philip-hill" as well, and SURNAMES
    * sorts longest-first so that key wins over "phil-hill". Bristow is typo'd
