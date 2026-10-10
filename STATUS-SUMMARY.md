@@ -1,4 +1,4 @@
-# Status Summary — last updated 2026-10-10
+# Status Summary - last updated 2026-10-11
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -36,9 +36,10 @@
 ## Where things stand
 
 ```
-cars 2118  |  models 4361  |  retailer links 6850  |  eBay links 5501  |  retailers 47  |  drivers 86
-slugs 2118/2118   |   images 3313/3459   |   teams 34   |   cars sellable 1443/1554
-seasons 61: 1966-2026, UNBROKEN
+cars 2317  |  models 4640  |  retailer links 7631  |  eBay links 5587  |  retailers 47  |  drivers 255
+slugs 2317/2317   |   images 4157/4640   |   teams 65   |   cars sellable 2013/2317
+models with an eBay listing 1627/4640
+seasons 67: 1960-2026, UNBROKEN
 ```
 
 The per-year visible table below is from 2026-09-29 and does NOT include the
@@ -3555,6 +3556,148 @@ Three shop typos kept as aliases, since the slug is the only key available:
 
 The RS01 raced 1977-1979 AND was demonstrated at Monaco in 2018, so its
 exclusion now carries 1979 as its native year. The STR7 lesson, third time.
+
+## The rest of the sixties - 1960-1965 - 2026-10-11
+
+```
+1965  30 cars - 51 models      1962  38 cars - 50 models
+1964  20 cars - 32 models      1961  49 cars - 62 models
+1963  27 cars - 32 models      1960  35 cars - 52 models
+= 199 cars, 279 models. Seasons 1960-2026 unbroken, sixty-seven consecutive.
+```
+
+The whole 1960-1970 block, from a standing start at 1971: **cars 1,853 ->
+2,317 and models 4,004 -> 4,640.**
+
+### ONE CAR, FIVE SPELLINGS
+
+Ferrari's 156 in 1961 is the worst case in the file, and one pattern takes all
+of them:
+
+```
+ferrari-156 - ferrari156 - ferrari-156-f1-sharknose
+ferrari-f1-156-sharknose - ferrari-f1-dino-156-sharknose - ferraridino-156
+```
+
+24 cars under one chassis. Without it, Phil Hill's title-winning season would
+have scattered across five and his models with it. The same shape recurs:
+
+```
+1964-65  ferrari-1512 (Looksmart) and ferrari-512 (Brumm, Tecnomodel) are ONE car
+1960     ferraridino-246-256, ferrari-256-f1, ferrari-246p are THREE
+1964     ferrari-158, ferrari158, ferrari-158-f1 are one
+```
+
+The 1960 trio needs ORDER: 246P first, or the rear-engined prototype folds into
+the 246/256.
+
+### NAMESAKES: THREE HILLS, THREE TAYLORS, TWO RODRIGUEZ
+
+Every one needs a FULL-NAME key, and SURNAMES sorting longest-first is what
+makes it work:
+
+```
+Graham Hill  25 - 1960-1970      John Taylor    1 - 1966
+Phil Hill    13 - 1960-1963      Trevor Taylor  3 - 1961-1963
+Damon Hill    6 - 1996-1998      Henry Taylor   2 - 1960-1961
+Pedro Rodriguez   11 - 1963-1970
+Ricardo Rodriguez  1 - 1961
+```
+
+The DAMON key was added on the 1995-2001 import, before Graham or Phil existed
+in this catalogue. That is the only reason a bare "hill" never had the chance
+to misfile three careers. **Wolfgang von Trips** needs the particle -- the key
+is "von-trips", since a bare "trips" is a word. **Ricardo Rodriguez** was
+Pedro's younger brother, killed at Mexico City in 1962 aged twenty.
+
+### "AINTREE" WAS IN THE EXCLUSION LIST FOR ABOUT A MINUTE
+
+Aintree hosted the BRITISH GRAND PRIX in 1955, 1957, 1959, 1961 and 1962 --
+all championship rounds. Only the BARC 200 there was not. Matching the circuit
+would have silently dropped British Grands Prix from four seasons not yet
+fetched; the 1961 import proved it an hour later by keeping 3 British GP cars.
+
+**The rule names the RACE, never the circuit.** Same shape as the over-broad
+GTR rule: a string that looks specific and is not.
+
+### Non-championship races, now a long list
+
+```
+race-of-champions - gold-cup - oulton-park - riverside - trophee - auvergne
+lombank - mallory-park - glover - kanonloppet - barc-200 - solitude
+international-trophy
+```
+
+**Stirling Moss's last race is excluded.** The Glover Trophy at Goodwood in
+April 1962 is the crash that ended his career, and it matters more
+historically than most championship entries. It still has no season. The
+alternative is deciding which non-championship races are famous enough to
+keep, which is not a line that can be held.
+
+### THE INDY RULE NEEDED NO CHANGE, AND I SAID IT DID
+
+Indianapolis WAS a World Championship round from 1950 to 1960, so the
+exclusion is wrong in principle for eleven seasons. Measured before touching
+it: **three Indy products exist across the whole 1950-1960 block, all of them
+in 1952.** 1960 has none.
+
+I called it structural before counting. It is a footnote, and the counting
+took two minutes.
+
+### ASTON MARTIN NOW SPANS TWO ERAS ON ONE HUB
+
+1960 was David Brown's last season -- the DBR4 and DBR5 -- and it lands on the
+Aston Martin row created for the 2021 team. 54 cars across 1960 and 2021-2026.
+
+Unrelated outfits 61 years apart, but the names are IDENTICAL so there is no
+lookup ambiguity to create, and this catalogue already holds Chapman's Lotus
+and Enstone's Lotus together. Consistent rather than novel -- recorded so
+nobody mistakes it for an accident.
+
+### The GTR bug, closed at 1960
+
+Bruce McLaren holds 6 cars across 1960, 1961, 1962, 1967 and 1970. The 1960
+Cooper is the exact slug the over-broad `/mclaren-f1-/` rule was eating:
+
+```
+cooper-t53-with-driver-2-bruce-mclaren-f1-angleterre-1960
+```
+
+Found while fixing the rule for 1967, predicted to matter at 1960, and it did.
+
+### Hybrids and shop spellings
+
+The **Lotus 18/21 is ONE chassis**, a 1961 18 rebodied with 21 panels, and must
+be read before the plain 21 and 18. Verified in 1962: 2 cars on 18/21 and 4 on
+21.
+
+```
+coopert51 - coopert53 - brmp57 - ferrari158 - hondara273 - brabham-bt07
+baldini (Bandini) - ines-ireland (Innes) - bistrow (Bristow)
+philip-hill (Phil) - emie-pieterse (Ernie) - geki (Giacomo Russo)
+```
+
+### After the sweep: the sixties are as well covered as the seventies
+
+The retailer sweep run 2026-10-11, gaps-only:
+
+```
+era          models   a retailer           an image
+1961-1970      584    418 ( 249)  +169     465 ( 284)  +181
+1971-1994      642    463 ( 463)   +0      550 ( 550)   +0
+1995-2026     3362   3003 (3003)   +0     3142 (3142)   +0
+```
+
+**72% retailer coverage for 1961-1970, identical to 1971-1994**, and all 144
+newly-sellable cars are sixties cars -- so each has just entered the hubs and
+the sitemap. The +0 at model level elsewhere is gaps-only behaving correctly;
+the extra links there are second and third shops for models that already had
+one.
+
+**eBay is still FLAT ZERO for 1961-1970.** 584 models, no pass ever run. That
+is the last untouched surface for the era, and precisely the cars where the
+secondary market is the only market. 1971-1994 reaches only 19%, so expect
+little -- but zero is certainly wrong.
 
 ## The sixties, one season at a time — 1966-1970 — 2026-10-10
 
