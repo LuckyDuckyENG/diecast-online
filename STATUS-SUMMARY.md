@@ -36,15 +36,40 @@
 ## Where things stand
 
 ```
-cars 2317  |  models 4640  |  retailer links 7631  |  eBay links 5587  |  retailers 47  |  drivers 255
-slugs 2317/2317   |   images 4157/4640   |   teams 65   |   cars sellable 2013/2317
-models with an eBay listing 1627/4640
-seasons 67: 1960-2026, UNBROKEN
+cars 2464  |  models 4866  |  retailer links 7631  |  eBay links 5587  |  retailers 47  |  drivers 290
+slugs 2464/2464   |   images 4157/4866   |   teams 71   |   cars sellable 2013/2464
+models with an eBay listing 1627/4866   |   manufacturers 22
+seasons 77: 1950-2026, UNBROKEN — EVERY SEASON OF THE WORLD CHAMPIONSHIP
 ```
 
-The per-year visible table below is from 2026-09-29 and does NOT include the
-five historic drivers or 2010-2012. Re-cut it after the eBay pass for the new
-seasons, not before — a car with no listing yet is not evidence of a gap.
+**The catalogue is complete by season.** 1950 to 2026 with no gap anywhere.
+There is no earlier season to add: the championship began in 1950.
+
+The three link/image counts above are PRE-SWEEP for the 1950s — those 226
+models were imported minutes before this was written and have nothing on them
+yet. Coverage by era, measured the same moment:
+
+```
+era          cars  models   a retailer       an image         eBay
+1950-1959     147     226       0 (  0%)       0 (  0%)       0 (  0%)
+1960-1970     464     636     418 ( 66%)     465 ( 73%)       0 (  0%)
+1971-1994     326     642     463 ( 72%)     550 ( 86%)     119 ( 19%)
+1995-2026    1527    3362    3003 ( 89%)    3142 ( 93%)    1508 ( 45%)
+```
+
+**451 cars are now unsellable, up from 304**, and every one of the 147 new ones
+is in that number. A gaps-only retailer sweep is the fix for the first two
+columns and was running as this was written. The eBay column needs its own
+pass and is the single largest untouched surface in the catalogue: 862 models
+across 1950-1970 at flat zero, which is precisely the era where the secondary
+market IS the market.
+
+The per-year visible table below is from 2026-09-29 and is now badly out of
+date: it covers 1,357 cars where there are 2,464, and includes NONE of the
+five historic drivers, 2010-2012, 1960-1970 or 1950-1959. Re-cut it after the
+eBay pass for the new seasons, not before — a car with no listing yet is not
+evidence of a gap, and 862 models across 1950-1970 have never been offered
+one.
 
 ```
 cars visible 1265/1357  =  93%
@@ -73,7 +98,8 @@ cars for months, created as reference rows and never used. 2010 did not exist
 at all; the table jumped 1994 -> 2011.
 
 
-**Images: 3,214/3,441, with 227 models lacking one.** Sweeps fill a
+**Images: 4,157/4,866, with 709 models lacking one** — 226 of those are the
+1950s, imported minutes before this was written and not yet swept. Sweeps fill a
 missing image from the shop's own photo and never overwrite one already set —
 demonstrated: shop A writes, shop B is skipped, A's photo survives. The guard is
 `.is('image_url', null)` as a condition on the UPDATE, so concurrent sweeps
@@ -238,10 +264,27 @@ above.
 
 ## Open, none urgent
 
-- **37 cars have no models**, up from 21 as the season imports ran. sync-csv
-  creates the car before the models, so a row whose every SKU already exists
-  leaves an orphan. It should roll back. This grows with every import, so it
-  is now the largest piece of catalogue junk.
+- **46 cars read the wrong race name**, from the four EVENTS gaps found at 1958
+  (see "The fifties" below). 38 are PURE RENAMES with no judgement involved and
+  nothing splitting; 9 need a split. All 46 carry live indexed slugs, so the job
+  is renames plus redirects — the same shape as the San Marino five. The South
+  African GP is the bulk of it and reads "Season" today for Clark's 1968 win,
+  Stewart's 1969 win, Rindt, Surtees and Hulme.
+- **The eBay pass for 1950-1970 has never run.** 862 models at flat zero, the
+  largest untouched surface in the catalogue, and the era where the secondary
+  market is the only market. Deliberately deferred until the imports finished
+  so it runs once; the imports have now finished.
+- **Four empty team rows are live `includes` traps**: `"Ferrari"`,
+  `"Visa Cash App RB"`, `"Mercedes "` (trailing space) and
+  `"Mercedes-AMG Petronas Formula One Team"`. The trailing-space row already
+  caught four 1955 cars once. Harmless today, worth deleting.
+- **`Alfa Romeo.primary_color` is NULL** across 80 cars and three eras.
+- **35 cars have no models**, and FLAT through all ten 1950s imports — it was
+  checked after every one. sync-csv creates the car before the models, so a row
+  whose every SKU already exists leaves an orphan, and it should roll back. The
+  earlier note here said this "grows with every import"; 226 models across ten
+  seasons added none, because the hard stop on already-held SKUs now catches
+  the case that used to produce them.
 - **9 duplicate models where both rows are priced**, named by the merge script.
 - **`/drivers/norris-piastri` is a fake driver page**, a two-car set imported
   as a person, live and in the sitemap. Nine other pair names already 404
@@ -3556,6 +3599,260 @@ Three shop typos kept as aliases, since the slug is the only key available:
 
 The RS01 raced 1977-1979 AND was demonstrated at Monaco in 2018, so its
 exclusion now carries 1979 as its native year. The STR7 lesson, third time.
+
+## The fifties, one season at a time - 1950-1959 - 2026-10-11
+
+```
+1959  20 cars - 27 models      1954  15 cars - 25 models
+1958  25 cars - 39 models      1953   3 cars -  3 models
+1957  19 cars - 30 models      1952   6 cars -  7 models
+1956  18 cars - 27 models      1951  11 cars - 27 models
+1955  15 cars - 18 models      1950  15 cars - 23 models
+= 147 cars, 226 models. SEASONS 1950-2026, SEVENTY-SEVEN CONSECUTIVE.
+```
+
+Worked downward from 1959. Every season checked the same five invariants
+afterwards and all ten passed: orphan cars held at 35, no model without a SKU,
+duplicate part numbers held at 28, and ZERO chassis/team disagreements in any
+season.
+
+**1953 is three cars.** Not a failure — 1952 and 1953 were run to FORMULA 2
+RULES, 2 litres unsupercharged, because Alfa Romeo's withdrawal left too few
+F1 cars to fill a grid. The shop carries four products for the whole year.
+
+### FOUR RACES WERE NEVER IN EVENTS, AND IT WAS MERGING CARS
+
+The worst find of the block, and it was not a 1950s problem. EVENTS grew out of
+the modern calendar, and an unmatched round does not fail loudly — it falls
+through to `'Season'`. Because a car is identified by
+**team + driver + chassis + event**, every unnamed round in a season COLLAPSES
+INTO ONE CAR.
+
+```
+South African  1962-1984, the big one
+Argentine      1958, 1960, 1979-81, 1996
+Moroccan       1958 only, the one championship running, at Ain-Diab
+Swiss          1951 and 1982 (held at Dijon, in France)
+```
+
+Found because Hawthorn came out at 4 cars in 1958 where he should have had 5:
+his Argentine Ferrari and his three Moroccan models were ONE car on four
+models. Measured across every imported season:
+
+```
+59 models on 47 cars read a different event name now
+  38 cars  PURE RENAME   every model moves to one race, nothing splits
+   9 cars  SPLIT         some models stay behind, or two races on one car
+```
+
+**Only the 1958 car was fixed.** It was minutes old and had never been
+deployed, so it cost nothing. **The other 46 are OPEN** — they carry live,
+indexed slugs (`1969-lotus-49-john-love-season` becomes `...-south-african-gp`),
+so the repair needs renames plus redirects. Same reasoning the San Marino five
+already carry. The 38 renames involve no judgement at all and are the cars most
+likely to be searched for by race.
+
+Three more EVENTS gaps found the same way, all now closed: **Pescara** (1957
+only, sixteen miles of Adriatic public road, the longest circuit ever to hold a
+championship Grand Prix), bare **`nurburgring`** without "allemagne", and
+**`hollande`** where every other Dutch GP slug reads "pays-bas".
+
+### ONE CHASSIS, TWO CONSTRUCTORS — CHASSIS_TEAM_YEAR
+
+`CHASSIS_TEAM` is keyed by chassis alone, which breaks when a car changes hands
+or when two unrelated cars share a number. Two cases in this block, so the
+year-scoped map is checked first:
+
+```
+1950  '158' -> Alfa Romeo    the Alfetta against the 1964-65 FERRARI 158
+1955  'D50' -> Lancia        Lancia built and raced it; Ferrari won 1956 with it
+```
+
+The D50 is the harder one: the slug cannot settle it, because Edicola calls
+Ascari's 1955 Monaco car a `lancia-ferrari-d50` using the name collectors give
+the LATER Ferrari. The validity check had to move to the same lookup or the car
+fails its own test — reads Lancia correctly, flat map calls it a disagreement.
+Verified from both sides each time: 1956 still reads all 16 of its D50s as
+Ferrari, and chassis `158` is 1950 Alfa Romeo (8 cars) against 1964-65 Ferrari
+(12 cars).
+
+### MERCEDES IS TWO WORKS TEAMS, AND THERE IS A TRAILING SPACE IN THE TABLE
+
+`findTeam` listed `Mercedes-AMG Petronas` FIRST, so every Mercedes row resolved
+to Brackley whatever the year. Right for 213 cars across 2011-2026, wrong for
+the W196 — Daimler-Benz ran its own cars in 1954-55 and Petronas did not exist.
+Floored at 2010, the same shape as the Sauber fix. Two hubs is correct here
+rather than a compromise: unlike Sauber this is not one lineage under changing
+sponsors. Aston Martin went the other way for 1960 and 2021 because there the
+names are identical and there is no sponsor to stamp on a 1960 car.
+
+**And then it picked the wrong row anyway.** Four team rows match `/mercedes/`
+and two differ ONLY BY A TRAILING SPACE. A trimmed `find()` took whichever came
+back first and put all four W196 cars on the junk row. Exact match first now,
+cars re-pointed.
+
+**Four empty team rows remain and they are live traps for `includes` matching:**
+
+```
+"Ferrari"   "Visa Cash App RB"   "Mercedes "   "Mercedes-AMG Petronas Formula One Team"
+```
+
+Harmless today, worth deleting. Left alone because deletion is a decision.
+
+### THE PREDICATE EXCLUSION — A NATIVE YEAR COULD NOT SAY "ELEVEN SEASONS"
+
+The Indy comment in the code already said this was needed before the 1950s were
+opened. The third element of an EXCLUDE rule may now be a PREDICATE on the
+year, the same shape as an EVENTS value being a function of the year:
+
+```
+Indy 500       y => y >= 1950 && y <= 1960
+Ferrari 375    y => y <= 1952
+```
+
+**The Indy 500 WAS a World Championship round from 1950 to 1960.** It matters
+for exactly one season: sixteen Indy slugs exist in the whole cache and four
+are in 1952 — Ascari's Ferrari 375 Indy listed twice, his rookie test, and the
+second car entered for Johnnie Parsons. Ascari qualified 19th and broke a wheel
+on lap 40, the only time a reigning champion contested the 500 as a
+championship round. 1965's Lotus 38, 1966's, 1967's Vollstedt and 1970's Colt
+all stay excluded and those seasons parse to unchanged row counts.
+
+The 375 rule carried the single year 1951 for one day, which was already wrong:
+the car was a championship F1 car in 1950 AND 1951, and in 1952 it went to
+Indianapolis as the 375 Indy, a different machine. From 1953 it is only the
+**THINWALL SPECIAL** — Vandervell's privately owned 375, the test bed that
+became the Vanwall, which ran non-championship races only. Both of the shop's
+Thinwall listings are SKU `r192` and one is bare `ferrari-375-9-angleterre`,
+which reads like a British GP entry and is not one.
+
+### ONE SKU LISTED TWICE IS ONE MODEL
+
+`manufacturer_sku` is UNIQUE, so two identical generated rows fail on the
+second insert. Found at 1954: GP Replicas' `gp128d` is in the sitemap as both
+`winner-world-champion` and `winner-world-champion-DIRTY-VERSION`, a finish
+variant under one part number.
+
+The generator now dedupes on the WHOLE row, so two scales sharing a part number
+still produce two rows and still trip the duplicate-SKU check, which is where a
+real collision belongs. **Scanned every cached season: 27 such listings across
+16 of them, 1954 to 2021.** All those imports reported `Errors: 0`, so
+`sync-csv` was already skipping the repeats — the CSV is now honest about it
+rather than relying on that. No imported data changed.
+
+### NAME THE CAR OR THE RACE, NEVER THE CIRCUIT — TWICE MORE
+
+The Aintree lesson came up twice in this block and would have cost real cars
+both times:
+
+- **`albi`** would have excluded a 1969 Matra MS11 TEST at the circuit, a
+  legitimate test car the catalogue keeps. Excluded the **BRM V16** instead,
+  which started championship races in 1951 only. Fangio's 1953 Albi win reads
+  `f1-winner-france-albi-1953`, so the bounded `france` in EVENTS was filing it
+  as the French GP.
+- **`le-mans`** would have hit the 1967 FRENCH GP, held on the Bugatti circuit.
+  A bounded `le-mans` matches nothing in the cache, and `24-heures` was already
+  in the not-F1 rule — I wrote a redundant Le Mans exclusion with a comment
+  claiming it "adds the 4CV only", found the claim was false, and deleted it.
+
+### SHARED DRIVES, AND WHY A DRIVER KEY CAN SPLIT A CAR
+
+`driverIn` takes the LONGEST matching key regardless of where it sits in the
+slug. In the 1950s cars were handed over mid-race and slugs name two or three
+men, so that rule has teeth:
+
+```
+1956  ferrari-d50-4-peter-collins-DE-PORTAGO       -> no de-portago key, deliberately
+1955  ferrari-625-10-FARINA-TRINTIGNANT-MAGLIOLI   -> explicit compound key
+```
+
+De Portago really did share car 4 at Silverstone with Collins, and four other
+SKUs of that car credit Collins alone. **Adding a `de-portago` key later will
+silently split that car** — the comment in the code says so. The three-man
+Argentine car needed the opposite treatment: a compound key longer than
+`trintignant`, which would otherwise have beaten `farina` and split one car in
+two.
+
+### THE SHOP'S SPELLING IN THIS DECADE
+
+Worse than any other era, and every wrong spelling sits beside the right one on
+another SKU of the same car:
+
+```
+mike-hawtorn        Hawthorn      guiseppe-farini   Farina
+maurice-trintigant  Trintignant   jose-froilan-gonzales  Gonzalez
+froilein-gonzalez   Gonzalez      giuseppe-nino-farini   Farina
+tony-brookes        Brooks        nino-farina       Farina (nickname)
+daniel-sexton       Dan Gurney    tony-brooks       Brooks
+```
+
+**`daniel-sexton` keeps the MIDDLE name and drops the surname** — Dan Gurney's
+full name is Daniel Sexton Gurney. The inverse of Burti, whose slug keeps both.
+
+By 1951 the map was paying for itself: `giuseppe-nino-farini` stacks a first
+name, a nickname AND a misspelt surname in one slug and needed NO new key,
+resolving through the `farini` key added at 1955. Gonzalez holds 7 cars across
+1951-1956 under three spellings.
+
+### ONE CAR, MANY SPELLINGS — STILL THE DOMINANT PATTERN
+
+```
+1958  Dino 246 in FIVE   ferrari-d246 · ferrari-dino-246 · ferrari-246-f1
+                         ferraridino-246 · ferrari-f1-dino-246
+1956  D50 in SIX         ferrari-d50 · ferrari-f1-d50 · ferrarid50
+                         +long-nose variants · ferrari-lancia-d50
+1951  Alfetta in FOUR    alfa-romeo-159 · alfa-romeo-159-alfetta
+                         alfa-romeo-alfetta-159m · alfa-romeoalfetta-159
+```
+
+And three cases where a name that LOOKS like a variant is the same car:
+
+```
+1957  250F "12-cylindres"   the V12 in the same tub. Two SKUs, R223B and
+                            R223-UPD, one tooling and its re-release. Numbered
+                            6 and 46 by the shop -- unfolded, Behra holds two
+                            Italian GP cars for one model.
+1955  squalo / supersqualo  Brumm and Tecnomodel selling Hawthorn's
+                            Zandvoort car 2 under both names
+1954  w196c / w196r / w196  NOT the two body styles. Three cars appear under
+                            two names each, proven by number and round.
+```
+
+### Driverless products: a pattern, not yet a feature
+
+Three products carry a car number and a race but NO driver, so nothing can file
+them. All left in review rather than hand-patched:
+
+```
+1957  Hot Wheels 801, #8 German GP      = Hawthorn's car (held as gp166a)
+1951  Hot Wheels 375, #12 Silverstone   = Gonzalez's win (held five other ways)
+1958  CMR163, a plain no-number Dino    = genuinely unidentifiable
+```
+
+The first two ARE identifiable from the number, and the catalogue already holds
+those cars. **Reading a driver off a race number within a season+chassis+event
+is a real feature with real risk** — not worth building for two products, worth
+building if it reaches a dozen.
+
+### Smaller things worth keeping
+
+- **CMC is not CMR.** One letter apart, two different German makers. The
+  missing MAKERS key was holding back the 1:18 Maserati 250F, Fangio's 1957
+  title car.
+- **Fangio won 1954 in two teams**, Maserati at Spa then Mercedes from Reims,
+  so the team column changes mid-season. He arrives in the catalogue at 1957
+  and 1958 holds none of him — he retired that July.
+- **1956 and 1951 have no `Season` row at all**: every product names its round.
+- Two products in the 1955 cache are a **2020 McLaren and a 2025 Williams**
+  whose SKUs contain "1955". The BMW 2002 trap again; the year filter holds.
+- **Alfa Romeo now spans three eras on one row** — 1951, 1979-1980, 2018-2023,
+  80 cars. That is the decision the Sauber floor already recorded: the row is
+  the marque, and a separate works row would collide on `includes`. Its
+  `primary_color` IS NULL and has been for all 75 earlier cars. Worth setting,
+  but not as a side effect of an import.
+- New marques in the block: Vanwall, Maserati, Bugatti, Gordini, Lancia,
+  Connaught, and Mercedes as a 1954-55 hub. **Bugatti's T251 started once**, at
+  Reims, and the marque never entered another Grand Prix.
 
 ## The rest of the sixties - 1960-1965 - 2026-10-11
 
