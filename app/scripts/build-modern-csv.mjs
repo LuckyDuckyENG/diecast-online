@@ -273,7 +273,7 @@ const EXCLUDE = [
    * 200 there was not, so the pattern names the race. Same trap as the
    * over-broad GTR rule -- a string that looks specific and is not.
    */
-  [/race-of-champions|gold-cup|oulton-park|riverside|trophee|auvergne|lombank|mallory-park|glover|kanonloppet|barc-200|solitude|international-trophy/, 'non-championship race'],
+  [/race-of-champions|gold-cup|oulton-park|riverside|trophee|auvergne|lombank|mallory-park|glover|kanonloppet|barc-200|solitude|international-trophy|sanremo|san-remo/, 'non-championship race'],
   /**
    * THE INDIANAPOLIS 500, which is not Formula 1 -- in 1970. "colt-indy-500-
    * 1970-al-unser" is an IndyCar, and the existing filter has "indycar" but
@@ -521,6 +521,30 @@ const CHASSIS = {
    * them 6 and 46, so without the fold Behra would hold two Italian GP cars
    * for what is one model.
    */
+  /**
+   * 1950. THE FIRST WORLD CHAMPIONSHIP SEASON, and the floor of this
+   * catalogue. Seven rounds, Farina champion by three points, and the Alfetta
+   * 158 won every one of the six it entered.
+   *
+   * THE 158 COLLIDES WITH A FERRARI. CHASSIS_TEAM already holds
+   * '158' -> Ferrari for the 1964-65 Ferrari 158, so the Alfetta would have
+   * imported as a Ferrari -- the same shape as the D50 at 1955, and the
+   * second use of CHASSIS_TEAM_YEAR.
+   *
+   * Three Ferraris in one season, which is the 1.5-litre supercharged 125
+   * giving way to the unsupercharged V12s that became the 375:
+   *
+   *   125  Monaco and Bremgarten
+   *   275  Spa, and practice at Reims
+   *
+   * The 275's Reims entry reads "essais" -- French for practice -- and is
+   * kept as a French GP car on the same reasoning as the 1979 Ensign test
+   * and the 1955 Supersqualo test car.
+   */
+  1950: [[/alfa-?romeo-?158/, '158'],
+         [/f[ae]rrari-?125/, '125'],
+         [/f[ae]rrari-?275/, '275'],
+         [/maserati-?4clt/, '4CLT']],
   /**
    * 1951. Fangio's FIRST title, in the Alfetta 159, and the season Ferrari
    * finally beat Alfa Romeo -- Gonzalez at Silverstone in July, the first
@@ -1185,10 +1209,19 @@ const teamIn = slug => {
  * Checked before CHASSIS_TEAM, so the plain map stays the common case.
  */
 const CHASSIS_TEAM_YEAR = {
+  /**
+   * The ALFA ROMEO 158 against the FERRARI 158. Two unrelated cars fourteen
+   * years apart that share a number, and the flat map below holds the Ferrari
+   * because 1965 was imported first. Nothing in the slug disambiguates a bare
+   * "158", so the year has to.
+   */
+  1950: { '158': 'Alfa Romeo' },
   1955: { D50: 'Lancia' },
 };
 
 const CHASSIS_TEAM = {
+  // 1950. The 158 is year-scoped above, against the 1965 Ferrari of that name.
+  '125': 'Ferrari', '275': 'Ferrari', '4CLT': 'Maserati',
   // 1951.
   '159': 'Alfa Romeo', '375': 'Ferrari',
   // 1952.
@@ -1518,6 +1551,17 @@ const DRIVERS = {
    * middle name but leaves the surname intact.
    */
   pietsch: 'Paul Pietsch',
+  /**
+   * 1950, the first championship season. LUIGI FAGIOLI was 52 at Silverstone
+   * and finished second; he is still the oldest man to stand on a Grand Prix
+   * podium. LOUIS CHIRON was 50 and third at Monaco, where the harbour
+   * chicane is named after him.
+   *
+   * "chiron" is also a Bugatti road car, but it matches exactly one slug in
+   * the whole cache and that is this Maserati, so the bare surname is safe.
+   */
+  fagioli: 'Luigi Fagioli', villoresi: 'Luigi Villoresi',
+  chiron: 'Louis Chiron',
   /**
    * 1955. THE SHOP MISSPELLS THREE OF THE SEVEN NAMES IT USES THIS SEASON,
    * and each wrong spelling sits beside the right one on another SKU:
