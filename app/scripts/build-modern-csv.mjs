@@ -230,7 +230,7 @@ const EXCLUDE = [
    * 200 there was not, so the pattern names the race. Same trap as the
    * over-broad GTR rule -- a string that looks specific and is not.
    */
-  [/race-of-champions|gold-cup|oulton-park|riverside|trophee|auvergne|lombank|mallory-park|glover|kanonloppet|barc-200|solitude/, 'non-championship race'],
+  [/race-of-champions|gold-cup|oulton-park|riverside|trophee|auvergne|lombank|mallory-park|glover|kanonloppet|barc-200|solitude|international-trophy/, 'non-championship race'],
   /**
    * THE INDIANAPOLIS 500, which is not Formula 1 -- in 1970. "colt-indy-500-
    * 1970-al-unser" is an IndyCar, and the existing filter has "indycar" but
@@ -391,6 +391,30 @@ const CHASSIS = {
    * and took the Lotus name in 2012. Filing the T127 under "Lotus" would put
    * Trulli's backmarker on the same hub as Raikkonen's E20 and Senna's 97T.
    */
+  /**
+   * 1960. Brabham's second title, the last year of the 2.5-litre formula, and
+   * the LAST FRONT-ENGINED GRAND PRIX WIN -- Phil Hill's Ferrari at Monza,
+   * the race the British teams boycotted.
+   *
+   * FERRARI APPEARS IN THREE FORMS and the order matters: the 246P is the
+   * rear-engined prototype Ginther tested, "ferraridino-246-256" is the
+   * combined Dino designation the shop uses, and "ferrari-256-f1" is the 256.
+   * 246P must be read first or the prototype folds into the 246/256.
+   *
+   * ASTON MARTIN'S LAST SEASON -- the DBR4 and DBR5 -- lands on the EXISTING
+   * Aston Martin team row, which was created for the 2021 team. David Brown's
+   * works outfit and Lawrence Stroll's are unrelated across 61 years, but the
+   * names are identical so there is no lookup ambiguity to create, and this
+   * catalogue already holds Chapman's Lotus and Enstone's Lotus on one hub.
+   * Consistent rather than novel.
+   */
+  1960: [[/lotus-?18/, '18'], [/lotus-?16/, '16'],
+         [/cooper-?t53/, 'T53'], [/cooper-?t51/, 'T51'],
+         [/brm-?p25/, 'P25'],
+         [/f[ae]rrari-?246p/, '246P'],
+         [/f[ae]rrari(?:dino)?-?246-?256/, '246/256'],
+         [/f[ae]rrari-?256/, '256'],
+         [/aston-?martin-?dbr5/, 'DBR5'], [/aston-?martin-?dbr4/, 'DBR4']],
   /**
    * 1961. Phil Hill's title, and the Monza crash that killed von Trips and
    * fifteen spectators while he led the championship.
@@ -874,6 +898,10 @@ const teamIn = slug => {
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
 const CHASSIS_TEAM = {
+  // 1960.
+  '16': 'Lotus', T51: 'Cooper', P25: 'BRM', '246P': 'Ferrari',
+  '246/256': 'Ferrari', '256': 'Ferrari',
+  DBR4: 'Aston Martin', DBR5: 'Aston Martin',
   // 1961.
   '18': 'Lotus', T56: 'Cooper', T58: 'Cooper',
   // 1962.
@@ -1130,6 +1158,16 @@ const DRIVERS = {
   'jack-brabham': 'Jack Brabham', 'bruce-mclaren': 'Bruce McLaren',
   'john-surtees': 'John Surtees', 'graham-hill': 'Graham Hill',
   'chris-amon': 'Chris Amon', 'christopher-amon': 'Chris Amon',
+  /**
+   * 1960. Phil Hill appears formally as "philip-hill" as well, and SURNAMES
+   * sorts longest-first so that key wins over "phil-hill". Bristow is typo'd
+   * "bistrow" in one slug, correct in two others.
+   */
+  'philip-hill': 'Phil Hill', bristow: 'Chris Bristow', bistrow: 'Chris Bristow',
+  'david-piper': 'David Piper', flockhart: 'Ron Flockhart',
+  stacey: 'Alan Stacey', 'de-beaufort': 'Carel Godin de Beaufort',
+  halford: 'Bruce Halford', brooks: 'Tony Brooks',
+  munaron: 'Gino Munaron', cabianca: 'Giulio Cabianca',
   /**
    * 1961. THREE MORE NAMESAKE SPLITS.
    *
