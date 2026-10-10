@@ -129,6 +129,33 @@ async function syncCSV(dryRun = false, csvArg = null) {
       if (hit) return hit;
     }
 
+    /**
+     * MERCEDES IS TWO WORKS TEAMS 55 YEARS APART, and the mapping above lists
+     * "Mercedes-AMG Petronas" FIRST, so every Mercedes row resolves to the
+     * Brackley team no matter what year it is for.
+     *
+     * That is right for 213 cars across 2011-2026 and wrong for the W196:
+     * Daimler-Benz ran its own cars in 1954 and 1955, won both titles with
+     * Fangio, and withdrew from all motorsport after Le Mans. Petronas did
+     * not exist. Pre-2010 therefore takes the plain "Mercedes" row, which is
+     * already in the table with no cars on it.
+     *
+     * Unlike the Sauber case this is NOT one lineage under changing sponsors,
+     * so the two hubs are correct rather than a compromise. Aston Martin went
+     * the other way -- 1960 and 2021 share a row -- because there the two
+     * names are identical and there is no sponsor to put on a 1960 car.
+     *
+     * THE EXACT ROW, NOT A TRIMMED MATCH. There are two rows here that differ
+     * only by a trailing space -- "Mercedes" and "Mercedes " -- and a trimmed
+     * find() took whichever came back first, which put the four 1955 W196
+     * cars on the junk row. Exact first, trimmed only as a fallback.
+     */
+    if (/^mercedes$/i.test(name) && year && parseInt(year, 10) < 2010) {
+      const hit = teams?.find(t => t.name === 'Mercedes')
+        || teams?.find(t => t.name.trim().toLowerCase() === 'mercedes');
+      if (hit) return hit;
+    }
+
     // Try direct mapping first
     const possibleNames = teamMappings[name] || [name];
     for (const possibleName of possibleNames) {

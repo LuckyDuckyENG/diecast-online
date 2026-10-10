@@ -197,6 +197,13 @@ const EXCLUDE = [
    */
   [/mustang|pace-car/, 'pace car'],
   /**
+   * The MERCEDES 300 SLR is a sports car, not a Grand Prix car -- the one
+   * Moss won the Mille Miglia in and the one that went into the crowd at Le
+   * Mans. The product here is the Swedish GP at Kristianstad, a SPORTS CAR
+   * race despite the name. Same class of mistake as the McLaren F1 GTR.
+   */
+  [/300-?slr/, 'Mercedes 300 SLR, a sports car not an F1 car'],
+  /**
    * Team lorries. "berliet-tr350-renault-f1" is Renault's and
    * "transporteur-honda-f1-1965" is Honda's -- real products, no driver, not
    * race cars.
@@ -323,7 +330,10 @@ const EVENTS = [
    */
   [/allemagne|hockenheim|nurburgring/, 'German GP'],
   [/(?:^|-)france(?:-|$)|castellet/, 'French GP'],
-  [/pays-bas|zandvoort/, 'Dutch GP'], [/portugal|portimao/, 'Portuguese GP'],
+  // HOLLANDE, found at 1955: Brumm names the country in French where every
+  // other Dutch GP slug reads "pays-bas". Both are the same Zandvoort round.
+  [/pays-bas|zandvoort|hollande/, 'Dutch GP'],
+  [/portugal|portimao/, 'Portuguese GP'],
   [/toscane|mugello/, 'Tuscan GP'], [/eifel/, 'Eifel GP'], [/sakhir/, 'Sakhir GP'],
   [/styrie/, 'Styrian GP'],
   /**
@@ -452,6 +462,23 @@ const CHASSIS = {
    * them 6 and 46, so without the fold Behra would hold two Italian GP cars
    * for what is one model.
    */
+  /**
+   * 1955. The season Le Mans ended. Eighty-three spectators were killed on
+   * 11 June and the French, German, Swiss and Spanish Grands Prix were all
+   * cancelled; Switzerland banned circuit racing for fifty-two years. Ascari
+   * had died at Monza four weeks earlier. Seven rounds became six.
+   *
+   * SQUALO AND SUPERSQUALO ARE ONE CAR HERE. Brumm sells Hawthorn's Dutch GP
+   * entry as "ferrari-555-squalo" and Tecnomodel sells the same car -- number
+   * 2, Zandvoort -- as "ferrari-555-supersqualo". The optional "super" takes
+   * both, and ordering is safe either way: "555-supersqualo" cannot match a
+   * pattern expecting "squalo" immediately after "555-".
+   */
+  1955: [[/mercedes(?:-benz)?-?w196/, 'W196'],
+         [/f[ae]rrari-?555-?(?:super)?squalo/, '555 Supersqualo'],
+         [/f[ae]rrari-?(?:f1-?)?(?:lancia-?)?d50/, 'D50'],
+         [/f[ae]rrari-?625/, '625'],
+         [/gordini-?t32/, 'T32']],
   /**
    * 1956. Fangio's fourth title in a car he did not want: the LANCIA D50,
    * handed to Ferrari complete when Lancia ran out of money, which is why the
@@ -1010,7 +1037,28 @@ const teamIn = slug => {
 };
 
 /** Which constructor each 2017-2020 chassis belongs to. A disagreement is a bug. */
+/**
+ * ONE CHASSIS, TWO CONSTRUCTORS, DEPENDING ON THE YEAR.
+ *
+ * CHASSIS_TEAM is keyed by chassis alone, which is right until a car changes
+ * hands mid-career. The D50 is the case that breaks it: LANCIA built it and
+ * raced it in 1954 and 1955, and when Lancia ran out of money weeks after
+ * Ascari was killed, the whole team -- cars, drawings, Jano -- was handed to
+ * Ferrari, who won the 1956 title with it.
+ *
+ * So the 1955 D50 is a Lancia and the 1956 D50 is a Ferrari, and the slug
+ * cannot settle it: Edicola calls Ascari's 1955 Monaco car a
+ * "lancia-ferrari-d50" using the name collectors give the later Ferrari.
+ *
+ * Checked before CHASSIS_TEAM, so the plain map stays the common case.
+ */
+const CHASSIS_TEAM_YEAR = {
+  1955: { D50: 'Lancia' },
+};
+
 const CHASSIS_TEAM = {
+  // 1955.
+  '625': 'Ferrari', '555 Supersqualo': 'Ferrari', W196: 'Mercedes',
   // 1956.
   D50: 'Ferrari', T251: 'Bugatti', T32: 'Gordini', VW2: 'Vanwall',
   // 1957.
@@ -1302,6 +1350,31 @@ const DRIVERS = {
    * exist.
    */
   /**
+   * 1955. THE SHOP MISSPELLS THREE OF THE SEVEN NAMES IT USES THIS SEASON,
+   * and each wrong spelling sits beside the right one on another SKU:
+   *
+   *   mike-hawtorn      for Hawthorn   (Brumm)
+   *   guiseppe-farini   for Farina     (GP Replicas, twice)
+   *   maurice-trintigant for Trintignant (GP Replicas)
+   *
+   * Farina also appears correctly, and as "nino-farina" -- his nickname. All
+   * four spellings are one man, the first World Champion.
+   *
+   * THE THREE-MAN SHARED DRIVE NEEDS AN EXPLICIT COMPOUND KEY.
+   * "ferrari-625-10-farina-trintignant-maglioli" is car 10 at the Argentine
+   * GP, shared by all three in brutal heat, and GP Replicas sells the SAME
+   * car as plain "guiseppe-farini". driverIn takes the longest matching key,
+   * so "trintignant" (11) would beat "farina" (6) and split one car in two.
+   * The compound key is longer than either and files it under Farina, which
+   * is how the other SKU of this car reads.
+   */
+  hawtorn: 'Mike Hawthorn', farina: 'Giuseppe Farina',
+  farini: 'Giuseppe Farina', 'nino-farina': 'Giuseppe Farina',
+  'farina-trintignant-maglioli': 'Giuseppe Farina',
+  trintigant: 'Maurice Trintignant', ascari: 'Alberto Ascari',
+  castellotti: 'Eugenio Castellotti', taruffi: 'Piero Taruffi',
+  'jean-lucas': 'Jean Lucas',
+  /**
    * 1956. SHARED DRIVES ARE A 1950S FACT and this is the first season where
    * one lands: "ferrari-d50-4-peter-collins-de-portago" names both men, who
    * really did share car 4 at Silverstone -- de Portago started, Collins took
@@ -1589,7 +1662,9 @@ for (const o of kept) {
    * Caught by the chassis/team cross-check, which is exactly what it is for:
    * it put all 23 into review rather than filing them under the wrong team.
    */
-  const fromChassis = isShowcar ? null : CHASSIS_TEAM[chassis];
+  const fromChassis = isShowcar
+    ? null
+    : (CHASSIS_TEAM_YEAR[year]?.[chassis] ?? CHASSIS_TEAM[chassis]);
   const team = ERA_NAME(fromChassis || teamIn(s), year);
   /**
    * An EVENTS value may be a function of the year, because a circuit's race
@@ -1609,7 +1684,12 @@ for (const o of kept) {
 
   // A 2017 chassis belongs to exactly one constructor. A disagreement means
   // the slug was read wrong, not that history is surprising.
-  const expect = isShowcar ? null : ERA_NAME(CHASSIS_TEAM[chassis], year);
+  // Must use the SAME year-aware lookup the team was read with, or the D50
+  // fails its own check: 1955 reads Lancia correctly and the flat map then
+  // calls it a Ferrari disagreement.
+  const expect = isShowcar
+    ? null
+    : ERA_NAME(CHASSIS_TEAM_YEAR[year]?.[chassis] ?? CHASSIS_TEAM[chassis], year);
   if (expect && expect !== team) {
     review.push({ o, missing: [`chassis ${chassis} is ${expect}, read team as ${team}`] });
     continue;
