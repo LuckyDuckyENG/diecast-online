@@ -204,6 +204,22 @@ const EXCLUDE = [
    */
   [/300-?slr/, 'Mercedes 300 SLR, a sports car not an F1 car'],
   /**
+   * THE THINWALL SPECIAL, found at 1954. Tony Vandervell's privately owned
+   * Ferrari 375, the test bed that became the Vanwall, and it ran ONLY in
+   * non-championship races by 1954 -- Collins won the Aintree meeting in it.
+   *
+   * Both of the shop's listings are SKU r192 and both are this car; one says
+   * "thin-wall-special" and the other is bare "ferrari-375-9-angleterre",
+   * which reads like a British GP entry and is not one. The 1954 British GP
+   * was at Silverstone and Ferrari ran 625s and 553s there.
+   *
+   * The third element is the year the car IS from, so this rule is skipped
+   * when importing 1951 -- Ascari's championship 375s must still come in.
+   * CHECK THE 1950 CACHE before importing 1950: the 375 debuted at Monza
+   * that year and one native year cannot cover both.
+   */
+  [/f[ae]rrari-?375|thin-?wall/, 'Ferrari 375; by 1954 only the non-championship Thinwall Special', 1951],
+  /**
    * Team lorries. "berliet-tr350-renault-f1" is Renault's and
    * "transporteur-honda-f1-1965" is Honda's -- real products, no driver, not
    * race cars.
@@ -462,6 +478,30 @@ const CHASSIS = {
    * them 6 and 46, so without the fold Behra would hold two Italian GP cars
    * for what is one model.
    */
+  /**
+   * 1954. The 2.5-litre formula opens, Mercedes return in July, and Fangio
+   * wins the title in two cars for two teams -- Maserati for the first two
+   * rounds, Mercedes for the rest.
+   *
+   * W196C, W196R AND W196 ARE ONE CHASSIS. The shop uses all three, plus
+   * "streamliners", and they are NOT the two body styles consistently: three
+   * cars appear under two names each, proven by number and round --
+   *
+   *   Kling 20 at Reims        w196c + w196r
+   *   Fangio 18 at Reims       w196c + w196
+   *   Fangio 1 at Silverstone  w196c + w196r
+   *
+   * Splitting on the letter would have split each of those in two. Mercedes
+   * did run a streamlined and an open-wheel body on one W196; the shop simply
+   * does not track which is which, so neither does this.
+   *
+   * SQUALO IS ALSO SPELLED WITHOUT ITS NUMBER: Brumm's "ferrari-squalo" is
+   * Hawthorn's winning car 38 in Spain, which Tecnomodel and GP Replicas both
+   * sell as "ferrari-553-squalo".
+   */
+  1954: [[/mercedes-?(?:benz-?)?(?:f1-?)?w196/, 'W196'],
+         [/f[ae]rrari-?(?:553-?)?squalo/, '553 Squalo'],
+         [/maserati-?250f/, '250F']],
   /**
    * 1955. The season Le Mans ended. Eighty-three spectators were killed on
    * 11 June and the French, German, Swiss and Spanish Grands Prix were all
@@ -1057,6 +1097,8 @@ const CHASSIS_TEAM_YEAR = {
 };
 
 const CHASSIS_TEAM = {
+  // 1954.
+  '553 Squalo': 'Ferrari',
   // 1955.
   '625': 'Ferrari', '555 Supersqualo': 'Ferrari', W196: 'Mercedes',
   // 1956.
@@ -1349,6 +1391,15 @@ const DRIVERS = {
    * keys, or his Belgian and Italian GP cars file under a driver who does not
    * exist.
    */
+  /**
+   * 1954. GONZALEZ IS ALSO SPELLED "GONZALES", by Tecnomodel, for the same
+   * car GP Replicas spells correctly -- number 2 at Reims.
+   *
+   * PRINCE BIRA is Birabongse Bhanudej, a grandson of the King of Siam, who
+   * raced as "B. Bira" and is in every slug as "prince-bira".
+   */
+  gonzales: 'Jose Froilan Gonzalez', 'prince-bira': 'Prince Bira',
+  kling: 'Karl Kling',
   /**
    * 1955. THE SHOP MISSPELLS THREE OF THE SEVEN NAMES IT USES THIS SEASON,
    * and each wrong spelling sits beside the right one on another SKU:
@@ -1702,11 +1753,35 @@ for (const o of kept) {
   });
 }
 
+/**
+ * ONE SKU LISTED TWICE IS ONE MODEL. Found at 1954: GP Replicas' gp128d is
+ * in the sitemap as both "...winner-world-champion" and
+ * "...winner-world-champion-DIRTY-VERSION" -- a finish variant sold under the
+ * same part number. Identical rows out of the loop above mean the same model
+ * of the same car, and manufacturer_sku is UNIQUE, so leaving both in makes
+ * the import fail on the second insert rather than quietly duplicating.
+ *
+ * Deduped on the WHOLE row, so two scales sharing a part number still produce
+ * two rows and still trip the duplicate-SKU check, which is where a real
+ * collision belongs.
+ */
+const seenRow = new Set();
+const deduped = rows.filter(r => {
+  const k = JSON.stringify(r);
+  if (seenRow.has(k)) return false;
+  seenRow.add(k);
+  return true;
+});
+const collapsed = rows.length - deduped.length;
+rows.length = 0;
+rows.push(...deduped);
+
 if (REVIEW) {
   console.log(`fetched ${all.length}, kept ${kept.length}, excluded ${dropped.length}`);
   const why = {}; for (const [, w] of dropped) why[w] = (why[w] || 0) + 1;
   for (const [w, n] of Object.entries(why).sort((a, b) => b[1] - a[1])) console.log(`   ${String(n).padStart(3)}  ${w}`);
   console.log(`\nparsed into CSV rows : ${rows.length}`);
+  if (collapsed) console.log(`one SKU listed twice : ${collapsed} collapsed`);
   console.log(`needing a human      : ${review.length}`);
   for (const r of review)
     console.log(`   missing ${r.missing.join('+').padEnd(22)} ${r.o.slug.replace(/^\d+-/, '').slice(0, 70)}`);
