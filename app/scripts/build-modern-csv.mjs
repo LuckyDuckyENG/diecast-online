@@ -213,12 +213,16 @@ const EXCLUDE = [
    * which reads like a British GP entry and is not one. The 1954 British GP
    * was at Silverstone and Ferrari ran 625s and 553s there.
    *
-   * The third element is the year the car IS from, so this rule is skipped
-   * when importing 1951 -- Ascari's championship 375s must still come in.
-   * CHECK THE 1950 CACHE before importing 1950: the 375 debuted at Monza
-   * that year and one native year cannot cover both.
+   * NOW A PREDICATE, not the single year 1951 it carried yesterday. The 375
+   * was a real championship car in 1950 and 1951, and in 1952 it went to
+   * INDIANAPOLIS as the 375 Indy -- also a championship round. One native
+   * year could not cover three, and the note here said to check 1950 before
+   * importing it; the predicate answers that in advance.
+   *
+   * 1953 onward it is the Thinwall and nothing else.
    */
-  [/f[ae]rrari-?375|thin-?wall/, 'Ferrari 375; by 1954 only the non-championship Thinwall Special', 1951],
+  [/f[ae]rrari-?375|thin-?wall/, 'Ferrari 375; from 1953 only the non-championship Thinwall Special',
+    y => y <= 1952],
   /**
    * THE BRM V16, found at 1953. Fangio won the ALBI GRAND PRIX in it, which
    * is not a championship round, and the 1.5-litre supercharged car was not
@@ -275,12 +279,19 @@ const EXCLUDE = [
    * 1970-al-unser" is an IndyCar, and the existing filter has "indycar" but
    * not "indy-500".
    *
-   * CAREFUL IF THE 1950s ARE EVER OPENED: the Indy 500 WAS a round of the
-   * Formula 1 World Championship from 1950 to 1960. Excluding it is correct
-   * for 1970 and would be wrong for those eleven seasons, so this needs a
-   * native-year style exception before 1950-1960 is imported.
+   * THE EXCEPTION THAT COMMENT ASKED FOR, added at 1952. The Indy 500 WAS a
+   * round of the World Championship from 1950 to 1960, so the rule carries a
+   * PREDICATE rather than a single native year and stands down for those
+   * eleven seasons.
+   *
+   * It matters for exactly one of them. Sixteen Indy slugs exist in the whole
+   * cache and four are in 1952: Ascari's Ferrari 375 Indy, listed twice, his
+   * rookie test, and the second car entered for Johnnie Parsons. The other
+   * twelve are 1964 onward -- Clark's Lotus 38, a Mustang pace car, a
+   * Vollstedt -- and stay out.
    */
-  [/indy-500|indianapolis/, 'Indianapolis 500, not F1 in this era'],
+  [/indy-500|indianapolis/, 'Indianapolis 500, a championship round only in 1950-1960',
+    y => y >= 1950 && y <= 1960],
   [/team-champion/, "constructors' championship piece, no driver"],
   /**
    * Michel Vaillant is a COMIC BOOK character, and "vaillantef1-with-figures-
@@ -312,9 +323,19 @@ const EXCLUDE = [
 
 const dropped = [];
 const kept = all.filter(o => {
-  // A rule carrying a native year is skipped when importing that year: the
-  // product is the real race car then, not an old chassis at a later test.
-  const hit = EXCLUDE.find(([re, , nativeYear]) => nativeYear !== year && re.test(o.slug));
+  /**
+   * A rule carrying a native year is skipped when importing that year: the
+   * product is the real race car then, not an old chassis at a later test.
+   *
+   * THE THIRD ELEMENT MAY ALSO BE A PREDICATE on the year, because some cars
+   * are native to a RANGE of seasons and a single year cannot say so. The
+   * Indy 500 was a championship round for eleven of them, and the Ferrari 375
+   * was a real F1 car for three. Same shape as an EVENTS value being a
+   * function of the year, for the same reason.
+   */
+  const native = (nativeYear) =>
+    typeof nativeYear === 'function' ? nativeYear(year) : nativeYear === year;
+  const hit = EXCLUDE.find(([re, , nativeYear]) => !native(nativeYear) && re.test(o.slug));
   if (hit) { dropped.push([o.urlSku, hit[1]]); return false; }
   if (!yearsIn(o.slug).includes(year)) { dropped.push([o.urlSku, `not a ${year} car`]); return false; }
   if (!o.scale) { dropped.push([o.urlSku, 'no scale on the page']); return false; }
@@ -429,6 +450,12 @@ const EVENTS = [
    * round was needed. Moss won it in the Vanwall.
    */
   [/pescara/, 'Pescara GP'],
+  /**
+   * THE INDIANAPOLIS 500, a round of the World Championship from 1950 to
+   * 1960 and reachable here only for those years -- EXCLUDE takes it
+   * otherwise. Not called a Grand Prix because it never was one.
+   */
+  [/indy-500|indianapolis/, 'Indianapolis 500'],
 ];
 
 /**
@@ -494,6 +521,22 @@ const CHASSIS = {
    * them 6 and 46, so without the fold Behra would hold two Italian GP cars
    * for what is one model.
    */
+  /**
+   * 1952. ASCARI WON SIX ROUNDS FROM SIX STARTS in the Ferrari 500 and took
+   * the title having skipped the opener -- because he was at INDIANAPOLIS.
+   *
+   * That is why this season needed the Indy exception. The 375 Indy is a
+   * different car from the European 375: 4.5 litres unsupercharged, built for
+   * the Brickyard, and Ascari qualified 19th and broke a wheel on lap 40. The
+   * only time a reigning World Champion contested the 500 as a championship
+   * round. A second car was entered for JOHNNIE PARSONS, a past Indy winner.
+   *
+   * Kept apart from 1951's plain "375" by its own chassis name, because they
+   * are not the same machine.
+   */
+  1952: [[/f[ae]rrari-?500(?:f2)?/, '500'],
+         [/f[ae]rrari-?375/, '375 Indy'],
+         [/connaught-?a(?:-|$)/, 'A Type']],
   /**
    * 1953. THE THINNEST SEASON IN THE FILE: four products, and one of them is
    * the BRM V16 at Albi, which EXCLUDE takes. Three Connaught A Types remain.
@@ -1125,6 +1168,8 @@ const CHASSIS_TEAM_YEAR = {
 };
 
 const CHASSIS_TEAM = {
+  // 1952.
+  '500': 'Ferrari', '375 Indy': 'Ferrari',
   // 1953.
   'A Type': 'Connaught',
   // 1954.
@@ -1432,6 +1477,13 @@ const DRIVERS = {
   kling: 'Karl Kling',
   // 1953. Johnny Claes, a Belgian who also led the band he was named for.
   claes: 'Johnny Claes',
+  /**
+   * 1952. Thompson and Poore finished 5th and 4th in the British GP, the
+   * best Connaught results of the era. JOHNNIE PARSONS won the 1950 Indy
+   * 500 and is here for the second Ferrari 375 Indy entry.
+   */
+  thompson: 'Eric Thompson', poore: 'Dennis Poore',
+  parsons: 'Johnnie Parsons',
   /**
    * 1955. THE SHOP MISSPELLS THREE OF THE SEVEN NAMES IT USES THIS SEASON,
    * and each wrong spelling sits beside the right one on another SKU:
