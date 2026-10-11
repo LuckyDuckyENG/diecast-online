@@ -36,9 +36,9 @@
 ## Where things stand
 
 ```
-cars 2472  |  models 4890  |  retailer links 8068  |  eBay links 5587  |  retailers 47  |  drivers 290
-slugs 2472/2472   |   images 4372/4890   |   teams 71   |   cars sellable 2178/2472
-models with an eBay listing 1627/4890   |   manufacturers 22
+cars 2472  |  models 4890  |  retailer links 8068  |  eBay links 6434  |  retailers 47  |  drivers 290
+slugs 2472/2472   |   images 4372/4890   |   teams 71   |   cars sellable 2229/2472
+models with an eBay listing 2093/4890   |   manufacturers 22
 seasons 77: 1950-2026, UNBROKEN — EVERY SEASON OF THE WORLD CHAMPIONSHIP
 ```
 
@@ -49,11 +49,11 @@ There is no earlier season to add: the championship began in 1950.
 to parity with the sixties in one pass.** Coverage by era, after:
 
 ```
-era          cars  models   a retailer       an image         eBay
-1950-1959     147     226     144 ( 64%)     160 ( 71%)       0 (  0%)
-1960-1970     464     636     466 ( 73%)     498 ( 78%)       0 (  0%)
-1971-1994     326     642     478 ( 74%)     551 ( 86%)     119 ( 19%)
-1995-2026    1535    3386    3019 ( 89%)    3163 ( 93%)    1508 ( 45%)
+era          cars  models   a retailer       an image         eBay        in sitemap
+1950-1959     147     226     144 ( 64%)     160 ( 71%)     120 ( 53%)    127 / 147
+1960-1970     464     636     466 ( 73%)     498 ( 78%)     343 ( 54%)    424 / 464
+1971-1994     326     642     478 ( 74%)     551 ( 86%)     119 ( 19%)    289 / 326
+1995-2026    1535    3386    3029 ( 89%)    3165 ( 93%)    1511 ( 45%)   1389 / 1535
 ```
 
 What the sweep moved: **retailer links 7,631 -> 8,068, images 4,157 -> 4,372,
@@ -61,10 +61,22 @@ and cars sellable 2,013 -> 2,178.** The 1950s had 0 retailer links and 0 images
 before it and have 144 and 160 now; 1960-1970 also gained, 418 -> 466 links and
 465 -> 498 images. 294 cars remain unsellable, down from 451.
 
-**eBay is UNCHANGED at flat zero for everything before 1971** — 862 models, and
-the sweep cannot touch it because it is a separate pass that has never been
-run for those seasons. It is the single largest untouched surface in the
-catalogue, and precisely the era where the secondary market IS the market.
+**THE eBAY PASS FOR 1950-1970 RAN ON 2026-10-11 AND THE PRE-1971 ERAS NOW HAVE
+THE BEST eBAY COVERAGE IN THE CATALOGUE.** 847 links created, models with a
+listing 1,627 -> 2,093, and 53%/54% for the 1950s and 1960s against 45% for
+1995-2026. The argument for running it was that nobody stocks a 1955 Maserati
+and that market is entirely secondary; the result is stronger than the
+argument was.
+
+**1971-1994 is now the weakest era on this measure by a wide margin** — 19%,
+642 models, 119 with a listing, and it was not part of the pre-1971 pass. It
+holds the Lauda, Prost and Mansell cars that the 2026-10-11 analytics showed
+real interest in. That is the next eBay target.
+
+**243 cars are still invisible to Google**, down from 294: `app/sitemap.ts`
+only advertises a car something sells, so a car with no retailer link and no
+eBay listing is never offered to a crawler at all. 146 of the 243 are
+1995-2026, which is where the remaining recoverable coverage is.
 
 The per-year visible table below is from 2026-09-29 and is now badly out of
 date: it covers 1,357 cars where there are 2,472, and includes NONE of the
@@ -272,10 +284,13 @@ above.
   is renames plus redirects — the same shape as the San Marino five. The South
   African GP is the bulk of it and reads "Season" today for Clark's 1968 win,
   Stewart's 1969 win, Rindt, Surtees and Hulme.
-- **The eBay pass for 1950-1970 has never run.** 862 models at flat zero, the
-  largest untouched surface in the catalogue, and the era where the secondary
-  market is the only market. Deliberately deferred until the imports finished
-  so it runs once; the imports have now finished.
+- **The eBay pass for 1971-1994 is the weakest surface left.** 19% against
+  53-54% for the pre-1971 block after its pass ran on 2026-10-11. 642 models,
+  119 with a listing, and the era holds Lauda, Prost and Mansell.
+- **14 car slugs REPEAT THE TEAM NAME** — `1979-lotus-lotus-79`, and the same
+  for Lotus 80, Lotus 81 and Protos 16 — because `chassis_name` stores
+  "Lotus 79" rather than "79". Live indexed slugs, so it needs redirects, and
+  it can ride along with the 38 event renames since those do too.
 - **Four empty team rows are live `includes` traps**: `"Ferrari"`,
   `"Visa Cash App RB"`, `"Mercedes "` (trailing space) and
   `"Mercedes-AMG Petronas Formula One Team"`. The trailing-space row already
