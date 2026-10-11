@@ -1,5 +1,39 @@
 # TODO for Tomorrow
 
+> **Everything below "The July plan" is STALE** — it describes the
+> scraper-first approach that was abandoned. The live handoff doc is
+> `STATUS-SUMMARY.md`. This file is kept for the commands at the top.
+
+## Everyday
+
+```
+git push origin main
+
+cd app
+npm run dev
+```
+
+**Visit the live site without polluting your own analytics:**
+
+```
+https://diecasts.app/?notme=1     arm it  (once per browser, persists)
+https://diecasts.app/?notme=0     turn it back off
+```
+
+Per-browser, stored in localStorage as `diecasts:notme`, so **the phone and
+the laptop each need arming once** and a fresh incognito window never has it.
+79% of real traffic is mobile, so the phone is the one that matters.
+
+It silences `search_queries` and `outbound_clicks` only. Page views still go
+to Vercel Analytics, which is a separate script — so your own browsing will
+still show in the page-view count, just not in the search or click data.
+Search Console is unaffected either way: it only counts arrivals from
+Google's results page.
+
+See `app/lib/ownerVisit.ts`.
+
+## The July plan
+
 ## Current Status
 ✅ Database connected and working
 ✅ Scraper successfully finds products
@@ -56,9 +90,3 @@ Once these two things are fixed (filtering wrong products + consistent product m
 - Better to have 10 perfect matches than 30 mixed matches
 - Test scraper improvements on 1-2 models before running on all 10
 
-## to commit a change
-git push origin main
-
-
-cd app
-npm run dev
