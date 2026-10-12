@@ -4,6 +4,7 @@ import { getHubSlugs } from './hubData';
 import { fetchModelIdsWithStore } from './storeCoverage';
 import { buildEbayPhotoMap, ebayPhotoForVariants } from './ebayPhoto';
 import { shouldHidePrice } from './freshness';
+import { shortTeamName } from './carTitle';
 
 /**
  * Home page data, fetched on the server.
@@ -20,7 +21,20 @@ import { shouldHidePrice } from './freshness';
 
 export interface HomeDriver {
   name: string;
-  team: string;
+  /**
+   * EVERY team they raced for, most-modelled first.
+   *
+   * Was a single `team`, read as `cars[cars.length - 1]?.team?.name` — which
+   * is not "the latest team", it is whichever row PostgREST happened to return
+   * last, with no ordering applied anywhere. So Hamilton's card could say
+   * McLaren and Alonso's could say Minardi, at random, and the card was
+   * claiming a fact it had not established.
+   *
+   * A career is the interesting thing anyway: Alonso has five teams here and
+   * Lauda five, and for a catalogue the useful order is how many of their
+   * models we actually hold, since that is what the visitor can buy.
+   */
+  teams: string[];
   color: string;
   count: number;
   /** Set only when a hub page exists; otherwise the card is not a link. */
@@ -99,21 +113,68 @@ export async function getHomeData(): Promise<{
   // exist without a page, and linking to one would hand Google a 404.
   const hubDrivers = new Set(hubs.drivers);
 
-  const drivers: HomeDriver[] = (allDrivers || [])
-    .map((d: any) => {
-      const cars = d.cars || [];
-      const latest = cars[cars.length - 1];
-      const slug = d.name ? slugify(d.name) : '';
-      return {
-        name: d.name,
-        team: latest?.team?.name || 'F1',
-        color: latest?.team?.primary_color || '#cf2f2a',
-        count: cars.length,
-        slug: hubDrivers.has(slug) ? slug : null,
-      };
-    })
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
+  const built: HomeDriver[] = (allDrivers || []).map((d: any) => {
+    const cars = d.cars || [];
+    const slug = d.name ? slugify(d.name) : '';
+
+    // Teams by how many of this driver's cars we hold, descending.
+    const tally = new Map<string, { n: number; color: string | null }>();
+    for (const c of cars) {
+      const name = c?.team?.name;
+      if (!name) continue;
+      const seen = tally.get(name);
+      if (seen) seen.n++;
+      else tally.set(name, { n: 1, color: c.team.primary_color ?? null });
+    }
+    const ranked = [...tally.entries()].sort((a, b) => b[1].n - a[1].n);
+
+    return {
+      name: d.name,
+      teams: ranked.map(([name]) => shortTeamName(name)),
+      // The colour of the team they are most modelled in, not of a random row.
+      // Alfa Romeo's primary_color is null across all 80 of its cars, so the
+      // fallback is load-bearing rather than defensive.
+      color: ranked[0]?.[1].color || '#cf2f2a',
+      count: cars.length,
+      slug: hubDrivers.has(slug) ? slug : null,
+    };
+  });
+
+  /**
+   * WHO GETS A CARD, chosen rather than computed.
+   *
+   * Ranking by car count alone gave ten modern drivers, four of whom were
+   * teammates of each other, and it put Perez, Bottas, Ricciardo and Sainz on
+   * the front page of a catalogue whose distinguishing feature is that it goes
+   * back to 1950. The page was arguing against its own headline.
+   *
+   * So: the five current drivers worth keeping, plus five who are the reason
+   * anyone cares about the older seasons. Fangio is deliberately last and
+   * deliberately included -- 22 cars is the smallest here, but he is the
+   * 1950s, and a visitor who sees him knows the depth is real.
+   *
+   * Any name not in the catalogue, or without a hub page, simply falls through
+   * to the count-ranked remainder, so the grid is never short.
+   */
+  const FEATURED = [
+    'Lewis Hamilton',
+    'Max Verstappen',
+    'Ayrton Senna',
+    'Michael Schumacher',
+    'Fernando Alonso',
+    'Charles Leclerc',
+    'Lando Norris',
+    'Niki Lauda',
+    'Alain Prost',
+    'Juan Manuel Fangio',
+  ];
+
+  const byName = new Map(built.map(d => [d.name, d]));
+  const featured = FEATURED.map(n => byName.get(n)).filter(Boolean) as HomeDriver[];
+  const filler = built
+    .filter(d => !FEATURED.includes(d.name))
+    .sort((a, b) => b.count - a.count);
+  const drivers: HomeDriver[] = [...featured, ...filler].slice(0, 10);
 
   // Newest cars, but only ones a visitor can actually buy from — a card
   // linking to a car with no retailer is a dead end, and those cars are

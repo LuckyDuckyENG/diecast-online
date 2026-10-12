@@ -217,7 +217,20 @@ export default function HomeClient({
               }}
             >
               <span style={{ display: 'block', fontFamily: "'Archivo', sans-serif", fontWeight: 800, fontSize: '15px', marginBottom: '3px', color: '#1a1916' }}>{driver.name}</span>
-              <span style={{ display: 'block', fontSize: '12.5px', color: '#9a958c' }}>{driver.team} · {driver.count} models</span>
+              {/*
+                Up to three teams, then a count of the rest. The old card showed
+                ONE team, taken from an unordered row, so it was effectively
+                random -- and a career is the more interesting fact: Alonso ran
+                five teams in this catalogue and Lauda five.
+
+                Capped at three because the line has to fit a ~230px card, and
+                "+2" carries the same information as naming them would.
+              */}
+              <span style={{ display: 'block', fontSize: '12.5px', color: '#9a958c' }}>
+                {driver.teams.slice(0, 3).join(' · ')}
+                {driver.teams.length > 3 ? ` +${driver.teams.length - 3}` : ''}
+                {driver.teams.length ? ' · ' : ''}{driver.count} models
+              </span>
             </Link>
           ))}
         </div>

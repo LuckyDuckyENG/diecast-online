@@ -41,6 +41,19 @@ const TITLE_MARQUE: Record<string, string> = {
   'Haas F1 Team': 'Haas',
 };
 
+/**
+ * The same shortening, for anywhere a team name has to fit in a small space —
+ * the driver cards on the home page list up to three teams on one line, and
+ * "Mercedes-AMG Petronas" alone would fill it.
+ *
+ * Exported rather than duplicated, because this file exists precisely because
+ * the title format had been hand-copied into six places.
+ */
+export function shortTeamName(name: string | null | undefined): string {
+  const raw = String(name || '');
+  return TITLE_MARQUE[raw] || raw;
+}
+
 /** "2024 Mercedes W15 Lewis Hamilton - Bahrain GP" */
 export function carTitle(car: any): string {
   const year = car?.season?.year;
