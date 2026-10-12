@@ -163,12 +163,59 @@ const CIRCUIT_EVENTS: Record<string, string[]> = {
   okayama: ['Pacific GP'],
 };
 
+/**
+ * A SCALE anywhere in the query, pulled out the same way the year is.
+ *
+ * Found in the logs on 2026-10-12: someone searched "spark f1 1/43" and got
+ * ZERO results. Three separate reasons, and this is one of them. Scale was not
+ * searchable in any spelling, even though it is one of the two facts every
+ * collector knows about a model before they know anything else.
+ *
+ * A SLASH IS HOW PEOPLE WRITE IT. The database stores "1:43"; the visitor typed
+ * "1/43". Both, plus a space or a dash, normalise to the stored form.
+ *
+ * Only scales the catalogue actually holds are accepted, so "1/24" stays as
+ * ordinary search text rather than silently becoming a filter that matches
+ * nothing.
+ */
+const SCALES = ['1:43', '1:18', '1:12'];
+const splitScale = (q: string) => {
+  const m = q.match(/(?:^|\s)1\s*[:/\-.]\s*(43|18|12)(?=\s|$)/);
+  if (!m) return { scale: null as string | null, text: q };
+  const scale = `1:${m[1]}`;
+  if (!SCALES.includes(scale)) return { scale: null, text: q };
+  return {
+    scale,
+    text: (q.slice(0, m.index) + ' ' + q.slice(m.index! + m[0].length)).trim(),
+  };
+};
+
+/**
+ * Words that describe the CATEGORY rather than any particular car.
+ *
+ * "spark f1 1/43" is maker + category + scale. Without this, the leftover text
+ * after pulling the scale out is "spark f1", which matches no manufacturer, no
+ * chassis and no driver, so a perfectly reasonable query still returns nothing.
+ *
+ * Stripped as whole words only, and never if nothing would be left. Checked
+ * against the data first: five chassis names contain F1 as a standalone word
+ * ("F1 W14", "248 F1", "F1-75", "F1.08", "F1-2000"), and every one of them is
+ * still found by its remaining token, because "w14" and "248" match by
+ * substring. "f1-75" is a single token and is never split.
+ */
+const NOISE = /(?:^|\s)(f1|formula\s*1|formula\s*one|diecast|die-cast|model|models|scale|car|cars)(?=\s|$)/gi;
+const stripNoise = (q: string) => {
+  const stripped = q.replace(NOISE, ' ').replace(/\s+/g, ' ').trim();
+  return stripped.length ? stripped : q;
+};
+
 export async function searchCars(rawQuery: string): Promise<SearchCar[]> {
   const raw = rawQuery.trim();
   if (raw.length < 2) return [];
 
   const { year, text } = splitYear(raw);
-  const q = text;
+  const { scale, text: afterScale } = splitScale(text);
+  const q = stripNoise(afterScale);
   const like = `%${escapeLike(q.toLowerCase())}%`;
 
   /**
@@ -213,15 +260,53 @@ export async function searchCars(rawQuery: string): Promise<SearchCar[]> {
    * possible but makes the OR across four different relationships unreadable,
    * and these are indexed id lookups returning a handful of rows.
    */
-  const [driverRows, teamRows, skuRows] = await Promise.all([
+  const [driverRows, teamRows, skuRows, makerRows] = await Promise.all([
     supabase.from('drivers').select('id').ilike('name', like),
     supabase.from('teams').select('id').ilike('name', like),
     supabase.from('models').select('car_id').ilike('manufacturer_sku', like).limit(MAX_CARS * 3),
+    /**
+     * THE MAKER, which was not searchable at all. Spark alone is 1,428 models
+     * and "spark" returned nothing, which is the second reason that logged
+     * query failed.
+     *
+     * Note "Spark" and "Sparky" are separate rows, so a loose match returns
+     * both. That is correct rather than a bug: Sparky is Spark's own sub-brand
+     * and someone typing "spark" wants it.
+     */
+    supabase.from('manufacturers').select('id').ilike('name', like),
   ]);
 
   const driverIds = (driverRows.data || []).map(d => d.id);
   const teamIds = (teamRows.data || []).map(t => t.id);
-  const skuCarIds = [...new Set((skuRows.data || []).map(m => m.car_id).filter(Boolean))];
+
+  /**
+   * CAP THE IDS, NOT JUST THE ROWS THEY CAME FROM.
+   *
+   * These lists go into `.in('id', ...)`, which PostgREST takes as a query
+   * string. 557 uuids is a 20,608 character URL and the request dies with a
+   * bare "fetch failed" -- no status, no PostgREST error, just nothing. The
+   * result is an empty search that looks exactly like no matches.
+   *
+   * Found when "spark" returned zero while "minichamps" returned 200: both cap
+   * at 600 models, but Minichamps' 600 sit on 365 cars and Spark's sit on 557,
+   * so only one of them crossed the limit. The SKU lookup had the same latent
+   * fault and was one busy part number away from it.
+   *
+   * MAX_CARS ids is about 7,400 characters, and the union is sliced to
+   * MAX_CARS immediately afterwards, so nothing is lost by capping here.
+   */
+  const carIdsFrom = (rows: any[] | null) =>
+    [...new Set((rows || []).map((m: any) => m.car_id).filter(Boolean))].slice(0, MAX_CARS);
+
+  const skuCarIds = carIdsFrom(skuRows.data);
+
+  const makerIds = (makerRows.data || []).map(m => m.id);
+  let makerCarIds: string[] = [];
+  if (makerIds.length) {
+    const { data } = await supabase
+      .from('models').select('car_id').in('manufacturer_id', makerIds).limit(MAX_CARS * 3);
+    makerCarIds = carIdsFrom(data);
+  }
 
   const CAR_FIELDS = CAR_FIELDS_BASE;
 
@@ -240,11 +325,31 @@ export async function searchCars(rawQuery: string): Promise<SearchCar[]> {
   if (driverIds.length) queries.push(scoped(supabase.from('cars').select(CAR_FIELDS).in('driver_id', driverIds)).limit(MAX_CARS));
   if (teamIds.length) queries.push(scoped(supabase.from('cars').select(CAR_FIELDS).in('team_id', teamIds)).limit(MAX_CARS));
   if (skuCarIds.length) queries.push(scoped(supabase.from('cars').select(CAR_FIELDS).in('id', skuCarIds)).limit(MAX_CARS));
+  if (makerCarIds.length) queries.push(scoped(supabase.from('cars').select(CAR_FIELDS).in('id', makerCarIds)).limit(MAX_CARS));
 
   const results = await Promise.all(queries);
   const byId = new Map<string, any>();
   for (const r of results) for (const car of r.data || []) byId.set(car.id, car);
-  const cars = [...byId.values()].slice(0, MAX_CARS);
+  let matched = [...byId.values()];
+
+  /**
+   * SCALE NARROWS, it does not widen. Same rule as the season: "spark 1/43"
+   * means Spark AND 1:43, not Spark OR everything made at 1:43.
+   *
+   * Applied BEFORE the MAX_CARS slice, so asking for a scale cannot leave you
+   * with a handful of results purely because the cap landed on the other one.
+   * Paged, because 1:43 alone is 2,858 models and a plain select would stop at
+   * 1,000 and silently drop cars from the answer.
+   */
+  if (scale && matched.length) {
+    const rows = await selectAll<any>(
+      supabase, 'models', 'car_id', qb => qb.eq('scale', scale)
+    );
+    const atScale = new Set(rows.map(m => m.car_id));
+    matched = matched.filter(c => atScale.has(c.id));
+  }
+
+  const cars = matched.slice(0, MAX_CARS);
   if (!cars.length) return [];
   return decorate(cars);
 }
