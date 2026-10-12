@@ -13,6 +13,7 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import Breadcrumb from '../../components/Breadcrumb';
 import { freshnessOf } from '@/lib/freshness';
+import { formatMoney } from '@/lib/displayCurrency';
 import type { CarVariant } from '@/lib/carPageData';
 import type { RelatedGroup } from '@/lib/relatedCars';
 import RelatedCars from './RelatedCars';
@@ -535,10 +536,28 @@ export default function CarDetail({
                                       Check price on site
                                     </span>
                                   ) : retailer.currency === 'AUD' ? (
-                                    `AUD $${retailer.price.toFixed(2)}`
+                                    formatMoney(retailer.price, 'AUD')
                                   ) : (
                                     <span>
-                                      {retailer.currency} ${retailer.price.toFixed(2)}
+                                      {/*
+                                        WAS `{retailer.currency} ${price}`, which
+                                        hardcoded a DOLLAR SIGN after every
+                                        currency code: "GBP $402.00", "EUR
+                                        $129.95". EUR and GBP are 4,406 of the
+                                        8,129 price rows, so more than half of
+                                        every price on the site carried the wrong
+                                        symbol, and EUR is the largest because the
+                                        biggest single source is Belgian.
+
+                                        formatMoney is the house formatter and
+                                        its own comment makes this exact
+                                        argument: code plus number, never a bare
+                                        symbol, because one page shows several
+                                        currencies and "$" is ambiguous across
+                                        five of the eight supported. This list is
+                                        the clearest case of that on the site.
+                                      */}
+                                      {formatMoney(retailer.price, retailer.currency)}
                                       <span className="text-sm text-[var(--text-secondary)] ml-2">
                                         {/* The shop's own price is above and
                                             untouched. Only this approximation
