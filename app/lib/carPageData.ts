@@ -375,8 +375,65 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
   return { car, variants };
 }
 
-/** "Bahrain GP - W15 - Lewis Hamilton - 2024" */
+/**
+ * "2024 Mercedes-AMG Petronas W15 Lewis Hamilton - Bahrain GP"
+ *
+ * THE OLD FORMAT NEVER NAMED THE TEAM. It read
+ * "Bahrain GP - W15 - Lewis Hamilton - 2024", which omitted the one word a
+ * buyer is most likely to type. Measured across the catalogue on 2026-10-12:
+ *
+ *   2,390 of 2,472 titles (97%) did not contain the marque
+ *     430 had a BARE NUMBER as the chassis -- "- 158 -", "- 49 -"
+ *     560 opened with the word "Season"
+ *
+ * Nobody searches "British GP - 158". They search "Alfa Romeo 158 Farina".
+ * Year, marque, chassis and driver now lead, because that is the order the
+ * words appear in a search, and the round is kept but demoted.
+ *
+ * SOME chassis_name VALUES ALREADY CARRY THE MARQUE -- "Lotus 79", "Lotus 80",
+ * "Lotus 81", "Protos 16" -- so prefixing the team would read "Lotus Lotus
+ * 79". The same 14 cars produce the doubled slugs recorded in STATUS-SUMMARY.
+ * Detected here rather than assumed away, so the title is right whether or not
+ * that data is ever cleaned up.
+ *
+ * "SEASON" IS NOT A RACE. It is the placeholder for a model the shop sold
+ * without naming a round, so printing it as though it were an event made 560
+ * titles open on a meaningless word. Dropped rather than rendered.
+ *
+ * Used for the <title>, the og:title and the JSON-LD product name, which is
+ * why the "| Diecast prices" suffix stays in generateMetadata and is not added
+ * here: a structured-data product name should be the product, not a pitch.
+ */
+/**
+ * The marque as a searcher types it, for the four team names long enough to
+ * push a title past Google's display width on their own.
+ *
+ * This is a search decision, not an abbreviation: "Ferrari" and "Mercedes"
+ * ARE the queries, and the full entrant name is still on the page and in the
+ * description. "Mercedes-AMG Petronas" alone costs 21 of the ~60 characters a
+ * result shows.
+ *
+ * Deliberately short. Every other team name in the catalogue already fits.
+ */
+const TITLE_MARQUE: Record<string, string> = {
+  'Scuderia Ferrari': 'Ferrari',
+  'Mercedes-AMG Petronas': 'Mercedes',
+  'Red Bull Racing': 'Red Bull',
+  'Haas F1 Team': 'Haas',
+};
+
 export function carTitle(car: any): string {
-  const event = car?.event_name || 'Grand Prix';
-  return `${event} - ${car?.chassis_name} - ${car?.driver?.name} - ${car?.season?.year}`;
+  const year = car?.season?.year;
+  const raw = String(car?.team?.name || '');
+  const team = TITLE_MARQUE[raw] || raw;
+  const chassis = String(car?.chassis_name || '');
+  const driver = String(car?.driver?.name || '');
+  const event = car?.event_name;
+
+  const firstWord = team.split(/\s+/)[0]?.toLowerCase();
+  const marque =
+    firstWord && chassis.toLowerCase().startsWith(firstWord) ? '' : team;
+
+  const name = [year, marque, chassis, driver].filter(Boolean).join(' ');
+  return event && event !== 'Season' ? `${name} - ${event}` : name;
 }
