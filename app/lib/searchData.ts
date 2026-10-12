@@ -74,6 +74,95 @@ const splitYear = (q: string) => {
   return { year, text: (q.slice(0, m!.index) + ' ' + q.slice(m!.index! + m![0].length)).trim() };
 };
 
+/**
+ * CIRCUITS, BECAUSE RACES ARE STORED BY COUNTRY.
+ *
+ * Searching a circuit is close to the first thing a collector tries, and it
+ * was HALF working, which is worse than failing outright. A few event names
+ * carry the circuit in brackets, so an `ilike` found those and missed the rest:
+ *
+ *   "monza"        31 hits (Italian GP (Monza))   ·  missed 107 "Italian GP"
+ *   "silverstone"   0 hits                        ·  missed 145 "British GP"
+ *   "imola"        25 hits                        ·  missed San Marino GP
+ *
+ * So a search returned a confident, wrong-sized answer. Mapping the circuit to
+ * the event names actually present in the data fixes both halves at once.
+ *
+ * ONE CIRCUIT CAN MEAN SEVERAL ROUNDS, and that is the point rather than a
+ * problem: Imola has hosted the San Marino, Italian and Emilia Romagna Grands
+ * Prix, and the Nurburgring has held the German and Eifel. A circuit search
+ * should return everything raced there.
+ *
+ * Every value here was taken from the 73 distinct event_name values in the
+ * database on 2026-10-12, not from a calendar — a name nobody uses would match
+ * nothing and quietly look like a working alias.
+ */
+const CIRCUIT_EVENTS: Record<string, string[]> = {
+  silverstone: ['British GP'],
+  aintree: ['British GP'],
+  'brands hatch': ['British GP'],
+  monza: ['Italian GP', 'Italian GP (Monza)', '(Michael Schumacher Tribute) - Italian GP'],
+  imola: ['Emilia Romagna GP', 'Emilia Romagna GP (Imola)', 'San Marino GP', 'Imola Test'],
+  spa: ['Belgian GP'],
+  francorchamps: ['Belgian GP'],
+  zolder: ['Belgian GP'],
+  'monte carlo': ['Monaco GP'],
+  montecarlo: ['Monaco GP'],
+  interlagos: ['Brazilian GP'],
+  suzuka: ['Japanese GP'],
+  fuji: ['Japanese GP'],
+  zandvoort: ['Dutch GP'],
+  nurburgring: ['German GP', 'Eifel GP', 'Eifel GP (Nurburgring)'],
+  hockenheim: ['German GP'],
+  catalunya: ['Spanish GP', 'Pre-season Testing (Barcelona)', 'Spanish Test', 'Spanish GP Tire Test', 'Test Session (Barcelona)'],
+  barcelona: ['Spanish GP', 'Pre-season Testing (Barcelona)', 'Spanish Test', 'Spanish GP Tire Test', 'Test Session (Barcelona)'],
+  jerez: ['European GP', 'Spanish GP'],
+  austin: ['United States GP', 'United States GP (Austin)', 'United States GP Sprint (Austin)'],
+  cota: ['United States GP', 'United States GP (Austin)', 'United States GP Sprint (Austin)'],
+  'watkins glen': ['United States GP', 'United States GP East'],
+  'long beach': ['United States GP West'],
+  hungaroring: ['Hungarian GP'],
+  spielberg: ['Austrian GP', 'Styrian GP'],
+  'red bull ring': ['Austrian GP', 'Styrian GP'],
+  osterreichring: ['Austrian GP'],
+  jeddah: ['Saudi Arabian GP'],
+  'yas marina': ['Abu Dhabi GP', 'Abu Dhabi Test', 'Abu Dhabi GP (FP1)'],
+  'marina bay': ['Singapore GP'],
+  baku: ['Azerbaijan GP'],
+  sochi: ['Russian GP', 'Russian GP (Sochi)'],
+  mugello: ['Tuscan GP (Mugello)'],
+  estoril: ['Portuguese GP'],
+  portimao: ['Portuguese GP'],
+  kyalami: ['South African GP'],
+  reims: ['French GP'],
+  'magny-cours': ['French GP'],
+  'paul ricard': ['French GP', 'Paul Ricard Test'],
+  castellet: ['French GP', 'Paul Ricard Test'],
+  rouen: ['French GP'],
+  montreal: ['Canadian GP', 'Canada Test'],
+  'gilles villeneuve': ['Canadian GP'],
+  'mexico city': ['Mexican GP', 'Mexico City GP'],
+  rodriguez: ['Mexican GP', 'Mexico City GP'],
+  sepang: ['Malaysian GP'],
+  istanbul: ['Turkish GP'],
+  sakhir: ['Bahrain GP', 'Sakhir GP'],
+  'albert park': ['Australian GP'],
+  melbourne: ['Australian GP'],
+  adelaide: ['Australian GP'],
+  shanghai: ['Chinese GP', 'Chinese GP Sprint'],
+  anderstorp: ['Swedish GP'],
+  'buenos aires': ['Argentine GP'],
+  bremgarten: ['Swiss GP'],
+  'ain-diab': ['Moroccan GP'],
+  casablanca: ['Moroccan GP'],
+  pescara: ['Pescara GP'],
+  indianapolis: ['Indianapolis 500'],
+  brickyard: ['Indianapolis 500'],
+  fiorano: ['Pre-season Testing (Fiorano)'],
+  aida: ['Pacific GP'],
+  okayama: ['Pacific GP'],
+};
+
 export async function searchCars(rawQuery: string): Promise<SearchCar[]> {
   const raw = rawQuery.trim();
   if (raw.length < 2) return [];
@@ -140,6 +229,14 @@ export async function searchCars(rawQuery: string): Promise<SearchCar[]> {
     scoped(supabase.from('cars').select(CAR_FIELDS).ilike('chassis_name', like)).limit(MAX_CARS),
     scoped(supabase.from('cars').select(CAR_FIELDS).ilike('event_name', like)).limit(MAX_CARS),
   ];
+  /**
+   * A circuit name, resolved to the rounds held there. Matched on the query
+   * with the year already stripped, so "monza 1967" works as well as "monza".
+   */
+  const circuitEvents = CIRCUIT_EVENTS[q.toLowerCase().trim()];
+  if (circuitEvents) {
+    queries.push(scoped(supabase.from('cars').select(CAR_FIELDS).in('event_name', circuitEvents)).limit(MAX_CARS));
+  }
   if (driverIds.length) queries.push(scoped(supabase.from('cars').select(CAR_FIELDS).in('driver_id', driverIds)).limit(MAX_CARS));
   if (teamIds.length) queries.push(scoped(supabase.from('cars').select(CAR_FIELDS).in('team_id', teamIds)).limit(MAX_CARS));
   if (skuCarIds.length) queries.push(scoped(supabase.from('cars').select(CAR_FIELDS).in('id', skuCarIds)).limit(MAX_CARS));
