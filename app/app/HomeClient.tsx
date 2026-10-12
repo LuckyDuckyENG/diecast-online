@@ -82,14 +82,36 @@ export default function HomeClient({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '22px', animation: 'fadeUp 0.7s ease both' }}>
               <span style={{ width: '28px', height: '2px', background: '#cf2f2a' }} />
-              <span style={{ color: '#cf2f2a', fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: '13px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>The Scale Model Catalogue</span>
+              <span style={{ color: '#cf2f2a', fontFamily: "'Archivo', sans-serif", fontWeight: 700, fontSize: '13px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>The F1 Scale Model Index</span>
             </div>
             <h1 style={{ fontFamily: "'Archivo', sans-serif", fontWeight: 900, fontSize: 'clamp(34px, 7vw, 62px)', lineHeight: '1.02', letterSpacing: '-0.03em', margin: '0 0 18px', animation: 'fadeUp 0.7s ease 0.08s both' }}>
-              Every F1 model<br />ever made.<br />
+              {/*
+                "Every F1 model ever made" was FALSE and checkable, which is the
+                worst combination for a headline aimed at collectors: the
+                catalogue holds 4,890 models and Minichamps alone has produced
+                many times that since 1990. Every visitor who tested it would
+                have been testing for a gap, and the first one found would have
+                been the whole conversation.
+
+                "Every F1 season since 1950" is the claim that IS true, is
+                verified unbroken at 77 consecutive seasons, and is the one no
+                competitor can copy without a year of imports. It also inverts
+                the testing: searching 1954 confirms it instead of disproving
+                it. "Since 1950" rather than "ever raced" because Formula 1
+                races existed from 1946 and only the CHAMPIONSHIP began in 1950.
+              */}
+              Every F1 season<br />since 1950.<br />
               <span style={{ fontStyle: 'italic', color: '#cf2f2a' }}>In one place.</span>
             </h1>
             <p style={{ color: '#8a857c', fontSize: '17px', margin: '0 0 30px', maxWidth: '480px', animation: 'fadeUp 0.7s ease 0.16s both' }}>
-              Track prices across Spark, Minichamps, Looksmart, BBR and every maker collectors trust.
+              {/*
+                "every maker collectors trust" judged for the reader and said
+                nothing checkable. "every other maker in the catalogue" is
+                literally true and makes no claim about makers we do not hold.
+                The counts stay out of this line because the stats bar
+                immediately below already carries them, live.
+              */}
+              Compare prices across Minichamps, Spark, Looksmart, BBR and every other maker in the catalogue. No account, nothing for sale.
             </p>
             <form onSubmit={handleSearch} style={{ display: 'flex', alignItems: 'center', gap: '10px', height: '58px', padding: '0 8px 0 16px', background: '#fff', border: '1.5px solid #e0ddd6', borderRadius: '14px', maxWidth: '560px', boxShadow: '0 8px 24px -12px rgba(26,25,22,0.18)', animation: 'fadeUp 0.7s ease 0.24s both' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9a958c" strokeWidth="2.2" strokeLinecap="round" style={{ flex: 'none' }}>

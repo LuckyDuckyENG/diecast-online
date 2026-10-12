@@ -20,9 +20,14 @@ export const revalidate = 86400;
 
 export const metadata: Metadata = {
   title: 'Diecasts - The F1 Diecast Price Index',
+  // "Every car, every race" was the same overclaim as the old headline, only
+  // hedged at the end by "we can find". The season range is the claim that is
+  // actually true and actually unique, so it is the one that belongs in the
+  // snippet Google shows. No retailer count: a number in static metadata rots
+  // silently, and "dozens" is true at 47.
   description:
     'Compare prices on F1 scale models from Minichamps, Spark, Looksmart and more. ' +
-    'Every car, every race, every retailer we can find.',
+    'Every championship season since 1950, priced across dozens of retailers and eBay.',
   alternates: { canonical: '/' },
 };
 
