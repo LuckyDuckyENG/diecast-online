@@ -160,11 +160,40 @@ async function buildHub(
   };
 }
 
+/**
+ * "Norris + Piastri" IS NOT A PERSON.
+ *
+ * Some products are two-car SETS — one box, two models, both drivers on the
+ * lid — and the importer stored the pair string in the driver column because
+ * that is what the shop's title says. The models are real; the driver is not.
+ * Ten such rows exist, six with cars.
+ *
+ * Left alone, each one becomes a biography-shaped page for someone who has
+ * never existed, as soon as it clears MIN_CARS_FOR_HUB. On 2026-10-12 exactly
+ * one had — /drivers/norris-piastri, on 3 sellable cars — and the others sat
+ * at 0-1, which is one retailer sweep away from the same thing. So this is a
+ * rule rather than a deletion.
+ *
+ * THE CARS AND MODELS STAY. A boxed pair is a genuine product and its car page
+ * is a reasonable place to buy it; what is wrong is only the claim that a
+ * person called "Norris + Piastri" has a career. Car pages already degrade
+ * correctly: page.tsx links to a driver hub only when getHubSlugs lists it.
+ *
+ * No real driver's name contains " + " or " & ".
+ */
+export function isDriverPair(name: string | null | undefined): boolean {
+  return / \+ | & /.test(String(name || ''));
+}
+
 export async function getDriverHub(slug: string): Promise<HubData | null> {
   const { cars } = await loadCatalogue();
   const match = cars.find((c: any) => slugify((c.driver as any)?.name || '') === slug);
   const name = (match?.driver as any)?.name as string | undefined;
   if (!name) return null;
+  // Checked here as well as in getHubSlugs, because dynamicParams defaults to
+  // true: dropping a slug from the prerender list does not stop the route
+  // rendering on demand, so the hub itself has to refuse.
+  if (isDriverPair(name)) return null;
   /**
    * "model cars AND diecast", because Search Console says people type both.
    *
@@ -248,7 +277,11 @@ export async function getHubSlugs(): Promise<{ drivers: string[]; teams: string[
   };
 
   return {
-    drivers: count((c: any) => (c.driver?.name ? slugify(c.driver.name) : undefined)),
+    // isDriverPair keeps two-car sets out of the sitemap, out of the prerender
+    // and out of the "related hubs" links on car pages. See above.
+    drivers: count((c: any) =>
+      c.driver?.name && !isDriverPair(c.driver.name) ? slugify(c.driver.name) : undefined
+    ),
     teams: count((c: any) => (c.team?.name ? teamSlug(c.team.name) : undefined)),
     seasons: count((c: any) => (c.season?.year ? String(c.season.year) : undefined)),
   };
