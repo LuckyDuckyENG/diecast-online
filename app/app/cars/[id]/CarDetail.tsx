@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { carTitle } from '@/lib/carTitle';
 import { logClick } from '@/lib/logClick';
 import PriceSparkline from '@/app/components/PriceSparkline';
 import { pickSeries, pickEbaySeries, type ModelHistory } from '@/lib/priceHistory';
@@ -70,9 +71,12 @@ export default function CarDetail({
   const carId = urlParam;
 
   const driver = carData.driver;
-  // Build title with event name as PRIMARY identifier
   const eventName = carData.event_name || 'Grand Prix';
-  const masterTitle = `${eventName} - ${carData.chassis_name} - ${driver?.name} - ${carData.season?.year}`;
+  // The VISIBLE heading, and the fourth hand-written copy of this format.
+  // It has to agree with the <title> and the search result that led here, so
+  // it comes from the same function. Safe in a client component: carTitle is
+  // pure and imports nothing.
+  const masterTitle = carTitle(carData);
   const heroImage = variants.find((v: any) => v.image_url)?.image_url || null;
   /**
    * The last resort, for a model no shop sells: a photo from one of its eBay

@@ -4,6 +4,7 @@ import { selectAll } from './selectAll';
 import { priceSpan, cheapest } from './priceSpan';
 import { shouldHidePrice } from './freshness';
 import { buildEbayPhotoMap, ebayPhotoForVariants } from './ebayPhoto';
+import { carTitle } from './carTitle';
 import type { Model } from './types';
 
 /**
@@ -206,7 +207,7 @@ export async function getBrowseCars(): Promise<Model[]> {
     return {
       id: car.id,
       slug: car.slug,
-      name: `${eventName} - ${car.chassis_name} - ${driver?.name} - ${car.season?.year}`,
+      name: carTitle(car),
       manufacturer: makerLabel,
       scales,
       manufacturers: makers,

@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { selectAll } from './selectAll';
+import { carTitle } from './carTitle';
 
 /**
  * Related cars for the bottom of a car page.
@@ -64,7 +65,7 @@ export async function getRelatedCars(car: any): Promise<RelatedGroup[]> {
     return {
       id: c.id,
       slug: c.slug,
-      title: `${c.event_name} - ${c.chassis_name} - ${c.driver?.name} - ${c.season?.year}`,
+      title: carTitle(c),
       /**
        * No eBay-photo fallback, and none would ever fire. `candidates` below
        * is filtered to cars with a RETAILER link, and the fallback only

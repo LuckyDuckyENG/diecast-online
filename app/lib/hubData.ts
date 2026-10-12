@@ -3,6 +3,7 @@ import { slugify, teamSlug } from './carSlug';
 import type { Model } from './types';
 import { selectAll } from './selectAll';
 import { buildEbayPhotoMap, ebayPhotoForVariants } from './ebayPhoto';
+import { carTitle } from './carTitle';
 
 /**
  * Hub pages: /drivers/[slug], /teams/[slug], /seasons/[year].
@@ -98,7 +99,11 @@ function toHubCar(
   return {
     id: car.id,
     slug: car.slug,
-    name: `${car.event_name} - ${car.chassis_name} - ${car.driver?.name} - ${car.season?.year}`,
+    // THE THIRD hand-written copy of the title format, found the same way as
+    // searchData's: by grepping after the first fix. Driver, team and season
+    // hubs all render car names, so every one of them was showing the old
+    // order. One function, lib/carTitle.ts.
+    name: carTitle(car),
     manufacturer: `${variants.length} manufacturers`,
     year: car.season?.year || 0,
     driver: car.driver?.name,
