@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import CarDetail from './CarDetail';
-import { getCarPageData, getAllCarSlugs, carTitle } from '@/lib/carPageData';
+import { getCarPageData, getAllCarSlugs } from '@/lib/carPageData';
+import { carTitle } from '@/lib/carTitle';
 import { carPageJsonLd, jsonLdScript } from '@/lib/structuredData';
 import { getPriceHistory } from '@/lib/priceHistory';
 import { supabase } from '@/lib/supabase';

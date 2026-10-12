@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { selectAll } from './selectAll';
 import { buildEbayPhotoMap, ebayPhotoForVariants } from './ebayPhoto';
+import { carTitle } from './carTitle';
 
 /**
  * Search, filtered by the DATABASE rather than by the browser.
@@ -198,7 +199,10 @@ async function decorate(cars: any[]): Promise<SearchCar[]> {
     return {
       id: car.id,
       slug: car.slug ?? null,
-      name: `${car.event_name || 'Grand Prix'} - ${car.chassis_name} - ${car.driver?.name} - ${car.season?.year}`,
+      // Was a SECOND hand-written copy of the title format, which is how
+      // search results kept rendering "British GP - 158 - ..." after the page
+      // title was fixed. One function now, in lib/carTitle.ts.
+      name: carTitle(car),
       // No `|| 2024`. A missing season is missing, not 2024 -- the old default
       // stamped the current year onto any car whose season failed to load.
       year: car.season?.year ?? null,
