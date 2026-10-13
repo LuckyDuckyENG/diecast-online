@@ -50,6 +50,13 @@ export interface CarRetailer {
   checkedAt: string | null;
   checkedLabel: string;
   priceHidden: boolean;
+  /**
+   * Percentage of sales tax the shop's listed price ALREADY INCLUDES, or null
+   * when unknown. EU and UK consumer prices are legally VAT inclusive and an
+   * Australian price includes GST, so half the rows on this site carry tax
+   * inside the number and nothing used to say so.
+   */
+  vatRate?: number | null;
   /** eBay, not a shop — one seller's listing on a used/auction market. */
   isSecondary?: boolean;
   /** Orderable, but not yet shipping. */
@@ -195,7 +202,7 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
     supabase
       .from('price_history')
       // `*` so this survives whether or not a migration has added columns
-      .select('*, retailer:retailers(name, url, region)')
+      .select('*, retailer:retailers(name, url, region, vat_rate)')
       .in('model_id', variantIds)
       .order('in_stock', { ascending: false })
       .order('price_aud', { ascending: true }),
@@ -243,6 +250,13 @@ export async function getCarPageData(param: string): Promise<CarPageData | null>
         return {
           name: item.retailer?.name || 'Unknown',
           region: item.retailer?.region || null,
+          /**
+           * Sales tax already inside this shop's listed price. NOT a claim the
+           * buyer avoids it -- see 025_retailer_vat.sql. Null for shops we have
+           * not established a rate for, which must render nothing rather than
+           * a confident "includes 0%".
+           */
+          vatRate: item.retailer?.vat_rate ?? null,
           price: parseFloat(item.price) || 0,
           currency: item.currency || 'AUD',
           priceAUD: parseFloat(item.price_aud) || parseFloat(item.price) || 0,

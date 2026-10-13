@@ -517,7 +517,31 @@ export default function CarDetail({
                                          duplicate rather than a choice. */
                                       `${retailer.seller ? retailer.seller : "One seller's listing"}` +
                                       ` · checked ${retailer.checkedLabel} · we may earn a commission`
-                                    : `Price checked ${retailer.checkedLabel}`}
+                                    : /*
+                                         WHAT IS INSIDE THE NUMBER, which nothing
+                                         on the page used to say. A Belgian price
+                                         and an Australian one rendered
+                                         identically while one carried 21% VAT
+                                         and the other 10% GST, so the comparison
+                                         was not like for like.
+                                         Raised on r/Diecast 2026-10-12.
+
+                                         States what is INCLUDED and never
+                                         subtracts it: the two shops carrying 88%
+                                         of these rows both document that non-EU
+                                         buyers pay customs ON TOP rather than
+                                         getting VAT removed, so an ex-tax figure
+                                         would be a price nobody can obtain.
+                                         See 025_retailer_vat.sql.
+
+                                         Null renders nothing. A shop we have not
+                                         established a rate for must not claim
+                                         "includes 0%".
+                                      */
+                                      `Price checked ${retailer.checkedLabel}` +
+                                      (retailer.vatRate
+                                        ? ` · includes ${retailer.vatRate}% ${retailer.region === 'AU' ? 'GST' : 'VAT'}`
+                                        : '')}
                                 </span>
                               </div>
                               <div className="flex items-center gap-2 sm:justify-end w-full sm:w-auto shrink-0">
