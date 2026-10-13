@@ -715,11 +715,27 @@ export default function CarDetail({
           <div className="mt-10 pt-6 border-t border-[var(--border-light)]">
             <p className="text-xs text-[var(--text-tertiary)] leading-relaxed max-w-3xl">
               <strong className="text-[var(--text-secondary)]">About these prices.</strong>{' '}
+              {/*
+                "exclude shipping, duties and TAXES" was the opposite of true,
+                and an r/Diecast comment on 2026-10-12 found it: EU and UK shops
+                are required to show consumer prices INCLUDING VAT, and an
+                Australian shop's price includes GST. Half the price rows on
+                this site carry tax inside the number.
+
+                Checked before rewriting, rather than assumed: Miniatures
+                Minichamps (3,406 links) states "All visible prices ... includes
+                all taxes" and says non-EU buyers pay ADDITIONAL customs on top,
+                with no VAT removal offered. Mini Model Shop says "Taxes
+                included" and mentions only import duty the buyer may owe. So
+                the honest wording is that tax is already in, and duties are
+                extra -- not that tax is excluded.
+              */}
               Prices and stock are collected automatically from each retailer&apos;s website and
-              may be out of date or incorrect. Figures shown in AUD for non-Australian shops are
-              approximate conversions and exclude shipping, duties and taxes. Always confirm the
-              current price on the retailer&apos;s own site before purchasing — the price there is
-              the one that applies.
+              may be out of date or incorrect. They are shown as the shop lists them, which for
+              EU, UK and Australian shops normally includes that country&apos;s sales tax.
+              Shipping and any import duty are extra, and figures converted to AUD are
+              approximate. Always confirm the current price on the retailer&apos;s own site
+              before purchasing. The price there is the one that applies.
             </p>
           </div>
         </div>

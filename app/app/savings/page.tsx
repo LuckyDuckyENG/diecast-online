@@ -62,8 +62,12 @@ export default async function SavingsPage() {
 
         <p className="mt-12 text-xs text-[var(--text-tertiary)] leading-relaxed">
           <strong className="text-[var(--text-secondary)]">About these numbers.</strong>{' '}
+          {/* Same correction as the car page: these prices INCLUDE the shop's
+              local sales tax, they do not exclude it. See the note there. */}
           Prices are checked periodically and shown in Australian dollars, converted
-          at daily reference rates. They exclude shipping, duties and taxes, so a
+          at daily reference rates. They are shown as each shop lists them, which for
+          EU, UK and Australian shops normally includes that country&apos;s sales tax.
+          Shipping and any import duty are extra, so a
           smaller difference may not survive postage. A model only appears here when
           at least three shops sell it — fewer than that and there is no typical
           price to be below.
