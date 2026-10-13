@@ -1,4 +1,4 @@
-# Status Summary - last updated 2026-10-10
+# Status Summary - last updated 2026-10-14
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -36,9 +36,9 @@
 ## Where things stand
 
 ```
-cars 2472  |  models 4890  |  retailer links 8068  |  eBay links 6434  |  retailers 47  |  drivers 290
-slugs 2472/2472   |   images 4372/4890   |   teams 71   |   cars sellable 2229/2472
-models with an eBay listing 2093/4890   |   manufacturers 22
+cars 2472  |  models 4890  |  retailer links 8129  |  eBay links 6815  |  retailers 47  |  drivers 286
+slugs 2472/2472   |   images 4374/4890   |   teams 71   |   cars sellable 2236/2472
+models with an eBay listing 2253/4890   |   manufacturers 22
 seasons 77: 1950-2026, UNBROKEN — EVERY SEASON OF THE WORLD CHAMPIONSHIP
 ```
 
@@ -52,7 +52,7 @@ to parity with the sixties in one pass.** Coverage by era, after:
 era          cars  models   a retailer       an image         eBay        in sitemap
 1950-1959     147     226     144 ( 64%)     160 ( 71%)     120 ( 53%)    127 / 147
 1960-1970     464     636     466 ( 73%)     498 ( 78%)     343 ( 54%)    424 / 464
-1971-1994     326     642     478 ( 74%)     551 ( 86%)     119 ( 19%)    289 / 326
+1971-1994     326     642     478 ( 74%)     551 ( 86%)     279 ( 43%)    296 / 326
 1995-2026    1535    3386    3029 ( 89%)    3165 ( 93%)    1511 ( 45%)   1389 / 1535
 ```
 
@@ -68,12 +68,10 @@ listing 1,627 -> 2,093, and 53%/54% for the 1950s and 1960s against 45% for
 and that market is entirely secondary; the result is stronger than the
 argument was.
 
-**1971-1994 is now the weakest era on this measure by a wide margin** — 19%,
-642 models, 119 with a listing, and it was not part of the pre-1971 pass. It
-holds the Lauda, Prost and Mansell cars that the 2026-10-11 analytics showed
-real interest in. That is the next eBay target.
+**1971-1994 ran on 2026-10-13/14 and reached 43%**, 119 -> 279 models. The
+remaining gap there is NOT a search problem: see the review queue in Open.
 
-**243 cars are still invisible to Google**, down from 294: `app/sitemap.ts`
+**236 cars are still invisible to Google**, down from 294: `app/sitemap.ts`
 only advertises a car something sells, so a car with no retailer link and no
 eBay listing is never offered to a crawler at all. 146 of the 243 are
 1995-2026, which is where the remaining recoverable coverage is.
@@ -276,6 +274,138 @@ the traffic, deliberately, since instrumentation cannot be backfilled. The
 first real question to ask them is the zero-result search query in the section
 above.
 
+## The Reddit post, and what it actually bought - 2026-10-12 to 14
+
+Posted to r/Diecast as "Which shop is actually cheapest for F1 models? I
+checked 47 of them", led by a real price gap rather than by the catalogue:
+AUD 429 at Downies against GBP 559 at Car Model Store for the same Looksmart
+1:18 Hamilton Ferrari. Verified against the live page before posting.
+
+**Score 0, three comments, a handful of visits.** Both comparable project
+posts in that sub also scored 0, and the better of them had 7 comments. In
+that sub COMMENTS ARE THE METRIC, not score.
+
+### THE POST FOUND A BUG NO ANALYTICS COULD
+
+Two of the three comments attacked the same thing from different angles, and
+neither asked about the catalogue:
+
+```
+"Do you also deduct VAT/GST for out of country purchases? I get my Spark
+ models from NZ because I can buy without GST"
+
+"A lot of shops dont update prices after they sold an item elsewhere and
+ hold over old prices. Especially in EU."
+```
+
+Both are "can I trust your number", from people who already solve this
+manually and are measuring the site against their own method. NOBODY ASKED
+ABOUT MISSING MODELS. The 1970s invitation, the most answerable question in
+the post, got no takers. The whole backlog at the time was coverage work;
+the engaged readers probed accuracy.
+
+**The disclaimer was asserting the opposite of the truth.** It read
+"approximate conversions and exclude shipping, duties and TAXES" on both the
+car page and /savings. EU and UK law requires consumer prices to be shown
+INCLUDING VAT and an Australian price includes GST, so 4,344 of 8,129 price
+rows carry tax inside the number. Fixed on both.
+
+### THE OBVIOUS FEATURE WAS THE WRONG ONE
+
+A sensitivity analysis said removing EU/UK VAT cuts the cheapest price by a
+median 17% while changing which shop wins on only 5% of models, which made an
+ex-VAT display look attractive. Reading the two shops carrying 88% of the
+affected rows killed it:
+
+```
+Miniatures Minichamps (BE, 3,406 links)
+  "All visible prices ... includes all taxes", and for delivery outside the
+  EU "the additional custom taxes and paperwork will be for the customer to
+  pay". No VAT removal offered.
+Mini Model Shop (UK, 420 links)
+  cart states "Taxes included"; shipping policy mentions only import
+  tax/duty the buyer may owe. No VAT removal offered.
+```
+
+An ex-VAT figure would be A PRICE NOBODY CAN OBTAIN at the two shops that
+matter. The commenter's New Zealand experience is real but shop specific.
+**Display states what is included and never subtracts it.**
+
+`025_retailer_vat.sql` adds `retailers.vat_rate`, 24 of 47 populated. NULL
+means unknown or none, never zero, so an unchecked shop cannot render a
+confident "includes 0%". Shown in the qualifier line that already carries
+freshness and the eBay commission note:
+
+```
+Downies Collectables  AU   AUD 429.00
+  Price checked 9 days ago - includes 10% GST
+Car Model Store       UK   GBP 559.00
+  Price checked 9 days ago - includes 20% VAT
+Stone Model           CA   AUD 437.00
+  Price checked 9 days ago
+```
+
+### A FAILED SEARCH WAS WORTH MORE THAN ANY REPLY
+
+`search_queries` logged "spark f1 1/43" from Brazil returning ZERO. Three
+faults stacked, and the third was the real one:
+
+- **The maker was never searchable.** Chassis, event, driver, team and SKU,
+  never the manufacturer. Spark alone is 1,428 models.
+- **Nor was the scale**, in any spelling. Now extracted like the year, and it
+  NARROWS rather than widens. A slash is how people write it.
+- **"f1" is noise** in a Formula 1 catalogue, with "diecast", "model" and
+  "scale". Checked first: five chassis names contain F1 as a standalone word
+  and every one survives through its remaining token.
+- **AND THE FIX DID NOT WORK FOR SPARK.** "minichamps" returned 200 and
+  "spark" still returned 0. Both cap at 600 models, but Minichamps' sit on
+  365 cars and Spark's on 557, and 557 uuids in `.in('id', ...)` is a 20,608
+  character URL that dies as a bare "fetch failed". No status, no PostgREST
+  error, an empty result identical to no matches. THE SKU LOOKUP HAD THE SAME
+  LATENT FAULT and was one busy part number away from it.
+
+Still open: multi-term queries do not combine, so "looksmart leclerc" is one
+ilike and matches neither.
+
+### TITLES NEVER NAMED THE TEAM
+
+Measured before changing: 2,390 of 2,472 (97%) did not contain the marque,
+430 had a bare number as the chassis, 560 opened with "Season".
+
+```
+WAS  British GP - 158 - Giuseppe Farina - 1950
+NOW  1950 Alfa Romeo 158 Giuseppe Farina - British GP
+```
+
+**The format was hand-written in SIX places** and the last one found was the
+visible H1, so the heading disagreed with the title Google showed to get
+there. All six now call `lib/carTitle.ts`. Four team names are shortened for
+the title only: "Mercedes-AMG Petronas" costs 21 of the ~60 characters a
+result displays, and "Ferrari" is what gets typed.
+
+### SMALLER THINGS FROM THE SAME WEEK
+
+- **"Norris + Piastri" is not a person.** Two-car SETS stored the pair string
+  in the driver column, so /drivers/norris-piastri was a live indexed page
+  for someone who never existed. `isDriverPair()` is applied in getHubSlugs
+  AND getDriverHub, because dynamicParams defaults to true so dropping a slug
+  from the prerender does not stop the route answering. The cars and models
+  stay: they are real boxed sets.
+- **Circuit names found almost nothing**, and were HALF working, which is
+  worse than failing: "monza" matched 31 of 140 because a few event names
+  carry the circuit in brackets. 63 aliases now, every value taken from the
+  73 distinct event_name values in the database. Found in passing: "spa" was
+  returning SPANISH Grands Prix.
+- **A pound sign is not a dollar sign.** The retailer list rendered
+  `{currency} ${price}`, giving "GBP $402.00" and "EUR $129.95". EUR and GBP
+  are 4,406 of 8,129 rows, so more than half of every price on the site
+  carried the wrong symbol.
+- **/savings was investigated and nothing was wrong with it.** 187 rows, all
+  with images, sorted by saving, correctly instrumented with
+  `source: 'savings'`. The limit is inventory: `MIN_SHOPS = 3`, and **536
+  models sit at exactly 2 shops**, one short of qualifying. The lever is an
+  `--all` sweep, not the page.
+
 ## Open, none urgent
 
 - **46 cars read the wrong race name**, from the four EVENTS gaps found at 1958
@@ -284,9 +414,23 @@ above.
   is renames plus redirects — the same shape as the San Marino five. The South
   African GP is the bulk of it and reads "Season" today for Clark's 1968 win,
   Stewart's 1969 win, Rindt, Surtees and Hulme.
-- **The eBay pass for 1971-1994 is the weakest surface left.** 19% against
-  53-54% for the pre-1971 block after its pass ran on 2026-10-11. 642 models,
-  119 with a listing, and the era holds Lauda, Prost and Mansell.
+- **1,448 eBAY CANDIDATES SIT IN `pending` AND NONE HAVE BEEN DECIDED.** The
+  largest pool of unrealised coverage in the catalogue, and NOT a search
+  problem: the passes ran, and the route only auto-links on SKU matches, so
+  everything less certain is parked for a human. `event-driver` 1,385,
+  `sku-match` 63. Start with the 63, highest confidence and small enough to
+  finish in a sitting. Only 159 are 1971-1994; the rest are other eras.
+  Review page is `/admin/review`, built so one candidate fits on screen.
+- **1976, 1986, 1989 and 1990 produced NO eBay candidates at all**, so those
+  four are the only seasons worth re-running or accepting as empty.
+- **An `--all` retailer sweep does two jobs**: promotes models from 2 shops
+  to 3, which is what /savings is gated on, and refreshes prices before the
+  30-day staleness cliff. Every recent sweep has been gaps-only.
+- **No public list of the 47 shops.** `/retailers` is a pitch TO retailers,
+  not a list of what is indexed. Asked for on r/Diecast, and it would give
+  the VAT labels a home and invite shop suggestions, which is free coverage.
+- **Yuui F1 Models is closing in 2026** ("Yuui.nl stopt in 2026"). 266 links
+  point at it.
 - **14 car slugs REPEAT THE TEAM NAME** — `1979-lotus-lotus-79`, and the same
   for Lotus 80, Lotus 81 and Protos 16 — because `chassis_name` stores
   "Lotus 79" rather than "79". Live indexed slugs, so it needs redirects, and
