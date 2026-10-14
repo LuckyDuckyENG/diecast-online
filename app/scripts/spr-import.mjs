@@ -54,21 +54,23 @@ if (!retailer) { console.error('No "SPR Models" retailer row.'); process.exit(1)
 
 const [models, existing] = await Promise.all([
   page('models', 'id, manufacturer_sku'),
-  page('price_history', 'id, model_id, retailer_id', q => q.eq('retailer_id', retailer.id)),
+  page('price_history', 'id, model_id, price', q => q.eq('retailer_id', retailer.id)),
 ]);
 const bySku = new Map();
 for (const m of models) if (m.manufacturer_sku) bySku.set(String(m.manufacturer_sku).toLowerCase().trim(), m.id);
-const already = new Set(existing.map(r => r.model_id));
+const existingByModel = new Map(existing.map(r => [r.model_id, r]));
 
 const now = new Date().toISOString();
-const rows = [], unmatched = [];
+const inserts = [], updates = [], unmatched = [];
+let moved = 0;
+
 for (const p of spr) {
   const key = String(p.sku || '').toLowerCase().trim();
   const modelId = key && bySku.get(key);
   if (!modelId) { unmatched.push(p.sku); continue; }
-  if (already.has(modelId)) continue;        // idempotent: never a second row
   if (!(p.price > 0)) continue;
-  rows.push({
+
+  const row = {
     model_id: modelId,
     retailer_id: retailer.id,
     price: p.price,
@@ -79,14 +81,34 @@ for (const p of spr) {
     product_url: p.url,
     last_checked_at: now,
     recorded_at: now,
-  });
+  };
+
+  /**
+   * ONE ROW PER (model, retailer), UPDATED IN PLACE.
+   *
+   * price_history is current state for a shop, not an append-only log --
+   * lib/retailerLink.ts does exactly this and the site reads the single row.
+   * Inserting a second would give one model two prices from one shop and the
+   * cheaper one would win at random.
+   *
+   * This is also the whole point of re-running: last_checked_at is what keeps
+   * a price quotable. At 30 days the site stops showing it, and SPR holds the
+   * cheapest price on 90 models, so it is the worst one to let expire.
+   */
+  const prior = existingByModel.get(modelId);
+  if (prior) {
+    if (Number(prior.price) !== p.price) moved++;
+    updates.push({ id: prior.id, ...row });
+  } else {
+    inserts.push(row);
+  }
 }
 
 console.log(`SPR products            : ${spr.length}`);
 console.log(`  matched to a model    : ${spr.length - unmatched.length}`);
 console.log(`  no matching SKU here  : ${unmatched.length}`);
-console.log(`  already have a row    : ${spr.length - unmatched.length - rows.length}`);
-console.log(`  TO WRITE              : ${rows.length}`);
+console.log(`  new rows to insert    : ${inserts.length}`);
+console.log(`  existing to refresh   : ${updates.length}  (${moved} with a changed price)`);
 
 if (!APPLY) {
   console.log('\nDRY RUN, nothing written. Re-run with --apply.');
@@ -94,10 +116,21 @@ if (!APPLY) {
 }
 
 let written = 0;
-for (let i = 0; i < rows.length; i += 200) {
-  const chunk = rows.slice(i, i + 200);
+for (let i = 0; i < inserts.length; i += 200) {
+  const chunk = inserts.slice(i, i + 200);
   const { error } = await sb.from('price_history').insert(chunk);
   if (error) { console.error(`insert failed at ${i}: ${error.message}`); process.exit(1); }
   written += chunk.length;
 }
-console.log(`\nwrote ${written} price rows`);
+
+// Updated one at a time: these are keyed by primary id and there is no shared
+// patch, so a bulk upsert would need every column restated per row anyway.
+let refreshed = 0;
+for (const u of updates) {
+  const { id, ...patch } = u;
+  const { error } = await sb.from('price_history').update(patch).eq('id', id);
+  if (error) { console.error(`update ${id} failed: ${error.message}`); process.exit(1); }
+  refreshed++;
+}
+
+console.log(`\ninserted ${written}, refreshed ${refreshed}`);

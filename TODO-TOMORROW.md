@@ -32,6 +32,28 @@ Google's results page.
 
 See `app/lib/ownerVisit.ts`.
 
+## Refreshing SPR Models
+
+Not in the retailer sweep, and cannot be: that pipeline narrows a shop's
+sitemap by matching model words against the product URL, and SPR's URLs are
+bare `product_id=7073` with no slug to match. 494 products is small enough to
+read in full instead.
+
+```
+cd app
+node scripts/spr-fetch.mjs          # ~4 min, re-reads all 494 products
+node scripts/spr-import.mjs         # dry run, shows what would change
+node scripts/spr-import.mjs --apply
+```
+
+**Run it before 13 November.** Prices stop being quoted at 30 days and SPR
+holds the cheapest price on 90 models, so it is the worst shop on the roster
+to let expire.
+
+The import updates in place, one row per model, so re-running never
+duplicates. It refuses to run if `fx_rates` has no AUD to NZD rate rather
+than converting on a guess.
+
 ## The July plan
 
 ## Current Status
@@ -90,3 +112,9 @@ Once these two things are fixed (filtering wrong products + consistent product m
 - Better to have 10 perfect matches than 30 mixed matches
 - Test scraper improvements on 1-2 models before running on all 10
 
+## to commit a change
+git push origin main
+
+
+cd app
+npm run dev
