@@ -29,6 +29,15 @@ export const FALLBACK_TO_AUD: Record<string, number> = {
   USD: 1.5,
   EUR: 1.6,
   GBP: 1.9,
+  /**
+   * NZD, added 2026-10-14 for spr-models.co.nz, the New Zealand shop a
+   * collector recommended on r/Diecast. Floor value from fx_rates on
+   * 2026-10-07, where AUD -> NZD was 1.2424.
+   *
+   * Dated here for the same reason the others are: a fallback that looks
+   * current is harder to catch than one that visibly is not.
+   */
+  NZD: 0.805,
 };
 
 /** Kept for callers that imported the old name. */
@@ -92,10 +101,42 @@ export async function primeRates(supabase: SupabaseClient): Promise<void> {
  * previously refresh-prices wrote NULL for anything non-AUD, which silently
  * dropped those links out of the price comparison entirely.
  */
+/**
+ * Currencies already warned about, so a sweep writing 3,000 rows logs each
+ * unknown code once rather than once per price.
+ */
+const warned = new Set<string>();
+
 export function toAud(price: number, currency?: string | null): number {
   const code = (currency || 'AUD').toUpperCase();
   const table = cache ?? FALLBACK_TO_AUD;
-  return price * (table[code] ?? 1);
+  const rate = table[code];
+
+  /**
+   * AN UNKNOWN CURRENCY USED TO PASS THROUGH AT PARITY, SILENTLY.
+   *
+   * `table[code] ?? 1` means a code nobody has added is treated as if it were
+   * Australian dollars. Adding spr-models.co.nz would have written NZ$49.95 as
+   * AUD 49.95 rather than 40.20, a 24% overstatement, and the symptom would
+   * have been the new shop looking DEARER than it is -- the exact opposite of
+   * the truth, with nothing in any log to say so.
+   *
+   * Still returns the parity figure, because throwing inside a sweep loop
+   * would abandon thousands of good rows over one bad code. But it says so,
+   * once per code, which is the difference between a bug you find in an hour
+   * and the five weeks the USD rate went wrong for.
+   */
+  if (rate === undefined) {
+    if (!warned.has(code)) {
+      warned.add(code);
+      console.warn(
+        `⚠️ toAud: no rate for ${code}, treating it as 1:1 with AUD. ` +
+          `Add it to FALLBACK_TO_AUD and check fetch-fx.mjs collects it.`
+      );
+    }
+    return price;
+  }
+  return price * rate;
 }
 
 /**
