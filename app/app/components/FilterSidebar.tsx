@@ -172,7 +172,27 @@ export default function FilterSidebar({ options, filters, onFilterChange, onClea
         the page behind it. Both are lg-only: on mobile the whole panel already
         collapses behind the Filters button and is not sticky at all.
       */}
-      <div className={`lg:sticky lg:top-[88px] lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:overscroll-contain bg-white border border-[var(--border-light)] rounded-xl p-5 ${mobileOpen ? "" : "py-3 lg:py-5"}`}>
+      {/*
+        ON MOBILE, OPEN MEANS OVER THE PAGE, NOT ABOVE IT.
+        Reported on r/Diecast 2026-10-14: "When I click filters in my web
+        browser (pretty powerful Android phone) webpage gets stuck".
+
+        It expanded in normal flow, so opening it pushed the ENTIRE GRID down.
+        /browse renders the whole catalogue: measured the same day, 5.3 MB of
+        HTML, 11,664 divs and 2,236 images. Reflowing that on a phone is what
+        "stuck" was. content-visibility makes SCROLLING cheap; it does not make
+        a full-document reflow cheap, because every one of those boxes still
+        has to be repositioned.
+
+        Fixed and inset-0 means opening paints over the grid and moves nothing.
+        Scrolls inside itself, so a flick in the list cannot reach the page
+        behind. Every one of these is a mobile-only class and lg: resets each,
+        so the desktop sidebar is byte-for-byte what it was.
+
+        This does NOT fix the page being 5.3 MB. That is /browse/page/N, which
+        the note in BrowseGrid.tsx already specifies.
+      */}
+      <div className={`lg:sticky lg:top-[88px] lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:overscroll-contain bg-white border border-[var(--border-light)] rounded-xl p-5 ${mobileOpen ? "fixed inset-0 z-50 overflow-y-auto overscroll-contain rounded-none border-0 pb-24 lg:static lg:inset-auto lg:z-auto lg:rounded-xl lg:border lg:pb-5" : "py-3 lg:py-5"}`}>
         {/* Header */}
         {/*
           Pinned to the top of the scrolling panel, so "Clear all" does not
@@ -183,7 +203,13 @@ export default function FilterSidebar({ options, filters, onFilterChange, onClea
           sits flush against the edge when pinned; pt-5 puts the same space back
           inside it, and the white background stops rows showing through.
         */}
-        <div className={`flex items-center justify-between lg:sticky lg:top-0 lg:z-10 lg:bg-white lg:-mt-5 lg:pt-5 lg:mb-5 lg:pb-5 lg:border-b border-[var(--border-light)] ${mobileOpen ? "mb-5 pb-5 border-b" : ""}`}>
+        {/*
+          Sticky on mobile too once the panel is a full-screen sheet, or
+          "Clear all" and the way out scroll off the top the moment you reach
+          Driver, which is the longest section. Same reasoning the lg: version
+          already carried, now that mobile has the same problem.
+        */}
+        <div className={`flex items-center justify-between lg:sticky lg:top-0 lg:z-10 lg:bg-white lg:-mt-5 lg:pt-5 lg:mb-5 lg:pb-5 lg:border-b border-[var(--border-light)] ${mobileOpen ? "sticky top-0 z-10 bg-white -mt-5 pt-5 mb-5 pb-5 border-b" : ""}`}>
           <button
             type="button"
             onClick={() => setMobileOpen(o => !o)}
@@ -193,6 +219,21 @@ export default function FilterSidebar({ options, filters, onFilterChange, onClea
             <h2 className="font-display font-bold text-base text-[var(--text-primary)]">Filters</h2>
             <span className={`lg:hidden transition-transform ${mobileOpen ? 'rotate-180' : ''}`}>▾</span>
           </button>
+          {/*
+            A full-screen sheet needs a way out that is not the chevron. The
+            chevron reads as "collapse" when the panel is in flow and as
+            nothing at all when it covers the page, so this is mobile-only and
+            only while open.
+          */}
+          {mobileOpen && (
+            <button
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              className="lg:hidden text-[var(--accent)] text-sm font-semibold px-3 py-1.5 -mr-2"
+            >
+              Done
+            </button>
+          )}
           {hasActiveFilters && (
             <button
               onClick={onClearAll}
