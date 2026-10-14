@@ -40,6 +40,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // because it is the one page that states the site's claim directly.
     { url: `${SITE_URL}/savings`, changeFrequency: 'daily', priority: 0.9 },
     { url: `${SITE_URL}/retailers`, changeFrequency: 'monthly', priority: 0.5 },
+    /**
+     * /shops is the public list of what we read; /retailers above is the
+     * pitch TO shops. Two different pages for two different readers, and the
+     * one a collector wants is this one -- it answers "is my shop covered"
+     * and carries the tax rule.
+     */
+    { url: `${SITE_URL}/shops`, changeFrequency: 'weekly', priority: 0.6 },
     { url: `${SITE_URL}/about`, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${SITE_URL}/contact`, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${SITE_URL}/privacy`, changeFrequency: 'yearly', priority: 0.1 },

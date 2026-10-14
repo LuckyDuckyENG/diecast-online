@@ -59,6 +59,16 @@ export default function Footer() {
                     Best Prices
                   </Link>
                 </li>
+                {/*
+                  Footer rather than the navbar: it is a reference page, not
+                  somewhere you browse to repeatedly, and the navbar has three
+                  items on a phone for a reason.
+                */}
+                <li>
+                  <Link href="/shops" className="block py-1.5 text-white/70 text-sm hover:text-white transition-colors">
+                    Shops We Check
+                  </Link>
+                </li>
               </ul>
             </div>
 
