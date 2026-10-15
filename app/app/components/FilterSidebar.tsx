@@ -192,7 +192,19 @@ export default function FilterSidebar({ options, filters, onFilterChange, onClea
         This does NOT fix the page being 5.3 MB. That is /browse/page/N, which
         the note in BrowseGrid.tsx already specifies.
       */}
-      <div className={`lg:sticky lg:top-[88px] lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:overscroll-contain bg-white border border-[var(--border-light)] rounded-xl p-5 ${mobileOpen ? "fixed inset-0 z-50 overflow-y-auto overscroll-contain rounded-none border-0 pb-24 lg:static lg:inset-auto lg:z-auto lg:rounded-xl lg:border lg:pb-5" : "py-3 lg:py-5"}`}>
+      {/*
+        THE PANEL NEVER LEAVES THE FLOW. An earlier attempt made THIS element
+        `fixed inset-0` when open, which took it out of flow, collapsed the
+        <aside> to zero height and snapped the 2,437-card grid upward -- a
+        full relayout, and the same hang it was meant to cure. The reporter
+        confirmed it: "page gets stuck ONLY when I tap filters ... it gets
+        entire browser stuck so it asks wait for the page or close it".
+
+        So the bar stays exactly where it is and only the BODY overlays. The
+        aside's height never changes, so nothing below it moves, so there is
+        nothing to relayout.
+      */}
+      <div className={`lg:sticky lg:top-[88px] lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:overscroll-contain bg-white border border-[var(--border-light)] rounded-xl p-5 ${mobileOpen ? "py-3 lg:py-5" : "py-3 lg:py-5"}`}>
         {/* Header */}
         {/*
           Pinned to the top of the scrolling panel, so "Clear all" does not
@@ -209,7 +221,7 @@ export default function FilterSidebar({ options, filters, onFilterChange, onClea
           Driver, which is the longest section. Same reasoning the lg: version
           already carried, now that mobile has the same problem.
         */}
-        <div className={`flex items-center justify-between lg:sticky lg:top-0 lg:z-10 lg:bg-white lg:-mt-5 lg:pt-5 lg:mb-5 lg:pb-5 lg:border-b border-[var(--border-light)] ${mobileOpen ? "sticky top-0 z-10 bg-white -mt-5 pt-5 mb-5 pb-5 border-b" : ""}`}>
+        <div className="flex items-center justify-between lg:sticky lg:top-0 lg:z-10 lg:bg-white lg:-mt-5 lg:pt-5 lg:mb-5 lg:pb-5 lg:border-b border-[var(--border-light)]">
           {/*
             THE WHOLE BAR OPENS IT, NOT JUST THE WORD.
             The tappable area was the text and the chevron, a couple of
@@ -229,33 +241,13 @@ export default function FilterSidebar({ options, filters, onFilterChange, onClea
           <button
             type="button"
             onClick={() => setMobileOpen(o => !o)}
-            className={`flex items-center gap-2 py-1 -my-1 text-left lg:flex-none lg:justify-start lg:py-0 lg:my-0 lg:cursor-default ${
-              /* Stretches only while COLLAPSED. Once the sheet is open the
-                 close affordance is the Done button, so a full-width header
-                 button would just crowd it. */
-              mobileOpen ? '' : 'flex-1 justify-between'
-            }`}
+            className="flex flex-1 items-center justify-between gap-2 py-1 -my-1 text-left lg:flex-none lg:justify-start lg:py-0 lg:my-0 lg:cursor-default"
             aria-expanded={mobileOpen}
             aria-controls="filter-body"
           >
             <h2 className="font-display font-bold text-base text-[var(--text-primary)]">Filters</h2>
             <span className={`lg:hidden transition-transform ${mobileOpen ? 'rotate-180' : ''}`}>▾</span>
           </button>
-          {/*
-            A full-screen sheet needs a way out that is not the chevron. The
-            chevron reads as "collapse" when the panel is in flow and as
-            nothing at all when it covers the page, so this is mobile-only and
-            only while open.
-          */}
-          {mobileOpen && (
-            <button
-              type="button"
-              onClick={() => setMobileOpen(false)}
-              className="lg:hidden text-[var(--accent)] text-sm font-semibold px-3 py-1.5 -mr-2"
-            >
-              Done
-            </button>
-          )}
           {hasActiveFilters && (
             <button
               onClick={onClearAll}
@@ -266,7 +258,40 @@ export default function FilterSidebar({ options, filters, onFilterChange, onClea
           )}
         </div>
 
-        <div id="filter-body" className={`${mobileOpen ? 'block' : 'hidden'} lg:block`}>
+        {/*
+          THE BODY is the overlay, not the panel. Fixed and inset-0 on mobile
+          while open, so it paints over the grid without moving it; static
+          again at lg, where the sidebar is always visible and in flow.
+
+          p-5 and pb-24 because once it is fixed it no longer inherits the
+          panel's padding, and the last filter must clear the browser chrome.
+        */}
+        <div
+          id="filter-body"
+          className={`${
+            mobileOpen
+              ? 'fixed inset-0 z-50 block overflow-y-auto overscroll-contain bg-white p-5 pb-24 lg:static lg:inset-auto lg:z-auto lg:overflow-visible lg:p-0'
+              : 'hidden'
+          } lg:block`}
+        >
+          {/*
+            The sheet's own header, because the bar that used to carry Done is
+            now UNDERNEATH this overlay. Sticky so it survives scrolling to
+            Driver, which is the longest section, and mobile-only because on
+            desktop this div is just the sidebar body.
+          */}
+          {mobileOpen && (
+            <div className="sticky top-0 z-10 -mx-5 -mt-5 mb-5 flex items-center justify-between border-b border-[var(--border-light)] bg-white px-5 py-3 lg:hidden">
+              <h2 className="font-display font-bold text-base text-[var(--text-primary)]">Filters</h2>
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                className="text-[var(--accent)] text-sm font-semibold px-3 py-1.5 -mr-2"
+              >
+                Done
+              </button>
+            </div>
+          )}
         {SECTIONS.map(({ key, title }) => {
           const selected = filters[key] as string[];
           const { shown, hidden } = visible(key, selected);
