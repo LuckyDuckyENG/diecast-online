@@ -1,4 +1,4 @@
-# Status Summary - last updated 2026-10-14
+# Status Summary - last updated 2026-10-16
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -273,6 +273,134 @@ exactly the decisive ones.
 the traffic, deliberately, since instrumentation cannot be backfilled. The
 first real question to ask them is the zero-result search query in the section
 above.
+
+## The /browse freeze: three fixes, and only the third was aimed at it - 2026-10-15/16
+
+A Reddit commenter reported /browse locking up on Android. Two fixes shipped
+and neither worked, because both were aimed at the wrong thing. The third was
+measured first, in a real Chrome, and it worked.
+
+### WHAT IT ACTUALLY WAS
+
+One scroll to the bottom of the deployed /browse, Chrome at 4x CPU throttle:
+
+```
+script (React, filtering)      185 ms
+style recalc                   671 ms
+layout                       5,354 ms
+paint / composite           14,647 ms
+------------------------------------
+total blocked               20,857 ms   over 152 long tasks
+```
+
+150 of 152 frames took longer than 100ms. **React is 1% of it.** Both earlier
+fixes were rewrites of that 1%.
+
+Two beliefs written into the code as fact, both wrong:
+
+- **"The images are the cost."** Blocking all 2,204 of them moved the frame
+  cost from 160ms to 126ms. 79% of it remained with no images at all.
+- **"content-visibility makes the node count free."** It did its job and it
+  was not enough. It skips offscreen PAINT; it cannot make a 179,000px
+  document cheap to traverse, because the work arrives as you scroll either
+  way. /seasons/2024, same components, 127 cards: 321ms for the same scroll.
+  **65x cheaper for 17.6x fewer cards**, so the cost grows faster than the
+  card count.
+
+### WHY IT SHOWED ON A PC AND NOT AN IPHONE
+
+Unverified, no iPhone to test on, but it fits the evidence: on a PC you reach
+the bottom by dragging the scrollbar, which demands continuous repainting of
+enormous jumps. On a phone you flick, and momentum scrolling delivers it in
+chunks the compositor keeps up with.
+
+### WHAT SHIPPED
+
+**The catalogue is still loaded in full and only 100 cards are rendered.** A
+render window, not paged data, specifically so client-side filtering keeps
+working over all 2,236 at once. An IntersectionObserver appends the next 100
+about a screen and a half early, so there is no click in the hunting path.
+
+```
+gesture                  before     after
+scroll 10 screens       5,312 ms   2,084 ms
+scroll back to top        309 ms      44 ms
+scroll to the end      20,857 ms   4,116 ms   (capped at 600 cards)
+/browse HTML             5.52 MB    2.13 MB
+```
+
+**The cap is the honest part.** Appending all the way to 2,236 rebuilds the
+same document and costs 24.9s, slightly WORSE than before once the appends'
+own React time is counted. Nothing fixes that; painting 2,236 cards costs
+what it costs. So the observer stops after five batches and the button
+becomes a button, which makes further growth deliberate. The gesture that
+caused the freeze is now unreachable, because the scrollbar only ever spans
+what has been rendered.
+
+Discovery is unaffected: `sitemap.xml` lists all 2,236 cars, checked against
+the live file.
+
+**This overturns two earlier decisions, so both deserve an answer.**
+
+"Show more was right, its arithmetic was not" (2026-10-06) set the first page
+at 150 with a doubling step, and was then undone entirely in favour of
+rendering everything, on the grounds that content-visibility made it free.
+The grounds were wrong. What survives from that entry is its real finding:
+the per-card markup is 1.4 KB against 1.22 MB of fixed card DATA, so capping
+the RENDER saves layout and paint, not bytes. The HTML only halved here; the
+scroll got 10x better.
+
+"The mobile pass" (2026-10-05) **specifically rejected infinite scroll**, for
+two reasons that both still hold and are both why the cap exists:
+
+- *It makes the footer unreachable, and the footer is a mobile route to
+  /savings.* Auto-appending stops at 600 cards, so the document is finite and
+  the footer sits at the bottom of it. Unbounded appending would have taken
+  that route away.
+- *Returning to your place is the common journey.* Still true, and still not
+  solved: the window resets to 100 on back-navigation. It was no better under
+  Show more, which reset to 150, so this is unchanged rather than lost. If it
+  ever matters, the fix is to put the batch count in the URL.
+
+### THE FILTER UI, WHICH WAS A SEPARATE PROBLEM
+
+Worth keeping even though it was not the freeze. On a phone the filters now
+live in a bottom sheet opened from a button portalled into the navbar's
+search row, and the sidebar is `hidden md:block`.
+
+- **Nothing sits above the grid on a phone any more.** Both failed fixes put
+  a control there: the first pushed 2,437 cards down when it opened, the
+  second collapsed the aside and snapped them up. Living in the navbar means
+  there is nothing above the grid to change size.
+- **The breakpoint is md on BOTH sides.** The navbar's search row is
+  `md:hidden`, so an aside at `lg` would leave 768-1023px with no sidebar and
+  no button, filters silently unreachable.
+- **The sheet commits once.** Ticking edits a draft and "Show 412 cars"
+  applies it, so five ticks cost one grid re-render instead of five. The
+  count needed `applyFilters` and the facet tally lifted to module scope in
+  BrowseClient so they can run for filters the grid has not been told about.
+- It slides up and down on the iOS curve and drags to dismiss. The backdrop
+  is `pointer-events-none` while hidden, because the sheet stays mounted for
+  280ms after closing and was otherwise a full-screen invisible button
+  eating the next tap.
+
+### HOW TO MEASURE THIS AGAIN
+
+Three rounds of reasoning got this wrong and one round of measurement got it
+right. The tooling is `puppeteer-core` driving the installed Chrome, with
+`Emulation.setCPUThrottlingRate` at 4 and `Performance.getMetrics` sampled
+either side of a scripted scroll; the script/style/layout/paint split is what
+makes the answer obvious. **The scripts were written in a session scratchpad
+and are gone.** Rebuilding them is twenty minutes and worth it before
+guessing at any performance question here.
+
+One trap that cost real time: a local `next start` left running across a
+rebuild serves stale HTML against deleted JS chunks, so nothing hydrates and
+the page looks broken in a way that mimics a genuine bug. Kill the port
+first.
+
+**Still open:** the Android reporter has not confirmed. The two previous
+fixes also typechecked, deployed, and did nothing.
 
 ## The Reddit post, and what it actually bought - 2026-10-12 to 14
 
@@ -3538,6 +3666,13 @@ miniatures-minichamps became the largest source, and nothing re-examined it.
 
 ## The mobile pass, and what measurement could not have told us — 2026-10-05
 
+> **Superseded on 2026-10-16.** The cap described here was removed later in
+> October on the theory that content-visibility made rendering everything
+> free. Measurement says otherwise and /browse is capped again, at 100 with
+> an auto-appending window. The research below still stands, including the
+> rejection of unbounded infinite scroll, which is why the window stops
+> auto-appending at 600. See "The /browse freeze" near the top.
+
 ```
 /browse    3,513,272 -> 1,286,278 bytes · 1,267 cards -> 48
 /savings   289 rows -> 48 (24 per section)
@@ -4670,6 +4805,13 @@ the candidate list), tick `gaps only`, and press Apply repeatedly rather than
 alternating with Dry run.
 
 ## Show more was right, its arithmetic was not — 2026-10-06
+
+> **Superseded on 2026-10-16.** The 150-and-doubling step is gone; so is the
+> uncapped render that replaced it. /browse now renders 100 and appends 100
+> at a time. The cost arithmetic below is still correct and still useful: the
+> fixed card data dwarfs the per-card markup, which is why capping the render
+> buys layout and paint rather than bytes. See "The /browse freeze" near the
+> top.
 
 The research picked the mechanism correctly and said nothing about the step,
 so the step was left at the page size. That made the control linear: 29 clicks
