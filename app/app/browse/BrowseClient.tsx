@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import FilterSidebar from '../components/FilterSidebar';
+import MobileFilterTrigger from '../components/MobileFilterTrigger';
 import ActiveFilters from '../components/ActiveFilters';
 import BrowseGrid from '../components/BrowseGrid';
 import Breadcrumb from '../components/Breadcrumb';
@@ -60,6 +61,114 @@ function orderDrivers(opts: { value: string; count: number }[]) {
 }
 
 /**
+ * The filter predicate, outside the component so it can be run for a set of
+ * filters nobody has committed to yet.
+ *
+ * The phone sheet needs the count for a draft — "Show 412 cars" — before the
+ * grid is told about it. Returns a new array and never sorts: sorting is the
+ * caller's job and the count does not care about order.
+ */
+function applyFilters(models: Model[], filters: FilterOptions) {
+  let results = [...models];
+
+  if (filters.years.length > 0) {
+    // "Older" was an option in the hardcoded list and no longer exists —
+    // the years now come from the data, so every one of them is real.
+    results = results.filter((model) => filters.years.includes(String(model.year)));
+  }
+
+  if (filters.teams.length > 0) {
+    results = results.filter((model) => model.team && filters.teams.includes(model.team));
+  }
+
+  if (filters.drivers.length > 0) {
+    results = results.filter((model) => model.driver && filters.drivers.includes(model.driver));
+  }
+
+  /**
+   * ANY overlap, not equality.
+   *
+   * A car offered in both 1:18 and 1:43 matches either tick. Testing one
+   * value meant ticking 1:18 returned 284 cars when about 498 have a 1:18
+   * model — the filter hid 43% of its own matches and looked authoritative
+   * doing it.
+   */
+  if (filters.scales.length > 0) {
+    results = results.filter((model) => model.scales.some(s => filters.scales.includes(s)));
+  }
+
+  if (filters.manufacturers.length > 0) {
+    results = results.filter((model) => model.manufacturers.some(m => filters.manufacturers.includes(m)));
+  }
+
+  return results;
+}
+
+/**
+ * Filter options come from the models on the page, not a hardcoded list.
+ *
+ * Module level, like applyFilters and for the same reason: the phone sheet
+ * renders its lists for a DRAFT, so the counts beside each checkbox have to
+ * be answerable for filters the grid has not been told about yet.
+ *
+ * The hardcoded one had drifted badly: no 2025 at all, so the newest season
+ * could not be filtered to; 2020/2019/2018/"Older" which the catalogue does
+ * not contain; and ten of forty-six drivers, missing AlphaTauri and Alfa
+ * Romeo entirely so 2021-2023 could not be filtered by team. Deriving them
+ * means the lists cannot go stale again.
+ *
+ * COUNTED PER FACET, against everything EXCEPT that facet.
+ *
+ * They used to be derived from every model regardless of what was selected,
+ * which offered combinations that return nothing: ticking 1:12 still listed
+ * all 41 drivers, and almost every one of them led to an empty grid.
+ *
+ * Each facet is therefore counted against the models passing all the OTHER
+ * facets. Counting against the fully filtered set instead would zero every
+ * unticked driver the moment one driver was ticked, making multi-select
+ * impossible — which is how faceted search is meant to work.
+ */
+function buildFilterOptions(models: Model[], filters: FilterOptions) {
+  const passes = (m: Model, skip: keyof FilterOptions) => {
+    if (skip !== 'years' && filters.years.length && !filters.years.includes(String(m.year))) return false;
+    if (skip !== 'teams' && filters.teams.length && !(m.team && filters.teams.includes(m.team))) return false;
+    if (skip !== 'drivers' && filters.drivers.length && !(m.driver && filters.drivers.includes(m.driver))) return false;
+    if (skip !== 'scales' && filters.scales.length && !m.scales.some(s => filters.scales.includes(s))) return false;
+    if (skip !== 'manufacturers' && filters.manufacturers.length && !m.manufacturers.some(x => filters.manufacturers.includes(x))) return false;
+    return true;
+  };
+
+  /**
+   * `values` returns a LIST, because a car can belong to several buckets of
+   * the same facet — three scales, two makers. Each distinct value counts the
+   * car once, so a count is always "cars you would be left with".
+   */
+  const tally = (key: keyof FilterOptions, values: (m: Model) => (string | undefined)[]) => {
+    const counts = new Map<string, number>();
+    for (const m of models) {
+      if (!passes(m, key)) continue;
+      for (const v of new Set(values(m))) if (v) counts.set(v, (counts.get(v) || 0) + 1);
+    }
+    // A ticked value must survive even at zero, or it cannot be unticked.
+    for (const v of filters[key] as string[]) if (!counts.has(v)) counts.set(v, 0);
+    return [...counts].map(([value, count]) => ({ value, count }));
+  };
+
+  const byCount = (a: { count: number }, b: { count: number }) => b.count - a.count;
+
+  return {
+    // Recency, not count. Count would lead with 2023 and bury 2026, and
+    // nobody thinks about seasons in order of how many models exist.
+    years: tally('years', m => [m.year ? String(m.year) : undefined])
+      .sort((a, b) => Number(b.value) - Number(a.value)),
+    teams: tally('teams', m => [m.team]).sort(byCount),
+    drivers: orderDrivers(tally('drivers', m => [m.driver])),
+    scales: tally('scales', m => m.scales).sort(byCount),
+    manufacturers: tally('manufacturers', m => m.manufacturers).sort(byCount),
+  };
+}
+
+/**
  * Filtering and sorting for /browse.
  *
  * The car list is fetched on the server and passed in, so the grid and its
@@ -70,6 +179,16 @@ export default function BrowseClient({ initialModels }: { initialModels: Model[]
   const router = useRouter();
   const [filters, setFilters] = useState<FilterOptions>(INITIAL_FILTERS);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
+  /**
+   * Whether the phone filter sheet is open.
+   *
+   * Held here, not in FilterSidebar, because the button that opens it is no
+   * longer next to the panel: it is portalled into the navbar's search row,
+   * which is the one thing on a phone that stays reachable 200 cards down.
+   * Two components, one piece of state, and this is the only place that
+   * already owns `filters` so it can hand both of them what they need.
+   */
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Server-provided; no client fetch and no loading state
   const models = initialModels;
@@ -157,47 +276,38 @@ export default function BrowseClient({ initialModels }: { initialModels: Model[]
     updateURL(INITIAL_FILTERS, sortBy);
   };
 
+  /**
+   * Values ticked, not sections used — the number on the phone button.
+   *
+   * It has to be the count rather than a dot, because the button is the only
+   * thing on a phone that says a filter is on at all: the sidebar that would
+   * otherwise show the ticks is not on screen, and ActiveFilters sits at the
+   * top of the page, scrolled away by the time anyone wonders.
+   */
+  const activeFilterCount = Object.values(filters).reduce(
+    (n, v) => n + (Array.isArray(v) ? v.length : 0),
+    0
+  );
+
   const handleSortChange = (newSort: SortOption) => {
     setSortBy(newSort);
     updateURL(filters, newSort);
   };
 
+  /**
+   * How many cars a set of filters would leave, without rendering them.
+   *
+   * The phone sheet needs this for its "Show 412 cars" button, which is the
+   * point of the deferred apply: ticking a box inside the sheet must NOT
+   * re-render 2,437 cards behind it. Counting is an array pass over data
+   * already in memory, a couple of milliseconds; rendering is the thing that
+   * froze the page.
+   */
+  const countFor = (f: FilterOptions) => applyFilters(models, f).length;
+
   // Filter and sort models
   const filteredModels = useMemo(() => {
-    let results = [...models];
-
-    // Apply filters
-    if (filters.years.length > 0) {
-      results = results.filter((model) => {
-        // "Older" was an option in the hardcoded list and no longer exists —
-        // the years now come from the data, so every one of them is real.
-        return filters.years.includes(String(model.year));
-      });
-    }
-
-    if (filters.teams.length > 0) {
-      results = results.filter((model) => model.team && filters.teams.includes(model.team));
-    }
-
-    if (filters.drivers.length > 0) {
-      results = results.filter((model) => model.driver && filters.drivers.includes(model.driver));
-    }
-
-    /**
-     * ANY overlap, not equality.
-     *
-     * A car offered in both 1:18 and 1:43 matches either tick. Testing one
-     * value meant ticking 1:18 returned 284 cars when about 498 have a 1:18
-     * model — the filter hid 43% of its own matches and looked authoritative
-     * doing it.
-     */
-    if (filters.scales.length > 0) {
-      results = results.filter((model) => model.scales.some(s => filters.scales.includes(s)));
-    }
-
-    if (filters.manufacturers.length > 0) {
-      results = results.filter((model) => model.manufacturers.some(m => filters.manufacturers.includes(m)));
-    }
+    let results = applyFilters(models, filters);
 
     // Apply sorting
     switch (sortBy) {
@@ -259,64 +369,17 @@ export default function BrowseClient({ initialModels }: { initialModels: Model[]
   }, [models, filters, sortBy]);
 
   /**
-   * Filter options come from the models on the page, not a hardcoded list.
+   * The facet lists for a given set of filters, drafted or committed.
    *
-   * The hardcoded one had drifted badly: no 2025 at all, so the newest season
-   * could not be filtered to; 2020/2019/2018/"Older" which the catalogue does
-   * not contain; and ten of forty-six drivers, missing AlphaTauri and Alfa
-   * Romeo entirely so 2021-2023 could not be filtered by team. Deriving them
-   * means the lists cannot go stale again.
-   *
-   * COUNTED PER FACET, against everything EXCEPT that facet.
-   *
-   * They used to be derived from every model regardless of what was selected,
-   * which offered combinations that return nothing: ticking 1:12 still listed
-   * all 41 drivers, and almost every one of them led to an empty grid.
-   *
-   * Each facet is therefore counted against the models passing all the OTHER
-   * facets. Counting against the fully filtered set instead would zero every
-   * unticked driver the moment one driver was ticked, making multi-select
-   * impossible — which is how faceted search is meant to work.
+   * Handed to FilterSidebar rather than a fixed list, because the sheet
+   * narrows its own counts as you tick without touching the grid.
    */
-  const filterOptions = useMemo(() => {
-    const passes = (m: Model, skip: keyof FilterOptions) => {
-      if (skip !== 'years' && filters.years.length && !filters.years.includes(String(m.year))) return false;
-      if (skip !== 'teams' && filters.teams.length && !(m.team && filters.teams.includes(m.team))) return false;
-      if (skip !== 'drivers' && filters.drivers.length && !(m.driver && filters.drivers.includes(m.driver))) return false;
-      if (skip !== 'scales' && filters.scales.length && !m.scales.some(s => filters.scales.includes(s))) return false;
-      if (skip !== 'manufacturers' && filters.manufacturers.length && !m.manufacturers.some(x => filters.manufacturers.includes(x))) return false;
-      return true;
-    };
+  const optionsFor = (f: FilterOptions) => buildFilterOptions(initialModels, f);
 
-    /**
-     * `values` returns a LIST, because a car can belong to several buckets of
-     * the same facet — three scales, two makers. Each distinct value counts the
-     * car once, so a count is always "cars you would be left with".
-     */
-    const tally = (key: keyof FilterOptions, values: (m: Model) => (string | undefined)[]) => {
-      const counts = new Map<string, number>();
-      for (const m of initialModels) {
-        if (!passes(m, key)) continue;
-        for (const v of new Set(values(m))) if (v) counts.set(v, (counts.get(v) || 0) + 1);
-      }
-      // A ticked value must survive even at zero, or it cannot be unticked.
-      for (const v of filters[key] as string[]) if (!counts.has(v)) counts.set(v, 0);
-      return [...counts].map(([value, count]) => ({ value, count }));
-    };
-
-    const byCount = (a: { count: number }, b: { count: number }) => b.count - a.count;
-
-    return {
-      // Recency, not count. Count would lead with 2023 and bury 2026, and
-      // nobody thinks about seasons in order of how many models exist.
-      years: tally('years', m => [m.year ? String(m.year) : undefined])
-        .sort((a, b) => Number(b.value) - Number(a.value)),
-      teams: tally('teams', m => [m.team]).sort(byCount),
-      drivers: orderDrivers(tally('drivers', m => [m.driver])),
-      scales: tally('scales', m => m.scales).sort(byCount),
-      manufacturers: tally('manufacturers', m => m.manufacturers).sort(byCount),
-    };
-  }, [initialModels, filters]);
+  const filterOptions = useMemo(
+    () => buildFilterOptions(initialModels, filters),
+    [initialModels, filters]
+  );
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
@@ -340,14 +403,26 @@ export default function BrowseClient({ initialModels }: { initialModels: Model[]
           />
         </div>
 
+        {/*
+          The phone's filter button, rendered into the navbar's search row
+          rather than here. Nothing on this page sits above the grid on a
+          phone any more, which is the entire fix: a control above 2,437 cards
+          relaid the whole document out every time it opened.
+        */}
+        <MobileFilterTrigger activeCount={activeFilterCount} onOpen={() => setFiltersOpen(true)} />
+
         {/* Main Content */}
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-          {/* Sidebar */}
+        <div className="flex flex-col md:flex-row gap-6 md:gap-8">
+          {/* Sidebar on desktop; a bottom sheet on a phone */}
           <FilterSidebar
             options={filterOptions}
+            optionsFor={optionsFor}
             filters={filters}
             onFilterChange={handleFilterChange}
             onClearAll={handleClearAll}
+            open={filtersOpen}
+            onClose={() => setFiltersOpen(false)}
+            countFor={countFor}
           />
 
           {/* Grid */}

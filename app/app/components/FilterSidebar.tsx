@@ -1,14 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FilterOptions } from '@/lib/types';
 
 interface FilterSidebarProps {
-  /** Derived from the models on the page, so the lists cannot go stale. */
+  /**
+   * Derived from the models on the page, so the lists cannot go stale.
+   * Memoised against the committed filters, which is what desktop shows.
+   */
   options: FilterOptionLists;
+  /**
+   * The same lists for a set of filters nobody has committed to.
+   *
+   * The sheet's counts have to narrow as you tick, or ticking Ferrari would
+   * leave every driver reading its pre-Ferrari number and the facet counts
+   * would be wrong in exactly the situation they exist for.
+   */
+  optionsFor: (filters: FilterOptions) => FilterOptionLists;
   filters: FilterOptions;
   onFilterChange: (filters: FilterOptions) => void;
   onClearAll: () => void;
+  /**
+   * Phone sheet only. Owned by BrowseClient rather than here, because the
+   * button that opens it is portalled into the navbar and the two have to
+   * agree. Desktop ignores all three.
+   */
+  open: boolean;
+  onClose: () => void;
+  /**
+   * How many cars a set of filters WOULD leave, without rendering them.
+   *
+   * The sheet labels its button "Show 412 cars" while the grid behind still
+   * shows the old 2,437, so it needs the answer for filters nobody has
+   * committed to. BrowseClient owns the predicate, so it answers.
+   */
+  countFor: (filters: FilterOptions) => number;
 }
 
 /** One choice, with how many cars it would leave. */
@@ -100,7 +126,16 @@ function FilterSection({ title, defaultOpen = true, children }: FilterSectionPro
   );
 }
 
-export default function FilterSidebar({ options, filters, onFilterChange, onClearAll }: FilterSidebarProps) {
+export default function FilterSidebar({
+  options,
+  optionsFor,
+  filters,
+  onFilterChange,
+  onClearAll,
+  open,
+  onClose,
+  countFor,
+}: FilterSidebarProps) {
   /**
    * Deliberately not remembered between visits.
    *
@@ -118,8 +153,8 @@ export default function FilterSidebar({ options, filters, onFilterChange, onClea
    * is Clear all. Zero-count values are otherwise dropped — offering a choice
    * that leads to an empty grid is the defect this replaced.
    */
-  const visible = (key: keyof FilterOptionLists, selected: string[]) => {
-    const all = options[key];
+  const visible = (lists: FilterOptionLists, key: keyof FilterOptionLists, selected: string[]) => {
+    const all = lists[key];
     const live = all.filter(o => o.count > 0 || selected.includes(o.value));
     const limit = SHORT_LIST[key];
     if (advanced || limit === undefined || live.length <= limit) {
@@ -130,214 +165,235 @@ export default function FilterSidebar({ options, filters, onFilterChange, onClea
     return { shown: [...head, ...ticked], hidden: live.length - head.length - ticked.length };
   };
 
-  const toggleArrayFilter = (key: keyof FilterOptions, value: string) => {
-    const currentValues = filters[key] as string[];
+  /**
+   * WHAT THE PHONE SHEET IS EDITING: a draft, not the live filters.
+   *
+   * Desktop applies on every tick, which is right there — the grid is beside
+   * the checkbox and watching it narrow IS the feedback. On a phone the grid
+   * is behind the sheet and mostly covered, so the same tick buys nothing
+   * visible and costs a re-render of up to 2,437 cards. Five ticks, five full
+   * re-renders, every one of them underneath a panel.
+   *
+   * So the sheet collects changes and commits once, on Show N. The count on
+   * that button is what replaces the live feedback, and it is an array pass
+   * rather than a render.
+   */
+  const [draft, setDraft] = useState<FilterOptions>(filters);
+
+  /**
+   * Seeded on open, and re-seeded if the live filters move under it.
+   *
+   * The second half matters for the back button: popstate rewrites `filters`
+   * from the URL, and a draft still holding the old set would quietly undo
+   * that the moment anyone pressed Show.
+   */
+  useEffect(() => {
+    if (open) setDraft(filters);
+  }, [open, filters]);
+
+  /**
+   * Counted only while the sheet is up, so desktop never pays for it.
+   *
+   * An array pass over models already in memory, once per tick. That is the
+   * trade this whole thing is built on: a few milliseconds of counting in
+   * place of a re-render of every card on the page.
+   */
+  const draftCount = open ? countFor(draft) : 0;
+
+  const toggle = (
+    current: FilterOptions,
+    emit: (next: FilterOptions) => void,
+    key: keyof FilterOptions,
+    value: string,
+  ) => {
+    const currentValues = current[key] as string[];
     const newValues = currentValues.includes(value)
       ? currentValues.filter((v) => v !== value)
       : [...currentValues, value];
 
-    onFilterChange({ ...filters, [key]: newValues });
+    emit({ ...current, [key]: newValues });
   };
 
-  const hasActiveFilters =
-    filters.years.length > 0 ||
-    filters.teams.length > 0 ||
-    filters.drivers.length > 0 ||
-    filters.scales.length > 0 ||
-    filters.manufacturers.length > 0;
+  const anyActive = (f: FilterOptions) =>
+    f.years.length > 0 ||
+    f.teams.length > 0 ||
+    f.drivers.length > 0 ||
+    f.scales.length > 0 ||
+    f.manufacturers.length > 0;
+
+  const hasActiveFilters = anyActive(filters);
 
   /**
-   * Collapsed by default on small screens.
+   * The checkbox lists, written once and rendered in two places.
    *
-   * Stacking the sidebar above the grid is necessary — at a fixed 250px beside
-   * a flex row it left about 30px for the cars on a phone — but stacking alone
-   * would mean scrolling past thirty checkboxes before seeing a single model.
-   * On lg and up the class list forces it open, so desktop is unchanged.
+   * Desktop and the phone sheet differ only in their frame — where the box
+   * sits, how it scrolls, what the header does — and in what they write to:
+   * desktop straight through to the grid, the sheet into the draft. The
+   * choices themselves are the same choices, so they are built here rather
+   * than duplicated into both branches, where the two copies would drift
+   * apart on the first edit.
    */
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const sectionsFor = (
+    current: FilterOptions,
+    emit: (next: FilterOptions) => void,
+    lists: FilterOptionLists,
+  ) => (
+    <>
+      {SECTIONS.map(({ key, title }) => {
+        const selected = current[key] as string[];
+        const { shown, hidden } = visible(lists, key, selected);
+        if (!shown.length) return null;
+        return (
+          <FilterSection key={key} title={title}>
+            {shown.map(opt => (
+              <label key={opt.value} className="flex items-center gap-2.5 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={selected.includes(opt.value)}
+                  onChange={() => toggle(current, emit, key, opt.value)}
+                  className="w-4 h-4 rounded border-[var(--border-medium)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-offset-0 cursor-pointer shrink-0"
+                />
+                <span className="text-sm text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors flex-1 min-w-0 truncate">
+                  {opt.value}
+                </span>
+                {/*
+                  The count is what makes a shortened list honest: it says
+                  which choices are worth making, and it is the difference
+                  between "Verstappen" and "Kubica" being offered as equals.
+                */}
+                <span className="text-xs text-[var(--text-tertiary)] tabular-nums shrink-0">
+                  {opt.count}
+                </span>
+              </label>
+            ))}
+            {hidden > 0 && (
+              <p className="text-xs text-[var(--text-tertiary)] pt-1">
+                +{hidden} more in advanced
+              </p>
+            )}
+          </FilterSection>
+        );
+      })}
+
+      <button
+        type="button"
+        onClick={() => setAdvanced(a => !a)}
+        className="w-full text-sm font-semibold text-[var(--accent)] hover:underline text-left"
+        aria-expanded={advanced}
+      >
+        {advanced ? '← Fewer filters' : 'Advanced filters →'}
+      </button>
+    </>
+  );
 
   return (
-    <aside className="w-full lg:w-[250px] lg:flex-none">
+    <>
       {/*
-        The panel scrolls inside itself rather than with the page.
+        DESKTOP ONLY, AND THAT IS THE POINT.
 
-        It was sticky but unbounded, so as soon as the filters were taller than
-        the viewport the only way to reach Driver — the last and longest
-        section — was to scroll the whole page, which scrolls the car grid away
-        at the same time. You had to leave the results to change what filters
-        them.
+        Two attempts put a filter control above the grid on a phone. Opening it
+        pushed 2,437 cards down; making the panel `fixed` collapsed the aside
+        and snapped them up. Both are a full relayout -- content-visibility
+        skips offscreen PAINT, it does not excuse a box from layout -- and both
+        hung the browser hard enough for "wait for the page or close it".
 
-        max-height ties it to the viewport below the 88px header, and
-        overscroll-contain stops a flick at the end of the list continuing into
-        the page behind it. Both are lg-only: on mobile the whole panel already
-        collapses behind the Filters button and is not sticky at all.
+        `hidden md:block` means that on a phone there is nothing above the grid
+        at all, so nothing can change size and there is nothing to relayout.
+        The mobile control lives in the sticky navbar instead, out of this
+        document flow entirely. See MobileFilterTrigger.
+
+        THE BREAKPOINT IS md TO MATCH THE NAVBAR, not because 768px is a good
+        width for a 250px sidebar. The navbar's search row -- which holds the
+        slot the phone button portals into -- is `md:hidden`. Had this stayed
+        at `lg`, every width from 768 to 1023 would have had no sidebar AND no
+        button: filters unreachable, silently, on exactly the devices nobody
+        tests on. The two breakpoints have to be the same one.
       */}
-      {/*
-        ON MOBILE, OPEN MEANS OVER THE PAGE, NOT ABOVE IT.
-        Reported on r/Diecast 2026-10-14: "When I click filters in my web
-        browser (pretty powerful Android phone) webpage gets stuck".
-
-        It expanded in normal flow, so opening it pushed the ENTIRE GRID down.
-        /browse renders the whole catalogue: measured the same day, 5.3 MB of
-        HTML, 11,664 divs and 2,236 images. Reflowing that on a phone is what
-        "stuck" was. content-visibility makes SCROLLING cheap; it does not make
-        a full-document reflow cheap, because every one of those boxes still
-        has to be repositioned.
-
-        Fixed and inset-0 means opening paints over the grid and moves nothing.
-        Scrolls inside itself, so a flick in the list cannot reach the page
-        behind. Every one of these is a mobile-only class and lg: resets each,
-        so the desktop sidebar is byte-for-byte what it was.
-
-        This does NOT fix the page being 5.3 MB. That is /browse/page/N, which
-        the note in BrowseGrid.tsx already specifies.
-      */}
-      {/*
-        THE PANEL NEVER LEAVES THE FLOW. An earlier attempt made THIS element
-        `fixed inset-0` when open, which took it out of flow, collapsed the
-        <aside> to zero height and snapped the 2,437-card grid upward -- a
-        full relayout, and the same hang it was meant to cure. The reporter
-        confirmed it: "page gets stuck ONLY when I tap filters ... it gets
-        entire browser stuck so it asks wait for the page or close it".
-
-        So the bar stays exactly where it is and only the BODY overlays. The
-        aside's height never changes, so nothing below it moves, so there is
-        nothing to relayout.
-      */}
-      <div className={`lg:sticky lg:top-[88px] lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:overscroll-contain bg-white border border-[var(--border-light)] rounded-xl p-5 ${mobileOpen ? "py-3 lg:py-5" : "py-3 lg:py-5"}`}>
-        {/* Header */}
+      <aside className="hidden md:block md:w-[250px] md:flex-none">
         {/*
-          Pinned to the top of the scrolling panel, so "Clear all" does not
-          scroll away — it is the one control you want most once you are deep
-          enough in the list to have lost track of what is ticked.
+          The panel scrolls inside itself rather than with the page.
 
-          The negative top margin cancels the panel's own padding so the header
-          sits flush against the edge when pinned; pt-5 puts the same space back
-          inside it, and the white background stops rows showing through.
+          It was sticky but unbounded, so as soon as the filters were taller
+          than the viewport the only way to reach Driver -- the last and
+          longest section -- was to scroll the whole page, which scrolls the
+          car grid away at the same time.
         */}
-        {/*
-          Sticky on mobile too once the panel is a full-screen sheet, or
-          "Clear all" and the way out scroll off the top the moment you reach
-          Driver, which is the longest section. Same reasoning the lg: version
-          already carried, now that mobile has the same problem.
-        */}
-        <div className="flex items-center justify-between lg:sticky lg:top-0 lg:z-10 lg:bg-white lg:-mt-5 lg:pt-5 lg:mb-5 lg:pb-5 lg:border-b border-[var(--border-light)]">
-          {/*
-            THE WHOLE BAR OPENS IT, NOT JUST THE WORD.
-            The tappable area was the text and the chevron, a couple of
-            centimetres at the left end of a full-width row, with the rest of
-            the bar dead. On a phone the obvious target is the bar.
+        <div className="md:sticky md:top-[88px] md:max-h-[calc(100vh-7rem)] md:overflow-y-auto md:overscroll-contain bg-white border border-[var(--border-light)] rounded-xl p-5">
+          <div className="flex items-center justify-between sticky top-0 z-10 bg-white -mt-5 pt-5 mb-5 pb-5 border-b border-[var(--border-light)]">
+            <h2 className="font-display font-bold text-base text-[var(--text-primary)]">Filters</h2>
+            {hasActiveFilters && (
+              <button onClick={onClearAll} className="text-[var(--accent)] text-sm font-semibold hover:underline">
+                Clear all
+              </button>
+            )}
+          </div>
+          <div>
+            {/* Straight through to the grid: it is right there, beside it. */}
+            {sectionsFor(filters, onFilterChange, options)}
+          </div>
+        </div>
+      </aside>
 
-            flex-1 and text-left make the button span the row, so the chevron
-            sits at the far right where it reads as "this expands" and the gap
-            between is live. py-1 -my-1 buys back vertical hit area without
-            changing the bar's height: the collapsed panel is py-3, which is
-            under the ~44px a thumb wants.
+      {/*
+        THE PHONE SHEET. A separate fixed overlay, never part of the grid's
+        column, so opening and closing it moves nothing behind it.
 
-            lg:flex-none returns it to hugging its text on desktop, where the
-            sidebar is always open and the header is a heading rather than a
-            control.
-          */}
+        Height-capped rather than full screen, which is what the Klarna
+        reference does well: the catalogue stays visible behind it, so you can
+        see that something IS there to filter.
+      */}
+      {open && (
+        <div className="md:hidden">
           <button
             type="button"
-            onClick={() => setMobileOpen(o => !o)}
-            className="flex flex-1 items-center justify-between gap-2 py-1 -my-1 text-left lg:flex-none lg:justify-start lg:py-0 lg:my-0 lg:cursor-default"
-            aria-expanded={mobileOpen}
-            aria-controls="filter-body"
+            aria-label="Close filters"
+            onClick={onClose}
+            className="fixed inset-0 z-40 bg-black/30"
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Filters"
+            className="fixed inset-x-0 bottom-0 z-50 max-h-[80vh] overflow-y-auto overscroll-contain rounded-t-2xl bg-white px-5 pb-6 shadow-[0_-8px_32px_-12px_rgba(26,25,22,0.35)]"
           >
-            <h2 className="font-display font-bold text-base text-[var(--text-primary)]">Filters</h2>
-            <span className={`lg:hidden transition-transform ${mobileOpen ? 'rotate-180' : ''}`}>▾</span>
-          </button>
-          {hasActiveFilters && (
-            <button
-              onClick={onClearAll}
-              className="text-[var(--accent)] text-sm font-semibold hover:underline"
-            >
-              Clear all
-            </button>
-          )}
-        </div>
-
-        {/*
-          THE BODY is the overlay, not the panel. Fixed and inset-0 on mobile
-          while open, so it paints over the grid without moving it; static
-          again at lg, where the sidebar is always visible and in flow.
-
-          p-5 and pb-24 because once it is fixed it no longer inherits the
-          panel's padding, and the last filter must clear the browser chrome.
-        */}
-        <div
-          id="filter-body"
-          className={`${
-            mobileOpen
-              ? 'fixed inset-0 z-50 block overflow-y-auto overscroll-contain bg-white p-5 pb-24 lg:static lg:inset-auto lg:z-auto lg:overflow-visible lg:p-0'
-              : 'hidden'
-          } lg:block`}
-        >
-          {/*
-            The sheet's own header, because the bar that used to carry Done is
-            now UNDERNEATH this overlay. Sticky so it survives scrolling to
-            Driver, which is the longest section, and mobile-only because on
-            desktop this div is just the sidebar body.
-          */}
-          {mobileOpen && (
-            <div className="sticky top-0 z-10 -mx-5 -mt-5 mb-5 flex items-center justify-between border-b border-[var(--border-light)] bg-white px-5 py-3 lg:hidden">
+            <div className="sticky top-0 z-10 -mx-5 mb-4 flex items-center justify-between border-b border-[var(--border-light)] bg-white px-5 pb-3 pt-4">
               <h2 className="font-display font-bold text-base text-[var(--text-primary)]">Filters</h2>
-              <button
-                type="button"
-                onClick={() => setMobileOpen(false)}
-                className="text-[var(--accent)] text-sm font-semibold px-3 py-1.5 -mr-2"
-              >
-                Done
-              </button>
-            </div>
-          )}
-        {SECTIONS.map(({ key, title }) => {
-          const selected = filters[key] as string[];
-          const { shown, hidden } = visible(key, selected);
-          if (!shown.length) return null;
-          return (
-            <FilterSection key={key} title={title}>
-              {shown.map(opt => (
-                <label key={opt.value} className="flex items-center gap-2.5 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(opt.value)}
-                    onChange={() => toggleArrayFilter(key, opt.value)}
-                    className="w-4 h-4 rounded border-[var(--border-medium)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-offset-0 cursor-pointer shrink-0"
-                  />
-                  <span className="text-sm text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors flex-1 min-w-0 truncate">
-                    {opt.value}
-                  </span>
-                  {/*
-                    The count is what makes a shortened list honest: it says
-                    which choices are worth making, and it is the difference
-                    between "Verstappen" and "Kubica" being offered as equals.
-                  */}
-                  <span className="text-xs text-[var(--text-tertiary)] tabular-nums shrink-0">
-                    {opt.count}
-                  </span>
-                </label>
-              ))}
-              {hidden > 0 && (
-                <p className="text-xs text-[var(--text-tertiary)] pt-1">
-                  +{hidden} more in advanced
-                </p>
+              {/*
+                Clears the DRAFT, not the grid. Everything in this sheet is
+                provisional until Show, and a Clear all that reached past it
+                to the live filters would be the one control that did not
+                wait -- the sheet would still show the old ticks while the
+                page behind had already emptied.
+              */}
+              {anyActive(draft) && (
+                <button
+                  onClick={() => setDraft({ years: [], teams: [], drivers: [], scales: [], manufacturers: [] })}
+                  className="text-[var(--accent)] text-sm font-semibold"
+                >
+                  Clear all
+                </button>
               )}
-            </FilterSection>
-          );
-        })}
+            </div>
+            {sectionsFor(draft, setDraft, optionsFor(draft))}
+            {/*
+              THE COMMIT. One re-render of the grid per visit to the sheet,
+              instead of one per tick.
 
-        <button
-          type="button"
-          onClick={() => setAdvanced(a => !a)}
-          className="w-full text-sm font-semibold text-[var(--accent)] hover:underline text-left"
-          aria-expanded={advanced}
-        >
-          {advanced ? '← Fewer filters' : 'Advanced filters →'}
-        </button>
+              The count is what makes that bearable: without the grid
+              narrowing underneath, this number is the only evidence a tick
+              did anything, and it also catches the dead end -- nobody taps
+              "Show 0 cars" and then wonders where the catalogue went.
+            */}
+            <button
+              type="button"
+              onClick={() => { onFilterChange(draft); onClose(); }}
+              className="mt-5 w-full rounded-xl bg-[var(--accent)] py-3 text-sm font-bold text-white"
+            >
+              Show {draftCount} {draftCount === 1 ? 'car' : 'cars'}
+            </button>
+          </div>
         </div>
-      </div>
-    </aside>
+      )}
+    </>
   );
 }

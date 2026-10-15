@@ -130,8 +130,22 @@ export default function Navbar() {
         The cost is honest: ~48px of a ~650px screen, permanently, on top of
         the 64px bar.
       */}
-      <div className="md:hidden border-t px-4 py-2" style={{ borderColor: '#f2f1ed' }}>
-        <SearchBox className="w-full" />
+      <div className="md:hidden border-t px-4 py-2 flex items-center gap-2" style={{ borderColor: '#f2f1ed' }}>
+        <SearchBox className="flex-1 min-w-0" />
+        {/*
+          A SLOT, not a button.
+
+          /browse needs a filter control that stays reachable 200 cards down,
+          and this row is the only thing on a phone that is already sticky and
+          already paid for. But the filter STATE lives in BrowseClient, and the
+          control has to show how many are active, so the data flows both ways.
+
+          Rather than a context provider wrapping every page for one page, or
+          window events going in both directions, BrowseClient portals its own
+          button in here. One owner of the state, and every other page renders
+          an empty 0px div.
+        */}
+        <div id="browse-filter-slot" className="flex-none empty:hidden" />
       </div>
     </nav>
   );
