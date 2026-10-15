@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FilterOptions } from '@/lib/types';
 
 interface FilterSidebarProps {
@@ -88,6 +88,29 @@ const SECTIONS: { key: keyof FilterOptionLists; title: string }[] = [
   { key: 'drivers', title: 'Driver' },
 ];
 
+
+/**
+ * How long the sheet takes to slide, in ms.
+ *
+ * Named because two places have to agree: the CSS transition, and the timer
+ * that unmounts the sheet once it has finished leaving. 280ms is the long end
+ * of what still reads as instant and the short end of what reads as
+ * deliberate; iOS sheets sit around 300.
+ */
+const SHEET_MS = 280;
+
+/**
+ * The curve. Fast off the mark, long soft landing.
+ *
+ * This is the iOS sheet easing rather than a stock ease-out, and the
+ * difference is the whole feel of it: the sheet should look like it was
+ * thrown and caught, not driven. A linear or ease-in-out slide reads as
+ * mechanical at this distance.
+ */
+const SHEET_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
+
+/** How far down you have to drag before releasing closes it. */
+const DISMISS_PX = 110;
 
 interface FilterSectionProps {
   title: string;
@@ -190,6 +213,130 @@ export default function FilterSidebar({
   useEffect(() => {
     if (open) setDraft(filters);
   }, [open, filters]);
+
+  /**
+   * TWO FLAGS, NOT ONE, SO THE SHEET CAN ANIMATE ON THE WAY OUT.
+   *
+   * `open` alone cannot do it: the moment it goes false React unmounts the
+   * element, and there is nothing left in the DOM to slide anywhere. An exit
+   * animation needs the thing to still exist while it leaves.
+   *
+   *   mounted  in the DOM at all
+   *   shown    slid up into place
+   *
+   * Opening sets both, a frame apart. Closing drops `shown` first, waits out
+   * the slide, then drops `mounted`.
+   */
+  const [mounted, setMounted] = useState(false);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      /**
+       * TWO frames, deliberately.
+       *
+       * The element has to be painted at translateY(100%) before it is told
+       * to go to 0, or the browser never sees a starting value and the sheet
+       * is simply there -- no transition at all. One rAF is not reliably
+       * enough: it can land in the same frame as the mount, which is the
+       * exact race this is avoiding.
+       */
+      let inner = 0;
+      const outer = requestAnimationFrame(() => {
+        inner = requestAnimationFrame(() => setShown(true));
+      });
+      return () => { cancelAnimationFrame(outer); cancelAnimationFrame(inner); };
+    }
+
+    setShown(false);
+    // Matches the transition below. If the two ever disagree, too short
+    // truncates the slide and too long leaves an invisible overlay
+    // swallowing taps, so they are commented on both sides.
+    const t = setTimeout(() => setMounted(false), SHEET_MS);
+    return () => clearTimeout(t);
+  }, [open]);
+
+  /** Escape closes it, as a dialog should. */
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  /**
+   * DRAG TO DISMISS, WRITTEN STRAIGHT TO THE DOM RATHER THAN THROUGH STATE.
+   *
+   * A pointermove fires every frame. Putting the offset in React state would
+   * re-render this component 60 times a second, and this component renders
+   * BOTH the sheet and the desktop aside -- which is still in the DOM on a
+   * phone, just display:none. That is ~60 elements reconciled per frame to
+   * move one box, on the low-end Android where the original freeze was
+   * reported.
+   *
+   * So the drag writes transform directly and React never hears about it.
+   * The class-driven transform takes back over the moment the inline one is
+   * cleared.
+   */
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLButtonElement>(null);
+  const dragFrom = useRef<number | null>(null);
+  const dragBy = useRef(0);
+
+  const dragStart = (e: React.PointerEvent) => {
+    // Let the buttons in the header be buttons.
+    if ((e.target as HTMLElement).closest('button')) return;
+    dragFrom.current = e.clientY;
+    dragBy.current = 0;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+
+  const dragMove = (e: React.PointerEvent) => {
+    if (dragFrom.current === null) return;
+    const raw = e.clientY - dragFrom.current;
+    // Upward drags resist rather than lift the sheet off the bottom edge,
+    // which would show the page through the gap underneath it.
+    dragBy.current = raw > 0 ? raw : raw / 5;
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    sheet.style.transition = 'none';
+    sheet.style.transform = `translateY(${dragBy.current}px)`;
+    // The backdrop's transition has to be killed as well, or it spends the
+    // whole drag easing towards an opacity the finger has already left.
+    if (backdropRef.current) {
+      backdropRef.current.style.transition = 'none';
+      backdropRef.current.style.opacity = String(Math.max(0, 1 - Math.max(0, dragBy.current) / 420));
+    }
+  };
+
+  const dragEnd = () => {
+    if (dragFrom.current === null) return;
+    const dismiss = dragBy.current > DISMISS_PX;
+    dragFrom.current = null;
+
+    const sheet = sheetRef.current;
+    if (sheet) {
+      sheet.style.transition = '';
+      /**
+       * Driven to the same place the class would put it, rather than
+       * cleared.
+       *
+       * Clearing it would hand control back mid-gesture and the sheet would
+       * animate UP to its resting place while React, a tick later, told it
+       * to go down -- a visible stutter at the one moment the thing is
+       * meant to feel physical. Setting the identical value means the
+       * inline and class transforms agree and it is one movement.
+       */
+      sheet.style.transform = dismiss ? 'translateY(100%)' : '';
+    }
+    if (backdropRef.current) {
+      backdropRef.current.style.transition = '';
+      backdropRef.current.style.opacity = dismiss ? '0' : '';
+    }
+
+    if (dismiss) onClose();
+  };
 
   /**
    * Counted only while the sheet is up, so desktop never pays for it.
@@ -342,39 +489,93 @@ export default function FilterSidebar({
         reference does well: the catalogue stays visible behind it, so you can
         see that something IS there to filter.
       */}
-      {open && (
+      {mounted && (
         <div className="md:hidden">
+          {/*
+            TRANSFORM AND OPACITY ONLY, on both of these.
+
+            Not height, not bottom, not max-height. Those are the properties
+            that animate by relaying the page out sixty times a second, which
+            is the exact cost that froze this page twice already. transform
+            and opacity are handled on the compositor: the sheet is painted
+            once and then moved, and the 2,437 cards behind it are not
+            consulted at any point.
+          */}
           <button
+            ref={backdropRef}
             type="button"
             aria-label="Close filters"
             onClick={onClose}
-            className="fixed inset-0 z-40 bg-black/30"
+            /*
+              pointer-events-none while it is not shown, which is not
+              cosmetic. The sheet stays mounted for SHEET_MS after closing so
+              it can slide out, and for that whole window this is a
+              full-screen, invisible, still-clickable button sitting over the
+              catalogue. One tap on a car would land on the backdrop instead.
+              Worse under prefers-reduced-motion, where it is invisible
+              immediately and the window is the full 280ms.
+            */
+            className={`fixed inset-0 z-40 bg-black/40 transition-opacity ease-out motion-reduce:transition-none ${shown ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+            style={{ transitionDuration: `${SHEET_MS}ms` }}
           />
           <div
+            ref={sheetRef}
             role="dialog"
             aria-modal="true"
             aria-label="Filters"
-            className="fixed inset-x-0 bottom-0 z-50 max-h-[80vh] overflow-y-auto overscroll-contain rounded-t-2xl bg-white px-5 pb-6 shadow-[0_-8px_32px_-12px_rgba(26,25,22,0.35)]"
+            /*
+              flex-col so the sheet has three parts: a header and a Show
+              button that stay put, and a scrolling middle. It scrolled as
+              one piece before, which put the apply button below thirty
+              checkboxes -- on a deferred sheet, where that button is the
+              only way to see the result, it has to be on screen the whole
+              time.
+            */
+            className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[82dvh] flex-col rounded-t-2xl bg-white shadow-[0_-8px_32px_-12px_rgba(26,25,22,0.35)] transition-transform will-change-transform motion-reduce:transition-none ${shown ? 'translate-y-0' : 'translate-y-full'}`}
+            style={{ transitionDuration: `${SHEET_MS}ms`, transitionTimingFunction: SHEET_EASE }}
           >
-            <div className="sticky top-0 z-10 -mx-5 mb-4 flex items-center justify-between border-b border-[var(--border-light)] bg-white px-5 pb-3 pt-4">
-              <h2 className="font-display font-bold text-base text-[var(--text-primary)]">Filters</h2>
+            {/*
+              The header is also the drag handle, hence touch-none: without
+              it the browser claims the gesture for scrolling or pull-to-
+              refresh and the sheet never sees the move at all.
+            */}
+            <div
+              onPointerDown={dragStart}
+              onPointerMove={dragMove}
+              onPointerUp={dragEnd}
+              onPointerCancel={dragEnd}
+              className="flex-none touch-none px-5 pb-3 pt-2.5"
+            >
               {/*
-                Clears the DRAFT, not the grid. Everything in this sheet is
-                provisional until Show, and a Clear all that reached past it
-                to the live filters would be the one control that did not
-                wait -- the sheet would still show the old ticks while the
-                page behind had already emptied.
+                The grab pill. It is here because the sheet really can be
+                dragged down -- a handle on something that does not move is
+                a promise the interface does not keep.
               */}
-              {anyActive(draft) && (
-                <button
-                  onClick={() => setDraft({ years: [], teams: [], drivers: [], scales: [], manufacturers: [] })}
-                  className="text-[var(--accent)] text-sm font-semibold"
-                >
-                  Clear all
-                </button>
-              )}
+              <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-[var(--border-medium)]" />
+              <div className="flex items-center justify-between">
+                <h2 className="font-display font-bold text-base text-[var(--text-primary)]">Filters</h2>
+                {/*
+                  Clears the DRAFT, not the grid. Everything in this sheet is
+                  provisional until Show, and a Clear all that reached past it
+                  to the live filters would be the one control that did not
+                  wait -- the sheet would still show the old ticks while the
+                  page behind had already emptied.
+                */}
+                {anyActive(draft) && (
+                  <button
+                    onClick={() => setDraft({ years: [], teams: [], drivers: [], scales: [], manufacturers: [] })}
+                    className="text-[var(--accent)] text-sm font-semibold"
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
             </div>
-            {sectionsFor(draft, setDraft, optionsFor(draft))}
+
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t border-[var(--border-light)] px-5 pt-4">
+              {sectionsFor(draft, setDraft, optionsFor(draft))}
+            </div>
+
             {/*
               THE COMMIT. One re-render of the grid per visit to the sheet,
               instead of one per tick.
@@ -383,14 +584,24 @@ export default function FilterSidebar({
               narrowing underneath, this number is the only evidence a tick
               did anything, and it also catches the dead end -- nobody taps
               "Show 0 cars" and then wonders where the catalogue went.
+
+              The safe-area term in the padding does nothing TODAY: the site
+              does not set viewport-fit=cover, so the browser insets the
+              viewport itself and env(safe-area-inset-bottom) is 0. It is
+              written as max(0.75rem, env(...)) so that if cover is ever
+              turned on, this button does not end up under the home
+              indicator -- which is exactly where a bottom-pinned control
+              lands when it is not asked for.
             */}
-            <button
-              type="button"
-              onClick={() => { onFilterChange(draft); onClose(); }}
-              className="mt-5 w-full rounded-xl bg-[var(--accent)] py-3 text-sm font-bold text-white"
-            >
-              Show {draftCount} {draftCount === 1 ? 'car' : 'cars'}
-            </button>
+            <div className="flex-none border-t border-[var(--border-light)] px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <button
+                type="button"
+                onClick={() => { onFilterChange(draft); onClose(); }}
+                className="w-full rounded-xl bg-[var(--accent)] py-3 text-sm font-bold text-white active:brightness-90"
+              >
+                Show {draftCount} {draftCount === 1 ? 'car' : 'cars'}
+              </button>
+            </div>
           </div>
         </div>
       )}
