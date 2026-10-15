@@ -210,11 +210,33 @@ export default function FilterSidebar({ options, filters, onFilterChange, onClea
           already carried, now that mobile has the same problem.
         */}
         <div className={`flex items-center justify-between lg:sticky lg:top-0 lg:z-10 lg:bg-white lg:-mt-5 lg:pt-5 lg:mb-5 lg:pb-5 lg:border-b border-[var(--border-light)] ${mobileOpen ? "sticky top-0 z-10 bg-white -mt-5 pt-5 mb-5 pb-5 border-b" : ""}`}>
+          {/*
+            THE WHOLE BAR OPENS IT, NOT JUST THE WORD.
+            The tappable area was the text and the chevron, a couple of
+            centimetres at the left end of a full-width row, with the rest of
+            the bar dead. On a phone the obvious target is the bar.
+
+            flex-1 and text-left make the button span the row, so the chevron
+            sits at the far right where it reads as "this expands" and the gap
+            between is live. py-1 -my-1 buys back vertical hit area without
+            changing the bar's height: the collapsed panel is py-3, which is
+            under the ~44px a thumb wants.
+
+            lg:flex-none returns it to hugging its text on desktop, where the
+            sidebar is always open and the header is a heading rather than a
+            control.
+          */}
           <button
             type="button"
             onClick={() => setMobileOpen(o => !o)}
-            className="flex items-center gap-2 lg:cursor-default"
+            className={`flex items-center gap-2 py-1 -my-1 text-left lg:flex-none lg:justify-start lg:py-0 lg:my-0 lg:cursor-default ${
+              /* Stretches only while COLLAPSED. Once the sheet is open the
+                 close affordance is the Done button, so a full-width header
+                 button would just crowd it. */
+              mobileOpen ? '' : 'flex-1 justify-between'
+            }`}
             aria-expanded={mobileOpen}
+            aria-controls="filter-body"
           >
             <h2 className="font-display font-bold text-base text-[var(--text-primary)]">Filters</h2>
             <span className={`lg:hidden transition-transform ${mobileOpen ? 'rotate-180' : ''}`}>▾</span>
@@ -244,7 +266,7 @@ export default function FilterSidebar({ options, filters, onFilterChange, onClea
           )}
         </div>
 
-        <div className={`${mobileOpen ? 'block' : 'hidden'} lg:block`}>
+        <div id="filter-body" className={`${mobileOpen ? 'block' : 'hidden'} lg:block`}>
         {SECTIONS.map(({ key, title }) => {
           const selected = filters[key] as string[];
           const { shown, hidden } = visible(key, selected);
