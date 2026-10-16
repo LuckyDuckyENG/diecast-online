@@ -219,6 +219,29 @@ const stripNoise = (q: string) => {
  */
 const MAX_TERMS = 4;
 
+/** Lowercased, with every separator removed. "MP4-13" and "mp4 13" both become "mp413". */
+const squash = (s: string) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/**
+ * Nicknames that are not a punctuation difference.
+ *
+ * Kept deliberately tiny. Almost every chassis people mistype is a SEPARATOR
+ * problem -- 41 of the 436 chassis names in the catalogue contain one, and
+ * `squash` handles all of them without a list to maintain. This is only for
+ * names where the colloquial form drops or changes a character, which no
+ * normalisation can reach.
+ *
+ * f2000 is the one the logs actually caught, twice in twenty days. Ferrari
+ * named the 2000 car the F1-2000 and then went F2001, F2002, F2003-GA,
+ * F2004 -- so the championship-winning car is the odd one out of its own
+ * series and everyone calls it the F2000 by analogy. Fuzzy matching cannot
+ * save this: scored by trigram, "f2000" ranks F2002, F2004, F2005 and F2007
+ * ABOVE F1-2000, because those are all real cars in the catalogue.
+ */
+const CHASSIS_ALIASES: Record<string, string> = {
+  f2000: 'F1-2000',
+};
+
 /**
  * Every car id one word of the query could possibly mean.
  *
@@ -263,7 +286,140 @@ async function termCarIds(term: string, seasonId: string | null): Promise<Set<st
   }
   // models rows carry car_id, not id.
   for (const r of [...skus, ...byMaker]) if (r.car_id) ids.add(r.car_id);
+
+  /**
+   * NOTHING MATCHED, SO TRY AGAIN IGNORING PUNCTUATION.
+   *
+   * Only on failure, which is what makes it free. A term that matched
+   * anything never reaches here, so the normal path costs exactly what it
+   * did before.
+   *
+   * The catalogue stores chassis the way the manufacturer writes them --
+   * MP4-13, SF-23, VF-23, F1-75, F1.08 -- and nobody types the separator.
+   * `ilike '%mp413%'` cannot match 'MP4-13' no matter how the wildcards are
+   * arranged, so 41 of the 436 chassis names were unreachable to anyone who
+   * typed them naturally. Comparing squashed forms finds all of them.
+   */
+  if (!ids.size && term.length >= 3) {
+    const wanted = squash(term);
+    const alias = CHASSIS_ALIASES[wanted];
+    const rows = await selectAll<any>(supabase, 'cars', 'chassis_name');
+    const names = [...new Set(rows.map(r => r.chassis_name).filter(Boolean))].filter(
+      (n: string) => (alias ? n === alias : squash(n).includes(wanted))
+    );
+    if (names.length) {
+      const hits = await selectAllIn<any>(supabase, 'cars', 'id', 'chassis_name', names, scoped);
+      for (const r of hits) if (r.id) ids.add(r.id);
+    }
+  }
+
   return ids;
+}
+
+/**
+ * Trigram similarity, scored against a value AND each of its words.
+ *
+ * Whole-string scoring alone is useless for names: "leclrc" against "Charles
+ * Leclerc" scores 0.16 because most of the string is "charles", while against
+ * the word "leclerc" it scores 0.50. Taking the best of the two means a
+ * surname typo finds the driver without a one-word query finding every
+ * two-word value by accident.
+ */
+const trigrams = (s: string) => {
+  const padded = `  ${s} `;
+  const out = new Set<string>();
+  for (let i = 0; i < padded.length - 2; i++) out.add(padded.slice(i, i + 3));
+  return out;
+};
+
+const similarity = (a: string, b: string) => {
+  const A = trigrams(a);
+  const B = trigrams(b);
+  let shared = 0;
+  for (const g of A) if (B.has(g)) shared++;
+  return shared / (A.size + B.size - shared);
+};
+
+const scoreAgainst = (term: string, value: string) => {
+  const t = squash(term);
+  let best = similarity(t, squash(value));
+  for (const word of String(value).split(/\s+/)) {
+    if (word.length >= 3) best = Math.max(best, similarity(t, squash(word)));
+  }
+  return best;
+};
+
+/**
+ * Below this, a suggestion is noise.
+ *
+ * Calibrated against the real misspellings rather than picked: "leclrc" ->
+ * Charles Leclerc scores 0.50, "verstapen" -> Max Verstappen 0.75, "hamiltn"
+ * -> Lewis Hamilton 0.55, "shumacher" -> Michael Schumacher 0.62. A string of
+ * nonsense scores nothing at all, which is the property that matters -- a
+ * "did you mean" that always has an answer teaches people to ignore it.
+ */
+const SUGGEST_MIN = 0.34;
+const MAX_SUGGESTIONS = 5;
+
+export interface Suggestion {
+  label: string;
+  kind: 'chassis' | 'driver' | 'team' | 'maker';
+}
+
+/**
+ * What to offer when a search found nothing.
+ *
+ * Runs ONLY on zero results, so it costs nothing on a normal search. Seven
+ * searches in twenty days ended up here, which is the entire budget this
+ * needs to justify.
+ *
+ * Scored per WORD of the query rather than on the whole thing, because the
+ * failure is usually one word: "ferrari f2000" fails on "f2000" alone, and
+ * scoring the full string ranks the team Ferrari top, which the visitor
+ * plainly already knows.
+ */
+export async function suggestFor(rawQuery: string): Promise<Suggestion[]> {
+  const { text } = splitYear(rawQuery.trim());
+  const { text: afterScale } = splitScale(text);
+  const q = stripNoise(afterScale).toLowerCase().trim();
+  if (q.length < 3) return [];
+
+  const words = q.split(/\s+/).filter(w => w.length >= 3).slice(0, MAX_TERMS);
+  if (!words.length) return [];
+
+  const [cars, drivers, teams, makers] = await Promise.all([
+    selectAll<any>(supabase, 'cars', 'chassis_name'),
+    selectAll<any>(supabase, 'drivers', 'name'),
+    selectAll<any>(supabase, 'teams', 'name'),
+    selectAll<any>(supabase, 'manufacturers', 'name'),
+  ]);
+
+  const uniq = (rows: any[], key: string) =>
+    [...new Set(rows.map(r => r[key]).filter(Boolean))] as string[];
+
+  const vocabulary: Suggestion[] = [
+    ...uniq(cars, 'chassis_name').map(label => ({ label, kind: 'chassis' as const })),
+    // "Norris + Piastri" is a two-car SET, not a person. Offering it as a
+    // suggestion would send someone to a driver who never existed, which is
+    // the same fault isDriverPair() was written for on the hub pages.
+    ...uniq(drivers, 'name').filter(n => !n.includes('+')).map(label => ({ label, kind: 'driver' as const })),
+    ...uniq(teams, 'name').map(label => ({ label, kind: 'team' as const })),
+    ...uniq(makers, 'name').map(label => ({ label, kind: 'maker' as const })),
+  ];
+
+  const best = new Map<string, { s: Suggestion; score: number }>();
+  for (const entry of vocabulary) {
+    let score = 0;
+    for (const w of words) score = Math.max(score, scoreAgainst(w, entry.label));
+    if (score < SUGGEST_MIN) continue;
+    const prior = best.get(entry.label);
+    if (!prior || prior.score < score) best.set(entry.label, { s: entry, score });
+  }
+
+  return [...best.values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, MAX_SUGGESTIONS)
+    .map(x => x.s);
 }
 
 export async function searchCars(rawQuery: string): Promise<SearchCar[]> {

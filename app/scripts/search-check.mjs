@@ -64,9 +64,26 @@ const CASES = [
   // Three words, which is where a naive AND starts returning nothing.
   { q: 'looksmart hamilton ferrari', min: 1, why: 'maker AND driver AND team' },
 
+  // Separators. The catalogue writes MP4-13 and SF-23; nobody types the dash.
+  // 41 of 436 chassis names carry one, so these stand for all of them.
+  { q: 'mp413', min: 1, why: 'chassis typed without its separator' },
+  { q: 'mp4 13', min: 1, why: 'separator typed as a space' },
+  { q: 'sf23', min: 1, why: 'SF-23' },
+  { q: 'mclaren mp413', min: 1, why: 'team AND a squashed chassis' },
+
+  // The nickname no normalisation can reach, logged twice.
+  { q: 'ferrari f2000', min: 1, why: 'everyone calls the F1-2000 the F2000' },
+
   // The intersection has to be real.
   { q: 'zzzznotathing', max: 0, why: 'nonsense returns nothing' },
   { q: 'leclerc zzzznotathing', max: 0, why: 'AND excludes, rather than falling back to OR' },
+
+  // Zero results should not be a dead end. `wants` checks the rendered page,
+  // because the whole point is what it offers, not how many cars it found.
+  { q: 'leclrc', max: 0, wants: 'Charles Leclerc', why: 'typo offers the driver' },
+  { q: 'verstapen', max: 0, wants: 'Max Verstappen', why: 'typo offers the driver' },
+  { q: 'shumacher', max: 0, wants: 'Schumacher', why: 'typo offers both Schumachers' },
+  { q: 'zzzznotathing', max: 0, lacks: 'Did you mean', why: 'nonsense offers NOTHING, so the hint stays credible' },
 ];
 
 const count = (html) => (html.match(/href="\/cars\//g) || []).length;
@@ -89,13 +106,15 @@ for (const c of CASES) {
       // disagree the page is lying in one direction or the other.
       const saysNone = html.includes('No results found');
       if (saysNone !== (n === 0)) note = `INCONSISTENT: copy says ${saysNone ? 'none' : 'some'}, ${n} links`;
+      else if (c.wants && !html.includes(c.wants)) note = `MISSING "${c.wants}"`;
+      else if (c.lacks && html.includes(c.lacks)) note = `SHOULD NOT CONTAIN "${c.lacks}"`;
     }
   } catch (e) {
     note = `fetch failed: ${String(e.message || e).slice(0, 40)}`;
   }
 
   const bad =
-    note.startsWith('HTTP') || note.startsWith('fetch') || note.startsWith('INCONSISTENT') ||
+    note !== '' ||
     (c.min !== undefined && n < c.min) ||
     (c.max !== undefined && n > c.max);
   if (bad) failed++;

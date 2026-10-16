@@ -1,6 +1,82 @@
+import Link from 'next/link';
 import ModelCard from '../components/ModelCard';
 import SearchTracker from '../components/SearchTracker';
-import { searchCars } from '@/lib/searchData';
+import { searchCars, suggestFor } from '@/lib/searchData';
+
+/** What a suggestion is, so the chip can say why it is being offered. */
+const KIND_LABEL: Record<string, string> = {
+  chassis: 'car',
+  driver: 'driver',
+  team: 'team',
+  maker: 'maker',
+};
+
+/**
+ * A dead end that tries to stop being one.
+ *
+ * 27% of searches in the first twenty days of logging returned nothing, and
+ * every one of them hit a page that said "No results found" and offered four
+ * generic examples. The examples were never the problem: the visitor had
+ * already told us what they wanted, and we answered by suggesting they try
+ * "Senna".
+ *
+ * So the vocabulary of the catalogue is scored against what they typed and
+ * the near-misses are offered as links. "leclrc" offers Charles Leclerc,
+ * "shumacher" offers both Schumachers. Nonsense still offers nothing, which
+ * is deliberate: a did-you-mean that always has an answer gets ignored.
+ */
+async function NoResults({ query }: { query: string }) {
+  const suggestions = await suggestFor(query);
+
+  return (
+    <div className="bg-white rounded-xl border border-[var(--border-light)] p-12 text-center">
+      <h2 className="font-display font-bold text-2xl text-[var(--text-primary)] mb-3">
+        No results found
+      </h2>
+
+      {suggestions.length > 0 ? (
+        <>
+          <p className="text-[var(--text-secondary)] mb-5">Did you mean:</p>
+          <div className="flex flex-wrap justify-center gap-2 mb-8">
+            {suggestions.map(s => (
+              <Link
+                key={s.label}
+                href={`/search?q=${encodeURIComponent(s.label)}`}
+                className="rounded-full border border-[var(--border-medium)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+              >
+                {s.label}
+                <span className="ml-1.5 text-xs font-normal text-[var(--text-tertiary)]">
+                  {KIND_LABEL[s.kind] || s.kind}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="text-[var(--text-secondary)] mb-6">
+          Try searching for a driver name, team, event, or model SKU
+        </p>
+      )}
+
+      <p className="text-sm text-[var(--text-tertiary)]">
+        {suggestions.length > 0 ? (
+          <>
+            Or{' '}
+            <Link href="/browse" className="text-[var(--accent)] font-semibold hover:underline">
+              browse every car
+            </Link>{' '}
+            we track.
+          </>
+        ) : (
+          <>
+            Examples: &quot;Senna&quot;, &quot;Ferrari&quot;, &quot;Monaco GP&quot;,
+            &quot;LSF1070&quot;
+          </>
+        )}
+      </p>
+    </div>
+  );
+}
 
 /**
  * How many placeholder cards the skeleton draws.
@@ -110,18 +186,7 @@ export default async function SearchResults({ query }: { query: string }) {
       </div>
 
       {results.length === 0 ? (
-        <div className="bg-white rounded-xl border border-[var(--border-light)] p-12 text-center">
-          <h2 className="font-display font-bold text-2xl text-[var(--text-primary)] mb-3">
-            No results found
-          </h2>
-          <p className="text-[var(--text-secondary)] mb-6">
-            Try searching for a driver name, team, event, or model SKU
-          </p>
-          <p className="text-sm text-[var(--text-tertiary)]">
-            Examples: &quot;Senna&quot;, &quot;Ferrari&quot;, &quot;Monaco GP&quot;,
-            &quot;LSF1070&quot;
-          </p>
-        </div>
+        <NoResults query={query} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {results.map((car, i) => (
