@@ -1439,6 +1439,30 @@ is fixed by writing code.
 
 ## Traps worth remembering
 
+- **A Vercel build failing on `next/font/google` is a STALE BUILD CACHE, not your
+  code.** Hit 2026-10-16 at 23:41 on commit `d1616e7`:
+
+  ```
+  Restored build cache from previous deployment   <- line 5, the actual cause
+  ...
+  Module not found: Can't resolve '@vercel/turbopack-next/internal/font/google/font'
+  next/font/google queries have exactly one entry
+  Import trace: ./app/app/layout.tsx
+  ```
+
+  16 errors, all in `layout.tsx`, a file untouched for weeks. Turbopack fails to
+  resolve ITS OWN internal font module against cached entries from an earlier run.
+
+  **Fix: Vercel dashboard, failed deployment, ⋯ → Redeploy, UNTICK "Use existing
+  Build Cache".** Nothing to change in the repo.
+
+  How to tell it apart from a real error in ten seconds: `rm -rf app/.next && npm
+  run build`. If a cold local build passes, it is the cache. It did, and it was.
+  The same error also appeared locally once that afternoon on a commit that had
+  built fine minutes earlier, and a plain retry cleared it — so it is Turbopack
+  font-cache fragility rather than anything Vercel-specific. The misleading part
+  is the volume: 16 errors and a stack trace read like a broken import.
+
 - **`tsc --noEmit` is not the deploy gate.** `next build` type-checks unreachable code
   too; a type error after an early `return` failed a deploy.
 - **Never run `npm run build` while the dev server is running.** The production build
