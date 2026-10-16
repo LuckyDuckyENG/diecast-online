@@ -387,12 +387,32 @@ search row, and the sidebar is `hidden md:block`.
 ### HOW TO MEASURE THIS AGAIN
 
 Three rounds of reasoning got this wrong and one round of measurement got it
-right. The tooling is `puppeteer-core` driving the installed Chrome, with
-`Emulation.setCPUThrottlingRate` at 4 and `Performance.getMetrics` sampled
-either side of a scripted scroll; the script/style/layout/paint split is what
-makes the answer obvious. **The scripts were written in a session scratchpad
-and are gone.** Rebuilding them is twenty minutes and worth it before
-guessing at any performance question here.
+right, so the measurement is now in the repo as `scripts/perf-scroll.mjs`
+(added 2026-10-16, `puppeteer-core` drives the Chrome already installed, no
+browser download).
+
+```
+node scripts/perf-scroll.mjs https://diecasts.app/browse
+node scripts/perf-scroll.mjs <live> --vs http://localhost:3000/browse
+node scripts/perf-scroll.mjs <url> --no-images     # decode cost vs layout cost
+```
+
+It loads the page, performs the gestures a person makes, and reports blocked
+thread time per gesture split into script, style, layout and paint. **The
+split is the whole value**: "the page is slow" is not actionable, "paint is
+70% of it" is.
+
+**It runs three times and reports the median, because of a mistake it made on
+its first outing.** The first version ran once and reported that ticking a
+filter cost 1,711ms of script. That was passed on as a finding. Two further
+runs said 173ms and 177ms; it was a GC pause, and it had already been
+believed. It now prints `UNSTABLE, do not quote` when the runs disagree by
+more than half. A tool that gets trusted over reasoning has to be harder to
+fool than reasoning was.
+
+Default throttle is 4x. An unthrottled run hides nearly everything: the
+scroll that blocked 20.8s at 4x reported a comfortable 74ms at 1x, which
+would have sent the whole investigation back to guessing.
 
 One trap that cost real time: a local `next start` left running across a
 rebuild serves stale HTML against deleted JS chunks, so nothing hydrates and
