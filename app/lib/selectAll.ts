@@ -21,6 +21,57 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * Every one of those failures is quiet and in the unsafe direction. Use this
  * for any read that is not scoped by `.eq()` to a handful of rows.
  */
+/**
+ * How many ids go into one `.in()`.
+ *
+ * PostgREST takes `.in()` as a query string, so the id list becomes URL. A
+ * uuid costs about 39 characters once quoted and comma-separated, and the
+ * request dies somewhere past ~16 KB with a bare "fetch failed" -- no status
+ * code, no PostgREST error object, nothing to catch by name. 150 is ~5.9 KB,
+ * which leaves room for the rest of the URL and is still few enough requests
+ * to be irrelevant.
+ */
+const IN_CHUNK = 150;
+
+/**
+ * `selectAll`, but filtered by a list of ids that may be longer than a URL.
+ *
+ * THIS IS A LIVE 500, NOT A THEORETICAL LIMIT. Searching "spark" or
+ * "minichamps" on diecasts.app returned HTTP 500 for weeks: both match 200
+ * cars, those cars carry enough model variants that `in('model_id', ...)`
+ * crossed the limit, and the "fetch failed" that came back was thrown
+ * straight out of a server component. "ferrari" also returns 200 cars, has
+ * fewer variants each, and worked fine -- which is why it looked like a
+ * mysterious per-query fault rather than a size limit.
+ *
+ * The same fault has now been found three times in this codebase: the maker
+ * lookup (557 uuids, 20,608 characters), the SKU lookup latently, and here.
+ * Any `.in()` over a list the caller did not personally count belongs in this
+ * function.
+ */
+export async function selectAllIn<T = any>(
+  supabase: SupabaseClient,
+  table: string,
+  columns: string,
+  column: string,
+  ids: readonly (string | number)[],
+  tweak?: (q: any) => any
+): Promise<T[]> {
+  if (!ids.length) return [];
+  const unique = [...new Set(ids)];
+  const out: T[] = [];
+
+  for (let i = 0; i < unique.length; i += IN_CHUNK) {
+    const chunk = unique.slice(i, i + IN_CHUNK);
+    const rows = await selectAll<T>(supabase, table, columns, (q) => {
+      const withIn = q.in(column, chunk);
+      return tweak ? tweak(withIn) : withIn;
+    });
+    out.push(...rows);
+  }
+  return out;
+}
+
 export async function selectAll<T = any>(
   supabase: SupabaseClient,
   table: string,

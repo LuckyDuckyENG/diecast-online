@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { selectAll } from './selectAll';
+import { selectAll, selectAllIn } from './selectAll';
 import { buildEbayPhotoMap, ebayPhotoForVariants } from './ebayPhoto';
 import { carTitle } from './carTitle';
 
@@ -209,6 +209,63 @@ const stripNoise = (q: string) => {
   return stripped.length ? stripped : q;
 };
 
+/**
+ * At most this many words are honoured. Each one costs two round trips.
+ *
+ * Four covers every real query seen in the logs ("looksmart leclerc ferrari
+ * 2024" is four once the year is pulled out). Beyond that, extra words are
+ * ignored rather than slowing the search down, because a query that specific
+ * is already answered by the first four.
+ */
+const MAX_TERMS = 4;
+
+/**
+ * Every car id one word of the query could possibly mean.
+ *
+ * COMPLETE, NOT CAPPED, and that is the whole reason this is paged. The ids
+ * are about to be INTERSECTED with another word's ids, and a truncated set
+ * silently removes real answers from the result: "ferrari leclerc" asks about
+ * 355 Ferrari cars, so stopping at 200 of them would drop a third of the
+ * Leclerc Ferraris for no reason the reader could ever see. Capping is safe
+ * for a union and lethal for an intersection.
+ *
+ * Only ids are read, so a term matching the whole catalogue is three pages of
+ * uuids rather than three pages of cars.
+ */
+async function termCarIds(term: string, seasonId: string | null): Promise<Set<string>> {
+  const like = `%${escapeLike(term.toLowerCase())}%`;
+  const scoped = (qb: any) => (seasonId ? qb.eq('season_id', seasonId) : qb);
+  const circuitEvents = CIRCUIT_EVENTS[term];
+
+  const [chassis, events, circuit, drivers, teams, skus, makers] = await Promise.all([
+    selectAll<any>(supabase, 'cars', 'id', qb => scoped(qb.ilike('chassis_name', like))),
+    selectAll<any>(supabase, 'cars', 'id', qb => scoped(qb.ilike('event_name', like))),
+    selectAllIn<any>(supabase, 'cars', 'id', 'event_name', circuitEvents || [], scoped),
+    supabase.from('drivers').select('id').ilike('name', like),
+    supabase.from('teams').select('id').ilike('name', like),
+    selectAll<any>(supabase, 'models', 'car_id', qb => qb.ilike('manufacturer_sku', like)),
+    supabase.from('manufacturers').select('id').ilike('name', like),
+  ]);
+
+  const driverIds = (drivers.data || []).map((d: any) => d.id);
+  const teamIds = (teams.data || []).map((t: any) => t.id);
+  const makerIds = (makers.data || []).map((m: any) => m.id);
+
+  const [byDriver, byTeam, byMaker] = await Promise.all([
+    selectAllIn<any>(supabase, 'cars', 'id', 'driver_id', driverIds, scoped),
+    selectAllIn<any>(supabase, 'cars', 'id', 'team_id', teamIds, scoped),
+    selectAllIn<any>(supabase, 'models', 'car_id', 'manufacturer_id', makerIds),
+  ]);
+
+  const ids = new Set<string>();
+  for (const r of [...chassis, ...events, ...circuit, ...byDriver, ...byTeam]) {
+    if (r.id) ids.add(r.id);
+  }
+  // models rows carry car_id, not id.
+  for (const r of [...skus, ...byMaker]) if (r.car_id) ids.add(r.car_id);
+  return ids;
+}
+
 export async function searchCars(rawQuery: string): Promise<SearchCar[]> {
   const raw = rawQuery.trim();
   if (raw.length < 2) return [];
@@ -216,7 +273,6 @@ export async function searchCars(rawQuery: string): Promise<SearchCar[]> {
   const { year, text } = splitYear(raw);
   const { scale, text: afterScale } = splitScale(text);
   const q = stripNoise(afterScale);
-  const like = `%${escapeLike(q.toLowerCase())}%`;
 
   /**
    * A season restricts the result rather than widening it.
@@ -232,7 +288,6 @@ export async function searchCars(rawQuery: string): Promise<SearchCar[]> {
     if (!data) return [];
     seasonId = data.id;
   }
-  const scoped = (qb: any) => (seasonId ? qb.eq('season_id', seasonId) : qb);
 
   const CAR_FIELDS_BASE =
     'id, slug, chassis_name, event_name, season:seasons(year), ' +
@@ -253,84 +308,61 @@ export async function searchCars(rawQuery: string): Promise<SearchCar[]> {
   }
 
   /**
-   * Four narrow lookups instead of one wide download.
+   * EVERY WORD HAS TO MATCH SOMETHING. WORDS NEED NOT MATCH THE SAME THING.
    *
-   * Driver and team are separate tables, so their ids are resolved first and
-   * fed back as an `in` filter. Doing it as one embedded-resource filter is
-   * possible but makes the OR across four different relationships unreadable,
-   * and these are indexed id lookups returning a handful of rows.
+   * This is the fix for a failure confirmed in `search_queries`: "looksmart
+   * leclerc" returned ZERO. The query was one `ilike '%looksmart leclerc%'`
+   * against each field in turn, and no field on earth contains both words --
+   * Looksmart is a manufacturer, Leclerc is a driver. The two facts live in
+   * different tables, so the one query that could never match was the one
+   * combining them, which is exactly what a person types when the single-word
+   * search has given them too much.
+   *
+   * So each word is resolved independently to the set of cars it could mean
+   * (OR across chassis, event, circuit, driver, team, SKU and maker), and the
+   * sets are INTERSECTED. "looksmart leclerc" becomes cars that are Leclerc's
+   * AND have a Looksmart model, which is the only reading of it that is any
+   * use.
+   *
+   * A CIRCUIT IS CHECKED AS A WHOLE PHRASE FIRST, because fourteen of the
+   * aliases are two words. Splitting "watkins glen" would ask for cars
+   * matching "watkins" AND "glen", and neither word appears anywhere in the
+   * data: a working alias would start returning nothing.
+   *
+   * Terms are resolved in parallel, so N words cost the same wall time as one.
    */
-  const [driverRows, teamRows, skuRows, makerRows] = await Promise.all([
-    supabase.from('drivers').select('id').ilike('name', like),
-    supabase.from('teams').select('id').ilike('name', like),
-    supabase.from('models').select('car_id').ilike('manufacturer_sku', like).limit(MAX_CARS * 3),
-    /**
-     * THE MAKER, which was not searchable at all. Spark alone is 1,428 models
-     * and "spark" returned nothing, which is the second reason that logged
-     * query failed.
-     *
-     * Note "Spark" and "Sparky" are separate rows, so a loose match returns
-     * both. That is correct rather than a bug: Sparky is Spark's own sub-brand
-     * and someone typing "spark" wants it.
-     */
-    supabase.from('manufacturers').select('id').ilike('name', like),
-  ]);
+  const whole = q.toLowerCase().trim();
+  const terms = CIRCUIT_EVENTS[whole]
+    ? [whole]
+    : whole.split(/\s+/).filter(t => t.length >= 2).slice(0, MAX_TERMS);
 
-  const driverIds = (driverRows.data || []).map(d => d.id);
-  const teamIds = (teamRows.data || []).map(t => t.id);
+  // Every word was a single character, so there is nothing to AND. Fall back
+  // to the raw text rather than returning nothing for "c 4".
+  const effective = terms.length ? terms : [whole];
 
-  /**
-   * CAP THE IDS, NOT JUST THE ROWS THEY CAME FROM.
-   *
-   * These lists go into `.in('id', ...)`, which PostgREST takes as a query
-   * string. 557 uuids is a 20,608 character URL and the request dies with a
-   * bare "fetch failed" -- no status, no PostgREST error, just nothing. The
-   * result is an empty search that looks exactly like no matches.
-   *
-   * Found when "spark" returned zero while "minichamps" returned 200: both cap
-   * at 600 models, but Minichamps' 600 sit on 365 cars and Spark's sit on 557,
-   * so only one of them crossed the limit. The SKU lookup had the same latent
-   * fault and was one busy part number away from it.
-   *
-   * MAX_CARS ids is about 7,400 characters, and the union is sliced to
-   * MAX_CARS immediately afterwards, so nothing is lost by capping here.
-   */
-  const carIdsFrom = (rows: any[] | null) =>
-    [...new Set((rows || []).map((m: any) => m.car_id).filter(Boolean))].slice(0, MAX_CARS);
+  const idSets = await Promise.all(effective.map(t => termCarIds(t, seasonId)));
 
-  const skuCarIds = carIdsFrom(skuRows.data);
-
-  const makerIds = (makerRows.data || []).map(m => m.id);
-  let makerCarIds: string[] = [];
-  if (makerIds.length) {
-    const { data } = await supabase
-      .from('models').select('car_id').in('manufacturer_id', makerIds).limit(MAX_CARS * 3);
-    makerCarIds = carIdsFrom(data);
-  }
+  // Smallest first: intersecting 12 ids against 2,000 is 12 lookups, the other
+  // way round is 2,000.
+  idSets.sort((a, b) => a.size - b.size);
+  let ids = [...idSets[0]];
+  for (const set of idSets.slice(1)) ids = ids.filter(id => set.has(id));
+  if (!ids.length) return [];
 
   const CAR_FIELDS = CAR_FIELDS_BASE;
 
-  const queries: any[] = [
-    scoped(supabase.from('cars').select(CAR_FIELDS).ilike('chassis_name', like)).limit(MAX_CARS),
-    scoped(supabase.from('cars').select(CAR_FIELDS).ilike('event_name', like)).limit(MAX_CARS),
-  ];
   /**
-   * A circuit name, resolved to the rounds held there. Matched on the query
-   * with the year already stripped, so "monza 1967" works as well as "monza".
+   * Sliced to MAX_CARS because that is the result size, not because of any
+   * URL limit. selectAllIn chunks the ids, so the length cannot break it.
+   *
+   * It used to be capped for both reasons at once, which hid the second one:
+   * every `.in()` here was kept under a safe size by hand, and the first one
+   * that was NOT -- in decorate(), on model ids rather than car ids -- became
+   * a live 500 on "spark" and "minichamps" that nobody connected to this.
    */
-  const circuitEvents = CIRCUIT_EVENTS[q.toLowerCase().trim()];
-  if (circuitEvents) {
-    queries.push(scoped(supabase.from('cars').select(CAR_FIELDS).in('event_name', circuitEvents)).limit(MAX_CARS));
-  }
-  if (driverIds.length) queries.push(scoped(supabase.from('cars').select(CAR_FIELDS).in('driver_id', driverIds)).limit(MAX_CARS));
-  if (teamIds.length) queries.push(scoped(supabase.from('cars').select(CAR_FIELDS).in('team_id', teamIds)).limit(MAX_CARS));
-  if (skuCarIds.length) queries.push(scoped(supabase.from('cars').select(CAR_FIELDS).in('id', skuCarIds)).limit(MAX_CARS));
-  if (makerCarIds.length) queries.push(scoped(supabase.from('cars').select(CAR_FIELDS).in('id', makerCarIds)).limit(MAX_CARS));
-
-  const results = await Promise.all(queries);
-  const byId = new Map<string, any>();
-  for (const r of results) for (const car of r.data || []) byId.set(car.id, car);
-  let matched = [...byId.values()];
+  let matched: any[] = await selectAllIn<any>(
+    supabase, 'cars', CAR_FIELDS, 'id', ids.slice(0, MAX_CARS)
+  );
 
   /**
    * SCALE NARROWS, it does not widen. Same rule as the season: "spark 1/43"
@@ -364,9 +396,9 @@ async function decorate(cars: any[]): Promise<SearchCar[]> {
    * is about to render.
    */
   const carIds = cars.map(c => c.id);
-  const models = await selectAll<any>(
+  const models = await selectAllIn<any>(
     supabase, 'models', 'id, car_id, image_url, scale, manufacturers(name)',
-    qb => qb.in('car_id', carIds)
+    'car_id', carIds
   );
 
   const byCar = new Map<string, any[]>();
@@ -379,13 +411,9 @@ async function decorate(cars: any[]): Promise<SearchCar[]> {
   // the same reason as above.
   const modelIds = models.map(m => m.id);
   const [priceRows, ebayRows] = await Promise.all([
-    modelIds.length
-      ? selectAll<any>(supabase, 'price_history', 'model_id', qb => qb.in('model_id', modelIds))
-      : Promise.resolve([]),
-    modelIds.length
-      // ebay_image is the last-resort photo for cars with none.
-      ? selectAll<any>(supabase, 'ebay_links', 'model_id, ebay_image', qb => qb.in('model_id', modelIds))
-      : Promise.resolve([]),
+    selectAllIn<any>(supabase, 'price_history', 'model_id', 'model_id', modelIds),
+    // ebay_image is the last-resort photo for cars with none.
+    selectAllIn<any>(supabase, 'ebay_links', 'model_id, ebay_image', 'model_id', modelIds),
   ]);
   // Built from rows already fetched above, so this adds no query.
   const ebayPhotos = buildEbayPhotoMap(ebayRows, priceRows);
