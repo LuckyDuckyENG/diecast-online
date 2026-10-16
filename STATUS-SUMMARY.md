@@ -419,8 +419,17 @@ rebuild serves stale HTML against deleted JS chunks, so nothing hydrates and
 the page looks broken in a way that mimics a genuine bug. Kill the port
 first.
 
-**Still open:** the Android reporter has not confirmed. The two previous
-fixes also typechecked, deployed, and did nothing.
+**CONFIRMED FIXED by the reporter, 2026-10-16:** *"I can confirm it is fixed
+now and works as expected."* Third attempt, and the only one that was
+measured before being written. The two before it typechecked, deployed, and
+did nothing, which is the whole lesson: both were aimed at React, and React
+was 185ms of a 20,857ms problem.
+
+**The same person asked again for 1:64, and asked to be pinged if it ever
+happens.** Second time from the same commenter, which is one person twice
+rather than evidence of demand. The scale scope is deliberately 1:18 and
+1:43. Worth knowing they are still reading, though: this is the only
+outside party who has reported a defect, retested it and confirmed it.
 
 ## The Reddit post, and what it actually bought - 2026-10-12 to 14
 
