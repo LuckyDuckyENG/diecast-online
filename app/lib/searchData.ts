@@ -340,13 +340,39 @@ export async function searchCars(rawQuery: string): Promise<SearchCar[]> {
   // to the raw text rather than returning nothing for "c 4".
   const effective = terms.length ? terms : [whole];
 
-  const idSets = await Promise.all(effective.map(t => termCarIds(t, seasonId)));
+  /**
+   * SCALE NARROWS, it does not widen. Same rule as the season: "spark 1/43"
+   * means Spark AND 1:43, not Spark OR everything made at 1:43.
+   *
+   * Started alongside the terms rather than after them, because it depends on
+   * nothing they produce. Paged, because 1:43 alone is 2,858 models and a
+   * plain select would stop at 1,000 and silently drop cars from the answer.
+   */
+  const [idSets, atScale] = await Promise.all([
+    Promise.all(effective.map(t => termCarIds(t, seasonId))),
+    scale
+      ? selectAll<any>(supabase, 'models', 'car_id', qb => qb.eq('scale', scale))
+          .then(rows => new Set(rows.map(m => m.car_id)))
+      : Promise.resolve(null),
+  ]);
 
   // Smallest first: intersecting 12 ids against 2,000 is 12 lookups, the other
   // way round is 2,000.
   idSets.sort((a, b) => a.size - b.size);
   let ids = [...idSets[0]];
   for (const set of idSets.slice(1)) ids = ids.filter(id => set.has(id));
+
+  /**
+   * APPLIED TO THE IDS, BEFORE THE MAX_CARS SLICE, AND THAT ORDER MATTERS.
+   *
+   * It briefly ran the other way round while this function was being
+   * rewritten: cap to 200 cars, then filter those by scale. For "ferrari
+   * 1:18" that caps 355 Ferraris down to an arbitrary 200 and only then asks
+   * which are 1:18, so the answer depends on which 200 the database happened
+   * to return. The original code had a comment warning about exactly this and
+   * the rewrite walked straight into it.
+   */
+  if (atScale) ids = ids.filter(id => atScale.has(id));
   if (!ids.length) return [];
 
   const CAR_FIELDS = CAR_FIELDS_BASE;
@@ -360,26 +386,9 @@ export async function searchCars(rawQuery: string): Promise<SearchCar[]> {
    * that was NOT -- in decorate(), on model ids rather than car ids -- became
    * a live 500 on "spark" and "minichamps" that nobody connected to this.
    */
-  let matched: any[] = await selectAllIn<any>(
+  const matched: any[] = await selectAllIn<any>(
     supabase, 'cars', CAR_FIELDS, 'id', ids.slice(0, MAX_CARS)
   );
-
-  /**
-   * SCALE NARROWS, it does not widen. Same rule as the season: "spark 1/43"
-   * means Spark AND 1:43, not Spark OR everything made at 1:43.
-   *
-   * Applied BEFORE the MAX_CARS slice, so asking for a scale cannot leave you
-   * with a handful of results purely because the cap landed on the other one.
-   * Paged, because 1:43 alone is 2,858 models and a plain select would stop at
-   * 1,000 and silently drop cars from the answer.
-   */
-  if (scale && matched.length) {
-    const rows = await selectAll<any>(
-      supabase, 'models', 'car_id', qb => qb.eq('scale', scale)
-    );
-    const atScale = new Set(rows.map(m => m.car_id));
-    matched = matched.filter(c => atScale.has(c.id));
-  }
 
   const cars = matched.slice(0, MAX_CARS);
   if (!cars.length) return [];

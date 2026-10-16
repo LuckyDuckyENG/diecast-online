@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import { getHubSlugsForBuild } from '@/lib/hubData';
 import { slugify } from '@/lib/carSlug';
 
 /**
@@ -35,21 +34,34 @@ export const metadata = {
   robots: { index: false, follow: true },
 };
 
-/** Shown when the hub list cannot be read — recognisable names that have hubs. */
-const FALLBACK_DRIVERS = ['Max Verstappen', 'Lewis Hamilton', 'Charles Leclerc', 'Lando Norris'];
+/**
+ * Recognisable names, hardcoded, and NOT checked against the hub list.
+ *
+ * THIS PAGE IS RENDERED ON EVERY DYNAMIC REQUEST, WHETHER OR NOT IT IS SHOWN.
+ * not-found.tsx is part of the route tree, so Next renders it into the
+ * payload of any dynamic page in case notFound() is called. It used to call
+ * getHubSlugsForBuild() to filter these four names, and that goes through
+ * loadCatalogue() -- every car, every model, every price row.
+ *
+ * So each /search hit pulled the whole catalogue out of Supabase to decide
+ * whether to show four links on a page nobody was looking at. Measured
+ * 2026-10-16: /search?q=a, which performs NO SEARCH AT ALL, took 3.2s locally
+ * and 9.3s on the deployed site, and essentially all of it was this. The
+ * search itself was never the slow part.
+ *
+ * Latency was the smaller half. The real cost was EGRESS, on the one resource
+ * this project has already exceeded once (2026-09-22), charged per search.
+ *
+ * The filter protected against a name here not having a hub. It cannot
+ * happen in any state worth protecting: the threshold is MIN_CARS_FOR_HUB = 3
+ * and these are the four most-modelled drivers in the catalogue, all verified
+ * live. If one ever did fall below it, the cost is one link on a 404 page
+ * leading to another 404, which is not worth a catalogue read per request.
+ */
+const POPULAR_DRIVERS = ['Max Verstappen', 'Lewis Hamilton', 'Charles Leclerc', 'Lando Norris'];
 
-export default async function NotFound() {
-  /**
-   * Build-safe: a Supabase timeout here would otherwise fail the deployment,
-   * and a 404 page is the last thing that should be able to do that.
-   */
-  const hubs = await getHubSlugsForBuild();
-
-  const drivers = (
-    hubs.drivers.length
-      ? FALLBACK_DRIVERS.filter(n => hubs.drivers.includes(slugify(n)))
-      : []
-  ).map(n => ({ name: n, slug: slugify(n) }));
+export default function NotFound() {
+  const drivers = POPULAR_DRIVERS.map(n => ({ name: n, slug: slugify(n) }));
 
   return (
     <div className="min-h-screen flex flex-col">

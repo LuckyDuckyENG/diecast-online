@@ -59,15 +59,38 @@ export async function selectAllIn<T = any>(
 ): Promise<T[]> {
   if (!ids.length) return [];
   const unique = [...new Set(ids)];
-  const out: T[] = [];
 
+  const chunks: (string | number)[][] = [];
   for (let i = 0; i < unique.length; i += IN_CHUNK) {
-    const chunk = unique.slice(i, i + IN_CHUNK);
-    const rows = await selectAll<T>(supabase, table, columns, (q) => {
-      const withIn = q.in(column, chunk);
-      return tweak ? tweak(withIn) : withIn;
-    });
-    out.push(...rows);
+    chunks.push(unique.slice(i, i + IN_CHUNK));
+  }
+
+  /**
+   * CHUNKS RUN IN PARALLEL, in waves. They are independent reads of disjoint
+   * id ranges, so running them one after another spends the whole latency of
+   * every round trip in series for no reason.
+   *
+   * Measured on a 697-model search: price_history took 1,632ms as five
+   * sequential chunks, ebay_links 1,127ms as five more. Those two calls alone
+   * were 2.8s of a 3.5s search, and almost all of it was waiting.
+   *
+   * WAVES RATHER THAN ALL AT ONCE, because the chunk count is driven by the
+   * size of the result and nothing here caps it. A query matching the whole
+   * catalogue would otherwise open dozens of simultaneous connections, which
+   * is how a slow page becomes a rate-limited one.
+   */
+  const WAVE = 6;
+  const out: T[] = [];
+  for (let i = 0; i < chunks.length; i += WAVE) {
+    const wave = await Promise.all(
+      chunks.slice(i, i + WAVE).map((chunk) =>
+        selectAll<T>(supabase, table, columns, (q) => {
+          const withIn = q.in(column, chunk);
+          return tweak ? tweak(withIn) : withIn;
+        })
+      )
+    );
+    for (const rows of wave) out.push(...rows);
   }
   return out;
 }
