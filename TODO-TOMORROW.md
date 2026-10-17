@@ -32,6 +32,50 @@ Google's results page.
 
 See `app/lib/ownerVisit.ts`.
 
+## The retailer sweep
+
+**TWO TERMINALS, AT THE SAME TIME.** The script does not read shops itself,
+it drives `/api/admin/sweep-retailer` on a running server. Starting the sweep
+in the terminal that was running dev kills dev, and the script then reports
+every shop as unreachable.
+
+```
+cd app
+npm run dev                                 # terminal 1, LEAVE IT RUNNING
+
+cd app                                      # terminal 2, a SECOND window
+node scripts/fetch-fx.mjs                   # always first, see below
+node scripts/sweep-gaps.mjs --all           # dry run, writes nothing
+node scripts/sweep-gaps.mjs --all --apply   # ~3 hours
+```
+
+`cd app` matters in both. The scripts live under `app/scripts/` and read
+`.env.local` relative to the working directory, so from the repo root you get
+`Cannot find module`.
+
+**`fetch-fx.mjs` first, every time.** The sweep writes `price_aud` for
+thousands of rows, and `price_aud` is what decides which shop the site calls
+cheapest. Whatever rate is current when it runs is the one baked into every
+link people click.
+
+**`--all` versus the default.** Gaps-only is the right tool straight after an
+import: it looks only for models with no link at that shop and refreshes no
+prices. `--all` does both, which is what promotes a model from 2 shops to 3 —
+the threshold `/savings` is gated on — and what clears stale prices.
+
+**Not the admin buttons.** "Refresh retailer links" re-reads links you already
+have and discovers nothing, so it never promotes anything. "Refresh eBay
+listings" is a different dataset entirely and deletes listings that 404.
+
+**Expect some shops not to finish.** On 2026-10-17 the dry run predicted 111
+new links, 738 refreshes and 706 review candidates, with four shops unclean:
+Miniatures Minichamps, Metro Hobbies and Hobbyco TRUNCATED, and LIVECARMODEL
+failing outright with 0 passes. LIVECARMODEL is the biggest shop in the
+catalogue by shared models, so it is worth re-running on its own afterwards.
+
+A `FAILED fetch failed` on the first shop or two usually means the dev server
+is still compiling the admin route rather than the shop being down.
+
 ## Refreshing SPR Models
 
 Not in the retailer sweep, and cannot be: that pipeline narrows a shop's
