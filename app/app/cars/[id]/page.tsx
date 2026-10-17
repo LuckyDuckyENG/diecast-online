@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import CarDetail from './CarDetail';
 import { getCarPageData, getAllCarSlugs } from '@/lib/carPageData';
 import { carTitle } from '@/lib/carTitle';
@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { getRelatedCars } from '@/lib/relatedCars';
 import { getHubSlugs } from '@/lib/hubData';
 import { slugify, teamSlug } from '@/lib/carSlug';
+import { redirectForSlug } from '@/lib/slugRedirects';
 
 /**
  * Car detail page — server rendered.
@@ -83,6 +84,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function MasterCarPage({ params }: Props) {
   const { id } = await params;
   const data = await getCarPageData(id);
+
+  /**
+   * A renamed car sends a 308 rather than a 404.
+   *
+   * Checked only AFTER the normal lookup fails, so a working URL never
+   * touches it. Correcting a race name or a chassis name changes the slug,
+   * because the slug is built from both, and every one of those URLs is
+   * already indexed. Without this, fixing the data breaks the page.
+   */
+  if (!data) {
+    const moved = redirectForSlug(id);
+    if (moved) permanentRedirect(`/cars/${moved}`);
+  }
 
   if (!data) notFound();
 
