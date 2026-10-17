@@ -583,15 +583,30 @@ result displays, and "Ferrari" is what gets typed.
 - **An `--all` retailer sweep does two jobs**: promotes models from 2 shops
   to 3, which is what /savings is gated on, and refreshes prices before the
   30-day staleness cliff. Every recent sweep has been gaps-only.
-- **No public list of the 47 shops.** `/retailers` is a pitch TO retailers,
-  not a list of what is indexed. Asked for on r/Diecast, and it would give
-  the VAT labels a home and invite shop suggestions, which is free coverage.
+- ~~**No public list of the 47 shops.**~~ **DONE.** `/shops` is live, listing
+  35 shops with country, currency and what tax each price includes. Linked
+  from the footer, not the navbar, because it is a reference page.
 - **Yuui F1 Models is closing in 2026** ("Yuui.nl stopt in 2026"). 266 links
   point at it.
-- **14 car slugs REPEAT THE TEAM NAME** — `1979-lotus-lotus-79`, and the same
-  for Lotus 80, Lotus 81 and Protos 16 — because `chassis_name` stores
-  "Lotus 79" rather than "79". Live indexed slugs, so it needs redirects, and
-  it can ride along with the 38 event renames since those do too.
+- **22 car slugs REPEAT THE TEAM NAME**, not 14 — recounted 2026-10-17.
+  `1979-lotus-lotus-79`, and the same for Lotus 80, Lotus 81, Alfa 177, Alfa
+  179 and Protos 16, because `chassis_name` stores "Lotus 79" rather than
+  "79". The displayed title was always correct; `carTitle` drops a marque the
+  chassis already carries, so this only ever showed in the URL.
+
+  **The blocker is gone.** `lib/slugRedirects.ts` plus a check in
+  `app/cars/[id]` sends a renamed slug a 308 instead of a 404, and
+  `scripts/rename-slugs.mjs` does the rename and regenerates the map in one
+  pass so they cannot drift. Verified against a real build: mapped slug 308s,
+  an unmapped missing slug still 404s, a real slug is untouched.
+
+  **Two steps, and the order matters.** `--map-only`, commit, deploy; THEN
+  `--apply`. The map is only consulted when a slug fails to resolve, so
+  deploying it first is inert and leaves no window where those URLs 404.
+  Reversed, they 404 for the length of the deploy.
+
+  This also unblocks the 46 event renames above, which were deferred for the
+  same reason and can now use the same machinery.
 - **Four empty team rows are live `includes` traps**: `"Ferrari"`,
   `"Visa Cash App RB"`, `"Mercedes "` (trailing space) and
   `"Mercedes-AMG Petronas Formula One Team"`. The trailing-space row already
