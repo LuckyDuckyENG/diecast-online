@@ -24,13 +24,22 @@ Per-browser, stored in localStorage as `diecasts:notme`, so **the phone and
 the laptop each need arming once** and a fresh incognito window never has it.
 79% of real traffic is mobile, so the phone is the one that matters.
 
-It silences `search_queries` and `outbound_clicks` only. Page views still go
-to Vercel Analytics, which is a separate script — so your own browsing will
-still show in the page-view count, just not in the search or click data.
-Search Console is unaffected either way: it only counts arrivals from
-Google's results page.
+It silences `search_queries`, `outbound_clicks` **and Vercel page views**.
+This paragraph used to say page views were NOT covered; that stopped being
+true when `SiteAnalytics` gained
+`beforeSend={event => (isOwnerVisit() ? null : event)}`. Corrected
+2026-10-18, after the stale version was used to argue that the visitor count
+was inflated by the owner's own browsing. It is not.
 
-See `app/lib/ownerVisit.ts`.
+**So an unarmed browser is the only leak.** The flag lives in localStorage
+per browser, so the phone, the laptop and every fresh incognito window each
+need arming separately. 79% of real traffic is mobile, so the phone is the
+one that matters.
+
+Search Console is unaffected either way: it counts arrivals from Google's
+results page, so typing the URL or using a bookmark never registered there.
+
+See `app/lib/ownerVisit.ts` and `app/app/components/SiteAnalytics.tsx`.
 
 ## The retailer sweep
 
