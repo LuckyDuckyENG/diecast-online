@@ -3,6 +3,7 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import CarDetail from './CarDetail';
 import { getCarPageData, getAllCarSlugs } from '@/lib/carPageData';
 import { carTitle } from '@/lib/carTitle';
+import { carSummary } from '@/lib/carSummary';
 import { carPageJsonLd, jsonLdScript } from '@/lib/structuredData';
 import { getPriceHistory } from '@/lib/priceHistory';
 import { supabase } from '@/lib/supabase';
@@ -148,6 +149,7 @@ export default async function MasterCarPage({ params }: Props) {
         />
       )}
       <CarDetail
+        summary={carSummary(data)}
         car={data.car}
         variants={data.variants}
         urlParam={id}

@@ -46,12 +46,15 @@ export default function CarDetail({
   related,
   history,
   hubLinks,
+  summary,
 }: {
   car: any;
   variants: CarVariant[];
   urlParam: string;
   related: RelatedGroup[];
   history: Record<string, ModelHistory>;
+  /** Server-generated prose about this car; null when there is nothing true to say. */
+  summary: string | null;
   hubLinks: { driver: string | null; team: string | null; season: string | null };
 }) {
   const [selectedManufacturer, setSelectedManufacturer] = useState<string>('all');
@@ -144,9 +147,28 @@ export default function CarDetail({
           <p className="text-xs sm:text-sm font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-1 sm:mb-2">
             {carData.team?.name || 'Formula 1'}
           </p>
-          <h1 className="font-display font-black text-[26px] leading-tight sm:text-4xl lg:text-5xl sm:leading-none text-[var(--text-primary)] mb-4 sm:mb-6">
+          <h1 className="font-display font-black text-[26px] leading-tight sm:text-4xl lg:text-5xl sm:leading-none text-[var(--text-primary)] mb-4">
             {masterTitle}
           </h1>
+
+          {/*
+            The one part of this page that is about THIS car in prose.
+
+            Measured 2026-10-18: a 1967 car page was 346 words of which 134
+            appeared on every other car page too, leaving 49 words unique to
+            it. 2,241 pages that differ by a title and a few numbers is the
+            shape Google declines to index. Every clause here is generated
+            from data already loaded, so it is different for every car by
+            construction and adds no query.
+
+            Computed on the server and passed in, so it is in the HTML before
+            any JavaScript runs. See lib/carSummary.ts.
+          */}
+          {summary && (
+            <p className="max-w-3xl text-[15px] sm:text-base leading-relaxed text-[var(--text-secondary)] mb-4 sm:mb-6">
+              {summary}
+            </p>
+          )}
 
           <div className="flex flex-col md:flex-row gap-8">
             {/* Main Image */}
