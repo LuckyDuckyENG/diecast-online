@@ -1,4 +1,4 @@
-# Status Summary - last updated 2026-10-16
+# Status Summary - last updated 2026-10-19
 
 > Handoff doc. `TODO-TOMORROW.md` is from early July and is **stale** — it describes
 > the scraper-first approach that was abandoned.
@@ -273,6 +273,196 @@ exactly the decisive ones.
 the traffic, deliberately, since instrumentation cannot be backfilled. The
 first real question to ask them is the zero-result search query in the section
 above.
+
+## Every price is quotable, and the sweep is not what keeps them that way - 2026-10-17/18
+
+### THE SWEEP CANNOT REFRESH A STALE LINK, AND THE DOC USED TO IMPLY IT COULD
+
+An `--all` sweep was run specifically to clear Anthony's Diecasts' 118 stale
+rows. It cleared four.
+
+```
+Anthony's Diecasts   scanned 14,105 products   8 new   8 refreshed   114 left stale
+```
+
+The sweep rediscovers links by matching model words against a shop's feed
+URLs. That is the right tool for FINDING links and the wrong one for keeping
+them alive: it only refreshes what it happens to re-match.
+
+**Eight of those 114 were sampled by hand, expecting dead products. All eight
+were live, in stock pages.** So the site was answering "Check price on site"
+for models a visitor could have bought that minute, and no amount of sweeping
+would ever have fixed it, because the sweep was not reading those URLs.
+
+`scripts/refresh-stale.mjs` reads the stored `product_url` directly, through
+the same `/api/admin/refresh-prices` the admin button uses. The difference is
+scope: the button plans every link, 8,330 at ~3s each, seven hours. The stale
+set is 128.
+
+```
+before   8,222 rows, 8,090 quoted (98%), 132 stale across 11 shops
+after    8,330 rows, 8,318 quoted (100%), 12 stale across 8 shops
+run      128 attempted, 128 succeeded, 0 failed, ~7 minutes
+```
+
+**100% quotable, for the first time in the project.** Use `--days 25` to get
+ahead of the cliff rather than waiting for it.
+
+**The 12 that remain are probably dead, not stale.** They refreshed without
+error and came back with no price. Tibormodel, Racepassionstore, Redbullshop,
+Modelauto and Mintmodels now have ZERO live rows each, are not in the 24
+sweepable shops, and hold one or two hand-added links apiece. They are already
+invisible to visitors: `shopsData.ts` filters on `prices > 0` counted inside
+the 30-day window, so a shop with nothing quotable is left out rather than
+shown as a zero. Deletion, not sweeping, and only if it is ever worth the care
+that `price_observations` being append-only demands.
+
+### RENAMING A CAR NO LONGER BREAKS ITS URL
+
+`lib/slugRedirects.ts` plus a check in `app/cars/[id]` sends a renamed slug a
+308 instead of a 404. Consulted ONLY after the normal lookup fails, so a
+working URL never touches it. `scripts/rename-slugs.mjs` renames and
+regenerates the map in one pass so the two cannot drift.
+
+Applied to the 22 cars whose `chassis_name` repeated the team. Verified on
+production: **22/22 redirect correctly, one hop, ending 200**, and the sitemap
+carries zero old-style entries.
+
+**TWO STEPS, AND THE ORDER IS NOT OPTIONAL.** `--map-only`, commit, deploy;
+THEN `--apply`. The map is inert while the slugs still resolve, so deploying
+it first costs nothing and leaves no window. Reversed, those URLs 404 for the
+length of the deploy. The regenerated map came out byte-identical to the one
+already committed, which is the design validating itself.
+
+Unblocks the 46 event renames, deferred for exactly this reason.
+
+### A DATA-ONLY CHANGE CANNOT INVALIDATE A BUILD CACHE
+
+The first redeploy after the renames did not pick them up: the sitemap still
+listed 17 old URLs and old slugs still returned 200, even cache-busted. The
+renames live in the DATABASE, so from the build's point of view nothing
+changed, and Next restored the previously prerendered pages from `.next/cache`.
+
+Every prerendered page here is built from Supabase, so **any import, rename or
+sweep that changes what pages should say will be silently ignored by a cached
+rebuild.** Redeploy with "Use existing Build Cache" unticked.
+
+### CURRENCY: NOTHING GROSSLY WRONG, AND WHY THAT IS ALL THAT CAN BE SAID
+
+The sweep flagged four shops whose feed declares a currency the stored rows
+disagree with. `scripts/currency-check.mjs` compares each shop's RAW price
+against the median `price_aud` others charge for the SAME model.
+
+**The sweep was already doing the right thing.** It prefers
+`establishedCurrency`, the majority vote over stored rows, so applying can
+never introduce a new currency reading for a shop that already has rows.
+
+What the check CANNOT do, learned by getting it wrong twice while writing it:
+a currency and a discount are the same observation. Miniatures Minichamps
+prices in EUR and sits ~15% under the field, which is arithmetically identical
+to pricing in GBP; the first version accused a Belgian shop of sterling. The
+second had no NZD rate loaded, because `fetch-fx` stores NZD only as AUD->NZD,
+and accused SPR Models of USD. Verdicts are now consistent / wide / check by
+hand, and nothing is 5x out, which is the failure that would actually cost
+money.
+
+### WHERE THE SITE ACTUALLY STANDS, MEASURED
+
+30 days of Vercel analytics, owner's own visits excluded:
+
+```
+120 visitors   736 page views   38% bounce
+referrers: google 46 · reddit 4 · google.com.hk 2 · bing 1 · chatgpt 1 · ~66 none
+```
+
+**Filtered to Google, the landing pages are deep**, which is the architecture
+working as designed:
+
+```
+/cars/2024-mercedes-w15-george-russell-las-vegas-gp   2
+/drivers/sebastian-vettel                             2
+/savings                                              2
+/                                                     1
+/cars/1967-lotus-25-chris-irwin-dutch-gp              1
+```
+
+46 visitors spread across ~40 pages, top page at 2. That is the long tail
+working at tiny volume, and it means traffic scales roughly linearly with
+indexed pages rather than depending on one page getting lucky.
+
+**Two cautions against over-reading it.** The blended 6.1 pages per visit is
+carried almost entirely by the ~66 visitors with no referrer, which on a
+nine-week-old site is not obviously human; the Google-only bounce rate is 52%,
+not 38%. And Reddit sent FOUR people, so the post's entire value was its three
+comments.
+
+**Reddit is not a growth channel. Monetisation is not the constraint.** eBay
+links are affiliate-tagged; retailer links are not, so roughly half of 25
+monthly outbound clicks earn nothing. Worth connecting before growth, not
+because it pays now: 25 clicks is a few dollars a month however it is tagged.
+Every monetisation idea is a multiplier on a number that is currently 25.
+
+### NO TECHNICAL BLOCKER TO INDEXING. DO NOT RE-AUDIT THIS.
+
+Checked 2026-10-18, all clean:
+
+```
+robots.txt    Allow: / with only /admin, /api/, /search disallowed
+canonical     present, self-referencing
+meta robots   absent · X-Robots-Tag absent
+sitemap       2,507 URLs, 2,241 cars, 12 random samples all 200
+titles        "1967 Lotus 25 Chris Irwin - Dutch GP | Diecast prices"
+```
+
+If pages are not indexed, Google is CHOOSING not to, which for a nine-week-old
+domain with 2,241 pages is ordinary. There is no code fix for that.
+
+### THIN CONTENT IS REAL AND REPHRASING DOES NOT FIX IT
+
+A 1967 car page: 346 words, 183 distinct, 134 of them on every other car page
+too. Forty-nine words about that car. The thinnest pages are the OLDEST cars,
+which is most of the catalogue.
+
+`lib/carSummary.ts` adds a prose paragraph built from loaded data. Predicted to
+roughly double the unique content. It did not:
+
+```
+total words          346 -> 383
+distinct words       183 -> 200
+unique to this car    49 ->  55
+boilerplate share    73% -> 73%
+```
+
+Six distinct words. The prose is built from data already in the page's own
+table, so those words were already there, and the connective phrases now
+appear on all 2,241 pages, which is why the share did not move.
+
+**The real conclusion: the unique information on a car page is genuinely
+small, and no amount of writing fixes that.** It needs data the site does not
+hold — finishing positions, production runs, release notes. That is
+acquisition, not generation. The summary is KEPT because it helps a reader who
+lands cold, not because it is an SEO lever.
+
+**Process note.** Thin content was called "the most likely remaining
+explanation" and a fix was built for a diagnosis never confirmed. The indexed
+page count is STILL unknown and is still the only thing that would say whether
+any of this matters. Search Console, Indexing → Pages.
+
+### SO THE CONSTRAINT IS REACH
+
+The product converts the people who find it. The pain is evidenced, in
+collectors' own words, before they knew what the site did. Almost nobody
+arrives. The levers are coverage (every well-made page is another query you
+can answer, so the eBay candidates and the 516 missing images ARE the growth
+plan), links, and time.
+
+**The one untried lever: the 36 shops you send buyers to for free.**
+`/retailers` already exists as a pitch. Inbound links from established shops
+in exactly this niche are the most valuable thing for the problem the site
+actually has, and unlike ads they do not stop working when you stop paying.
+
+**Expect no feedback loop.** This work shows up as a drift in Search Console
+impressions a quarter later. Check fortnightly, not daily.
 
 ## The /browse freeze: three fixes, and only the third was aimed at it - 2026-10-15/16
 
@@ -580,9 +770,13 @@ result displays, and "Ferrari" is what gets typed.
   Review page is `/admin/review`, built so one candidate fits on screen.
 - **1976, 1986, 1989 and 1990 produced NO eBay candidates at all**, so those
   four are the only seasons worth re-running or accepting as empty.
-- **An `--all` retailer sweep does two jobs**: promotes models from 2 shops
-  to 3, which is what /savings is gated on, and refreshes prices before the
-  30-day staleness cliff. Every recent sweep has been gaps-only.
+- ~~**An `--all` retailer sweep does two jobs.**~~ **HALF WRONG, corrected
+  2026-10-18.** It promotes models from 2 shops to 3, which is real and is
+  what /savings is gated on. It does NOT reliably refresh prices: run against
+  Anthony's Diecasts it scanned 14,105 products and refreshed 8 of its 625
+  links, leaving 114 stale, because it only refreshes what it re-matches from
+  the feed. Use `scripts/refresh-stale.mjs` for staleness. See the 2026-10-17/18
+  section at the top.
 - ~~**No public list of the 47 shops.**~~ **DONE.** `/shops` is live, listing
   35 shops with country, currency and what tax each price includes. Linked
   from the footer, not the navbar, because it is a reference page.
